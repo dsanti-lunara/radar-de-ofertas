@@ -1,0 +1,146 @@
+{
+  "package": "radar-engine-sdd",
+  "version": "1.0",
+  "documents": [
+    {
+      "path": "AGENTS.md",
+      "sha256": "072916d79570155804954915acb1618eba051d3974e323f726a083d199de0be2",
+      "bytes": 3695
+    },
+    {
+      "path": "README.md",
+      "sha256": "60738ee2b7d62dc233d442c55407031b343a007aac37dae0d39355ce08ab6a54",
+      "bytes": 1572
+    },
+    {
+      "path": "docs/00_SDD_MASTER.md",
+      "sha256": "1064637a714a2463638685c09f31ad9b6218610b4398dcae6e9b42877010c910",
+      "bytes": 3522
+    },
+    {
+      "path": "docs/01_SCOPE_AND_PRINCIPLES.md",
+      "sha256": "b8c9aa1dad5fd294466ce54d2718266dfa552cc084c55683a43a99699d9fc0bf",
+      "bytes": 2285
+    },
+    {
+      "path": "docs/02_ARCHITECTURE.md",
+      "sha256": "c909bd4cb36f4cfa156c32ef47499c3b504b8c9bf44ce10d520b96de408538ab",
+      "bytes": 2456
+    },
+    {
+      "path": "docs/03_DOMAIN_MODEL.md",
+      "sha256": "1a3a4a7de786d56c246de59175bd9993efb1e0ba533a1b036c04e630ea005996",
+      "bytes": 3733
+    },
+    {
+      "path": "docs/04_DATA_CONTRACTS.md",
+      "sha256": "208f47b4916e04f4217e3feaa567142342dac098a613e376f62e6967d161a530",
+      "bytes": 3082
+    },
+    {
+      "path": "docs/05_SCORING_ENGINE.md",
+      "sha256": "3326f1c77f52675bfce77781cc2b964e9acc1776e66a3f2a012ed8cd92c61db4",
+      "bytes": 4726
+    },
+    {
+      "path": "docs/06_AI_ENGINE.md",
+      "sha256": "d1b8f5c92dde29f379fe9e55d892ab1fe29d12adf2ea98aa816c4213fd0349d7",
+      "bytes": 3646
+    },
+    {
+      "path": "docs/07_BROWSER_BRIDGE.md",
+      "sha256": "d9889d6c3e6739609ae82c0e858b5cd10209e21500b40dcd7f4bd7e98f0d0de9",
+      "bytes": 3589
+    },
+    {
+      "path": "docs/08_WORKFLOW_ENGINE.md",
+      "sha256": "e98345bfb3ca6111d9c1106d302b1903a04d65a8b79c53348fe5816addca0029",
+      "bytes": 3283
+    },
+    {
+      "path": "docs/09_PUBLISHING.md",
+      "sha256": "52f08335e762c55b1659e2fe4d4f1a2575d9969d215ff8a0d884917e9915e2ed",
+      "bytes": 2757
+    },
+    {
+      "path": "docs/10_PERSISTENCE_AND_RECOVERY.md",
+      "sha256": "515f7adff6f3d7931513ab18750055641f43cd260d3cb5dec61470f36656be2d",
+      "bytes": 3065
+    },
+    {
+      "path": "docs/11_OPERATIONS_AND_UI.md",
+      "sha256": "3ec8d10760f728ffa6becc5f7768529207e8a34fc4e82c03e6bf3269f859e61f",
+      "bytes": 2734
+    },
+    {
+      "path": "docs/12_SECURITY_AND_COMPLIANCE.md",
+      "sha256": "de9a40fc6a04b6b4ec76180007db337495f69934f70bdf4ea39e70dc6b5fac61",
+      "bytes": 3594
+    },
+    {
+      "path": "docs/13_QA_ACCEPTANCE_MATRIX.md",
+      "sha256": "00827e544dd4c3008d822b02820bc43c98c910779c188a01dcd729d5b995c752",
+      "bytes": 4718
+    },
+    {
+      "path": "docs/14_DELIVERY_PLAN.md",
+      "sha256": "69fd3d36eb832e4b8323534eb959a5600773cfe7c3360b02248a354fce162af4",
+      "bytes": 2656
+    },
+    {
+      "path": "docs/BROWSER_RECONNAISSANCE.md",
+      "sha256": "b1ce8533e3829f5a349c2f928b0ad0cc89831141532b324fb29c347b8b3f088e",
+      "bytes": 4430
+    },
+    {
+      "path": "docs/DECISION_LOG.md",
+      "sha256": "a7618524b1612867daf6f3d11565a6cedca2c77608ef5706823931bbabb42c5e",
+      "bytes": 37096
+    },
+    {
+      "path": "docs/ERROR_CATALOG.md",
+      "sha256": "14a197f050023f4331b7b33542eb133d520d79eac661ccbc490740b30764c96a",
+      "bytes": 3191
+    },
+    {
+      "path": "docs/INSTALLATION.md",
+      "sha256": "1b2ae20174b00b1a43383db87e8fcdcc96b4f68902444d075e165e9175d2424c",
+      "bytes": 1679
+    },
+    {
+      "path": "docs/ISSUE_MAP.md",
+      "sha256": "d425e6a176aef9f28e763754f48f78f9867ad80d5e016fe8c7ce0fce9cb6bb26",
+      "bytes": 6549
+    },
+    {
+      "path": "docs/ISSUE_TEMPLATE.md",
+      "sha256": "8bbf7738e17d217294bef3cf2d9ecfba7c8ea1437c8bb5962185a29d07d74eaf",
+      "bytes": 957
+    },
+    {
+      "path": "docs/RECOVERY_RUNBOOK.md",
+      "sha256": "fcc3970c7ed14ff3e351daf0b47440a3e6dfe3abf9c7e035d48d8b2a0f77fd98",
+      "bytes": 2499
+    },
+    {
+      "path": "docs/SHOPEE_CAPABILITY_REPORT.md",
+      "sha256": "4adcc73b87d05a98f4104731759f5ee7a76775bd4d82d3e57af73724dabc5dc9",
+      "bytes": 1546
+    },
+    {
+      "path": "docs/agents/issue-tracker.md",
+      "sha256": "f98d525ac968a67884a7f506a49f7413213e04f46c7b1c48539026c0ca348f28",
+      "bytes": 845
+    },
+    {
+      "path": "docs/agents/triage-labels.md",
+      "sha256": "96812dc7c074e6a2f1abb3b4c11f0757c35163bf5b24fac5fb7e6ee23b9e79e7",
+      "bytes": 290
+    },
+    {
+      "path": "docs/agents/domain.md",
+      "sha256": "c31ed107f8d244c60d4936b7ea0af1e24ae6be58e9e4250de7c54d0f9929dde2",
+      "bytes": 540
+    }
+  ]
+}

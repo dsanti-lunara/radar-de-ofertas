@@ -4,12 +4,36 @@ set -Eeuo pipefail
 ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 cd "$ROOT"
 
+# Values explicitly supplied by the caller (for example
+# DRY_RUN=1 ./scripts/run-github-issues.sh) must win over .env.opencode.
+# Capture supported overrides before sourcing the file, then restore them.
+CONFIG_VARS=(
+  OPENCODE_MODEL OPENCODE_AGENT MIN_OPENCODE_VERSION GITHUB_REPO
+  READY_LABEL RUNNING_LABEL DONE_LABEL BLOCKED_LABEL AUTO_CREATE_LABELS
+  ISSUE_LIMIT MAX_ISSUES STOP_ON_BLOCKED FORCE
+  AUTO_COMMIT COMMIT_PREFIX ALLOWED_BRANCH ROLLBACK_ON_FAILURE
+  AUTO_PUSH AUTO_CLOSE_ISSUE AUTO_COMMENT ALLOW_CLOSE_WITHOUT_PUSH
+  DRY_RUN LOG_DIR CONTEXT_DIR
+)
+declare -A CALLER_OVERRIDES=()
+for _name in "${CONFIG_VARS[@]}"; do
+  if [[ -v "$_name" ]]; then
+    CALLER_OVERRIDES["$_name"]="${!_name}"
+  fi
+done
+
 if [[ -f "$ROOT/.env.opencode" ]]; then
   set -a
   # shellcheck disable=SC1091
   source "$ROOT/.env.opencode"
   set +a
 fi
+
+for _name in "${!CALLER_OVERRIDES[@]}"; do
+  printf -v "$_name" '%s' "${CALLER_OVERRIDES[$_name]}"
+  export "$_name"
+done
+unset _name
 
 OPENCODE_MODEL="${OPENCODE_MODEL:-opencode-go/deepseek-v4.1-flash}"
 OPENCODE_AGENT="${OPENCODE_AGENT:-issue-runner}"
@@ -221,6 +245,10 @@ ensure_label() {
   fi
 
   if is_true "$AUTO_CREATE_LABELS"; then
+    if is_true "$DRY_RUN"; then
+      info "DRY_RUN: would create label: $name"
+      return 0
+    fi
     info "Creating label: $name"
     gh label create "$name" -R "$GITHUB_REPO" --color "$color" --description "$description" >/dev/null
   else
@@ -257,7 +285,11 @@ write_issue_context() {
     printf '# GitHub Issue Context\n\n'
     printf 'Repository: %s\n' "$GITHUB_REPO"
     printf 'Issue: #%s\n\n' "$issue"
-    GH_PAGER=cat NO_COLOR=1 gh issue view "$issue" -R "$GITHUB_REPO" --comments
+    GH_PAGER=cat NO_COLOR=1 gh issue view "$issue" -R "$GITHUB_REPO" \
+      --json title,body,url,author,labels,comments \
+      --jq '. as $i |
+        "Title: \($i.title)\nURL: \($i.url)\nAuthor: \($i.author.login)\nLabels: \([$i.labels[].name] | join(", "))\n\n## Description\n\n\($i.body // "")\n\n## Comments\n\n" +
+        ([$i.comments[] | "### Comment by \(.author.login)\n\n\(.body)\n"] | join("\n"))'
   } > "$context_file"
 }
 
@@ -389,12 +421,14 @@ run_issue() {
   prompt="Implement exactly GitHub Issue #$issue from the attached issue context file. Investigate the repository, load relevant project skills/instructions, make the smallest complete implementation, validate it, and finish with the required AUTOMATION_RESULT contract. Do not commit, push, switch branches, close the issue, or mutate GitHub labels."
 
   set +e
+  # The runner already cd's to the repository root. OpenCode 2.0.23 does
+  # not expose --dir on `opencode run`, so the process working directory is
+  # the project context.
   NO_COLOR=1 opencode run \
     --auto \
     --agent "$OPENCODE_AGENT" \
     --model "$OPENCODE_MODEL" \
     --title "github-issue-$issue" \
-    --dir "$ROOT" \
     --file "$context_file" \
     "$prompt" 2>&1 | tee "$log_file"
   exit_code=${PIPESTATUS[0]}

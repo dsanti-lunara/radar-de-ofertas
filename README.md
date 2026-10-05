@@ -74,4 +74,13 @@ o arquivo. Secrets ficam fora do arquivo: cada referência lógica é resolvida 
 inválida bloqueia CLI/API com `RAD-CFG-001`/`RAD-CFG-002`; logs são JSON
 sanitizado em stderr com Correlation ID.
 
+Captura manual (TKT-03): `POST /captures/manual` recebe o contrato versionado
+`ManualCapture` (`schema_version=1.0`), sanitiza/valida o payload, persiste
+`RawCapture`/`Evidence` e materializa `Product`, `MarketplaceProduct`, `Offer`,
+`DiscoveryEvent`, `Candidate` e `AuditEvent` em uma única transação; `GET
+/candidates/{id}` consulta o Candidate resultante. `marketplace + external_id` é
+único (captura repetida não duplica identidade), campos sensíveis são recusados
+e erros retornam `RAD-CAP-001..004` com Correlation ID. Contrato em
+`docs/04_DATA_CONTRACTS.md`.
+
 Testes live (browser/IA/Telegram/WhatsApp) são opt-in e ficam fora da suíte padrão.

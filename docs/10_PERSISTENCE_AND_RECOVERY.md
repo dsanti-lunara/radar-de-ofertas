@@ -14,6 +14,13 @@ Configuração:
 
 SQLAlchemy 2 + Alembic.
 
+Implementação (TKT-03): a captura manual persiste `product`, `marketplace_product`
+(único por `marketplace + external_id`), `offer`, `raw_capture`, `evidence`,
+`discovery_event`, `candidate` e `audit_event` em uma única transação; a
+constraint de identidade e as FKs são verificadas pelo SQLite. Timestamps são
+ISO-8601 UTC e dinheiro é string decimal (sem float binário). A migration
+`0002_manual_capture` cria o schema e atualiza `schema_version` (`db_schema`).
+
 ## Append-only
 
 Não sobrescrever:

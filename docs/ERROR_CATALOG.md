@@ -13,6 +13,7 @@ Prefixos sugeridos:
 - RAD-CMP
 - RAD-BKP
 - RAD-CFG
+- RAD-CAP
 
 ## Browser
 
@@ -112,6 +113,21 @@ Prefixos sugeridos:
 | RAD-CFG-002 CONFIG_UNREADABLE | arquivo de config indicado não encontrado ou ilegível | no |
 | RAD-CFG-003 SECRET_UNAVAILABLE | secret referenciado ausente no armazenamento seguro; bloqueia a capability do componente | no |
 | RAD-CFG-004 SECRET_ACCESS_DENIED | componente pediu secret fora do seu escopo de menor privilégio | no |
+
+## Capture / Domain
+
+Implementação TKT-03 (RDR-011, RDR-012, RDR-014, RDR-015, RDR-021): a captura
+manual é validada antes de qualquer escrita e persiste em uma única transação,
+portanto falha sem escrita parcial. Erros são retornados no contrato
+`{schema_version, status, correlation_id, error}`.
+
+| Code | Meaning | Retry |
+|---|---|---|
+| RAD-CAP-001 CAPTURE_PAYLOAD_INVALID | payload de captura inválido (schema, enum, URL, valor monetário, schema_version) | no |
+| RAD-CAP-002 CAPTURE_SENSITIVE_FIELD | campo sensível (token/secret/cookie/password) recusado na captura | no |
+| RAD-CAP-003 CAPTURE_IDENTITY_CONFLICT | corrida de identidade `marketplace + external_id`; identidade já existe | yes |
+| RAD-CAP-004 CANDIDATE_NOT_FOUND | Candidate consultado não existe | no |
+
 
 Config inválida bloqueia a inicialização de CLI/API antes de qualquer comando
 (AUT-224, AUT-225). Secret ausente bloqueia somente a capability afetada; nunca

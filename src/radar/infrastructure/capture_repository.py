@@ -1,0 +1,283 @@
+"""SQLAlchemy implementation of the capture persistence port.
+
+All writes for one capture happen inside a single transaction, so a rejected or
+failing capture never leaves a partial graph (acceptance: "sem escrita
+parcial"). The `marketplace + external_id` unique constraint backs the identity
+dedupe and a concurrent race fails closed with a retryable structured error.
+"""
+
+from __future__ import annotations
+
+import json
+from dataclasses import dataclass
+from datetime import datetime
+
+from sqlalchemy import select, update
+from sqlalchemy.engine import Engine
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session
+
+from radar.domain.audit import AuditEvent
+from radar.domain.capture import (
+    Candidate,
+    CaptureAggregate,
+    CapturedOffer,
+    DiscoveryEvent,
+    Evidence,
+    Marketplace,
+    MarketplaceProduct,
+    Offer,
+    Product,
+    RawCapture,
+    identity_conflict_error,
+)
+from radar.infrastructure.models import (
+    AuditEventRow,
+    CandidateRow,
+    DiscoveryEventRow,
+    EvidenceRow,
+    MarketplaceProductRow,
+    OfferRow,
+    ProductRow,
+    RawCaptureRow,
+)
+
+_IDENTITY_CONSTRAINT = "UNIQUE constraint failed: marketplace_product"
+
+
+def _iso(moment: datetime) -> str:
+    return moment.isoformat()
+
+
+def _parse(moment: str) -> datetime:
+    return datetime.fromisoformat(moment)
+
+
+@dataclass(slots=True)
+class SqlAlchemyCaptureRepository:
+    """Persist and read capture graphs against the canonical SQLite store."""
+
+    engine: Engine
+
+    def find_marketplace_product(
+        self, marketplace: Marketplace, external_id: str
+    ) -> MarketplaceProduct | None:
+        with Session(self.engine) as session:
+            row = session.execute(
+                select(MarketplaceProductRow).where(
+                    MarketplaceProductRow.marketplace == marketplace.value,
+                    MarketplaceProductRow.external_id == external_id,
+                )
+            ).scalar_one_or_none()
+            return None if row is None else _marketplace_product_from_row(row)
+
+    def save_capture(self, aggregate: CaptureAggregate) -> None:
+        try:
+            with Session(self.engine) as session, session.begin():
+                self._insert(session, aggregate)
+        except IntegrityError as exc:
+            if _IDENTITY_CONSTRAINT in str(exc.orig):
+                raise identity_conflict_error(
+                    aggregate.marketplace_product.marketplace,
+                    aggregate.marketplace_product.external_id,
+                ) from exc
+            raise
+
+    def get_captured_offer(self, candidate_id: str) -> CapturedOffer | None:
+        with Session(self.engine) as session:
+            candidate = session.get(CandidateRow, candidate_id)
+            if candidate is None:
+                return None
+            offer = session.get(OfferRow, candidate.offer_id)
+            marketplace_product = (
+                None
+                if offer is None
+                else session.get(MarketplaceProductRow, offer.marketplace_product_id)
+            )
+            raw_capture = session.get(RawCaptureRow, candidate.raw_capture_id)
+            discovery_event = session.get(DiscoveryEventRow, candidate.discovery_event_id)
+            if offer is None or marketplace_product is None or raw_capture is None:
+                return None
+            return CapturedOffer(
+                schema_version=raw_capture.schema_version,
+                correlation_id=raw_capture.correlation_id,
+                candidate_id=candidate.id,
+                candidate_state=candidate.state,
+                offer_id=offer.id,
+                product_id=marketplace_product.product_id,
+                marketplace_product_id=marketplace_product.id,
+                raw_capture_id=raw_capture.id,
+                discovery_event_id=(
+                    discovery_event.id
+                    if discovery_event is not None
+                    else candidate.discovery_event_id
+                ),
+                audit_event_id=candidate.audit_event_id,
+                marketplace=marketplace_product.marketplace,
+                external_id=marketplace_product.external_id,
+                source=(
+                    discovery_event.source if discovery_event is not None else raw_capture.source
+                ),
+                title=marketplace_product.title,
+                captured_at=_parse(raw_capture.captured_at),
+                duplicate_identity=None,
+            )
+
+    def _insert(self, session: Session, aggregate: CaptureAggregate) -> None:
+        if aggregate.product is not None:
+            session.add(_product_to_row(aggregate.product))
+            session.flush()
+        if aggregate.create_marketplace_product:
+            session.add(_marketplace_product_to_row(aggregate.marketplace_product))
+            session.flush()
+        else:
+            session.execute(
+                update(MarketplaceProductRow)
+                .where(MarketplaceProductRow.id == aggregate.marketplace_product.id)
+                .values(last_seen_at=_iso(aggregate.marketplace_product.last_seen_at))
+            )
+        session.add(_raw_capture_to_row(aggregate.raw_capture))
+        session.flush()
+        session.add(_offer_to_row(aggregate.offer))
+        session.flush()
+        session.add(_audit_event_to_row(aggregate.audit_event))
+        session.flush()
+        session.add(_discovery_event_to_row(aggregate.discovery_event))
+        session.flush()
+        session.add_all(_evidence_to_row(item) for item in aggregate.evidence)
+        session.flush()
+        session.add(_candidate_to_row(aggregate.candidate))
+
+
+def _product_to_row(product: Product) -> ProductRow:
+    return ProductRow(
+        id=product.id,
+        canonical_name=product.canonical_name,
+        brand=product.brand,
+        model=product.model,
+        category=product.category,
+        subcategory=product.subcategory,
+        attributes=json.dumps(dict(product.attributes), sort_keys=True),
+        created_at=_iso(product.created_at),
+        updated_at=_iso(product.updated_at),
+    )
+
+
+def _marketplace_product_to_row(marketplace_product: MarketplaceProduct) -> MarketplaceProductRow:
+    return MarketplaceProductRow(
+        id=marketplace_product.id,
+        product_id=marketplace_product.product_id,
+        marketplace=marketplace_product.marketplace.value,
+        external_id=marketplace_product.external_id,
+        url=marketplace_product.url,
+        title=marketplace_product.title,
+        seller_id=marketplace_product.seller_id,
+        raw_category=marketplace_product.raw_category,
+        first_seen_at=_iso(marketplace_product.first_seen_at),
+        last_seen_at=_iso(marketplace_product.last_seen_at),
+    )
+
+
+def _marketplace_product_from_row(row: MarketplaceProductRow) -> MarketplaceProduct:
+    return MarketplaceProduct(
+        id=row.id,
+        product_id=row.product_id,
+        marketplace=Marketplace(row.marketplace),
+        external_id=row.external_id,
+        first_seen_at=_parse(row.first_seen_at),
+        last_seen_at=_parse(row.last_seen_at),
+        url=row.url,
+        title=row.title,
+        seller_id=row.seller_id,
+        raw_category=row.raw_category,
+    )
+
+
+def _offer_to_row(offer: Offer) -> OfferRow:
+    return OfferRow(
+        id=offer.id,
+        marketplace_product_id=offer.marketplace_product_id,
+        current_price=str(offer.current_price),
+        original_price=None if offer.original_price is None else str(offer.original_price),
+        discount_percent=None if offer.discount_percent is None else str(offer.discount_percent),
+        sales_count=offer.sales_count,
+        seller_id=offer.seller_id,
+        seller_name=offer.seller_name,
+        rating=offer.rating,
+        stock=offer.stock,
+        shipping_cost=None if offer.shipping_cost is None else str(offer.shipping_cost),
+        coupon=offer.coupon,
+        affiliate_commission=(
+            None if offer.affiliate_commission is None else str(offer.affiliate_commission)
+        ),
+        captured_at=_iso(offer.captured_at),
+        source=offer.source.value,
+        correlation_id=offer.correlation_id,
+    )
+
+
+def _raw_capture_to_row(raw_capture: RawCapture) -> RawCaptureRow:
+    return RawCaptureRow(
+        id=raw_capture.id,
+        marketplace=raw_capture.marketplace.value,
+        source=raw_capture.source.value,
+        source_url=raw_capture.source_url,
+        payload=json.dumps(dict(raw_capture.payload), ensure_ascii=False, sort_keys=True),
+        schema_version=raw_capture.schema_version,
+        correlation_id=raw_capture.correlation_id,
+        captured_at=_iso(raw_capture.captured_at),
+    )
+
+
+def _evidence_to_row(evidence: Evidence) -> EvidenceRow:
+    return EvidenceRow(
+        id=evidence.id,
+        entity_type=evidence.entity_type,
+        entity_id=evidence.entity_id,
+        field_name=evidence.field_name,
+        value=evidence.value,
+        source_type=evidence.source_type,
+        source_url=evidence.source_url,
+        captured_at=_iso(evidence.captured_at),
+        confidence=evidence.confidence,
+        raw_reference=evidence.raw_reference,
+    )
+
+
+def _audit_event_to_row(audit_event: AuditEvent) -> AuditEventRow:
+    return AuditEventRow(
+        id=audit_event.id,
+        event_type=audit_event.event_type,
+        entity_type=audit_event.entity_type,
+        entity_id=audit_event.entity_id,
+        source=audit_event.source,
+        correlation_id=audit_event.correlation_id,
+        payload=json.dumps(dict(audit_event.payload), ensure_ascii=False, sort_keys=True),
+        recorded_at=_iso(audit_event.recorded_at),
+    )
+
+
+def _discovery_event_to_row(discovery_event: DiscoveryEvent) -> DiscoveryEventRow:
+    return DiscoveryEventRow(
+        id=discovery_event.id,
+        marketplace=discovery_event.marketplace.value,
+        source=discovery_event.source.value,
+        external_id=discovery_event.external_id,
+        raw_capture_id=discovery_event.raw_capture_id,
+        correlation_id=discovery_event.correlation_id,
+        captured_at=_iso(discovery_event.captured_at),
+    )
+
+
+def _candidate_to_row(candidate: Candidate) -> CandidateRow:
+    return CandidateRow(
+        id=candidate.id,
+        offer_id=candidate.offer_id,
+        state=candidate.state.value,
+        correlation_id=candidate.correlation_id,
+        raw_capture_id=candidate.raw_capture_id,
+        discovery_event_id=candidate.discovery_event_id,
+        audit_event_id=candidate.audit_event_id,
+        created_at=_iso(candidate.created_at),
+        updated_at=_iso(candidate.updated_at),
+    )

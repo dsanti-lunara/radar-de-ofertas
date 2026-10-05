@@ -91,6 +91,52 @@ DOM failure:
 
 Backend normaliza valores monetários. Extensão não executa regras de negócio.
 
+### Manual capture, implementação (TKT-03)
+
+Implementado em `POST /captures/manual` (`schema_version=1.0`) sobre a fronteira
+pública. O contrato é estrito (`extra=forbid`): campos desconhecidos e nomes
+sensíveis (`password`, `token`, `secret`, `cookie`, `authorization`, ...) são
+recusados antes de qualquer escrita. Campos de texto são sanitizados (controle/
+quebra de linha) e valores monetários exigem string decimal; `float` binário é
+recusado. A URL deve ser `http(s)` absoluta e parâmetros de query sensíveis
+(token/sessão) são recusados para não persistir credenciais.
+
+`marketplace + external_id` é único: captura repetida reutiliza o
+`MarketplaceProduct`/`Product` e acrescenta novo `Offer`, `RawCapture`,
+`Evidence`, `DiscoveryEvent`, `Candidate` e `AuditEvent` na mesma transação.
+`CapturedOffer` retorna ids distintos de Product, MarketplaceProduct, Offer e
+Candidate.
+
+```json
+{
+  "schema_version": "1.0",
+  "status": "CAPTURED",
+  "correlation_id": "cid-1",
+  "candidate_id": "cand_...",
+  "candidate_state": "NEW",
+  "offer_id": "off_...",
+  "product_id": "prd_...",
+  "marketplace_product_id": "mkt_...",
+  "raw_capture_id": "raw_...",
+  "discovery_event_id": "disc_...",
+  "audit_event_id": "aud_...",
+  "marketplace": "MERCADO_LIVRE",
+  "external_id": "MLB123",
+  "source": "BROWSER_EXTENSION",
+  "title": "Produto",
+  "captured_at": "2026-10-05T12:00:00+00:00",
+  "duplicate_identity": false
+}
+```
+
+`GET /candidates/{candidate_id}` devolve o mesmo contrato (sem
+`duplicate_identity`, que é um fato do momento da captura) e preserva o
+`correlation_id` original da captura no corpo. Erros retornam
+`{schema_version, status:"INVALID", correlation_id, error}` com códigos
+`RAD-CAP-001..004` (ver `docs/ERROR_CATALOG.md`). `Evidence.confidence` fica
+nula nesta etapa; a calibração pertence ao Confidence Engine (RDR-029).
+
+
 ## AI Editorial Review input
 
 ```json

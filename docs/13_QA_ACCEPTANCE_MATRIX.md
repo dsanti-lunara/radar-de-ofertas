@@ -300,3 +300,29 @@ Escopo: carregar e validar configuração, acessar secrets por referência segur
 | Docs/contratos e matriz QA atualizados | este documento, `docs/ERROR_CATALOG.md`, `docs/04_DATA_CONTRACTS.md`, `docs/INSTALLATION.md`, `README.md`, `docs/10_PERSISTENCE_AND_RECOVERY.md` |
 
 Requirement → Test → Acceptance → Evidence completo para TKT-02. Limitações e blockers remanescentes: as capabilities reais (Telegram, IA, Shopee, WhatsApp) ainda não consomem `ScopedSecrets`, portanto o escopo de menor privilégio por componente é comprovado por contrato/teste e será ligado nos tickets dependentes; o provider concreto atual lê do ambiente (`EnvironmentSecretsProvider`) e o backend de armazenamento seguro do SO (keyring) permanece gate de RDR-005; `config/radar.json` é opcional e não é criado por `radarctl config`; nenhum teste live/credenciado foi executado e nenhuma capability foi promovida para AUTO.
+
+## Foundation traceability, TKT-03 (RDR-011, RDR-012, RDR-014, RDR-015, RDR-021)
+
+Escopo: receber uma captura manual versionada pela fronteira pública, sanitizar/validar, persistir `RawCapture`/`Evidence` e materializar `Product`, `MarketplaceProduct`, `Offer`, `DiscoveryEvent`, `Candidate` e `AuditEvent`; consultar o Candidate resultante. Camadas `unit`, `contract` e `integration` com SQLite temporário real; relógio e gerador de id controlados; nenhum teste live, credencial, provider externo ou side effect comercial.
+
+| Requirement | Test (arquivo::caso) | Acceptance | Evidence |
+|---|---|---|---|
+| RDR-011 Product | `tests/test_capture_persistence.py::test_capture_materializes_distinct_entities` | Product distinto de MarketplaceProduct, Offer e Candidate | `product` persistido com `canonical_name`; id próprio no contrato |
+| RDR-012 MarketplaceProduct + Offer | `tests/test_capture_persistence.py::test_repeated_capture_does_not_duplicate_identity`, `::test_unique_constraint_blocks_duplicate_identity` | `marketplace + external_id` único; captura repetida não duplica identidade; Offer é nova condição | constraint `uq_marketplace_product_identity`; `offer` = 2, `marketplace_product` = 1 |
+| RDR-014 Evidence + RawCapture | `tests/test_capture_persistence.py::test_raw_capture_is_sanitized_and_evidence_is_persisted` | Payload estruturado sanitizado (sem HTML); Evidence com proveniência | `raw_capture.payload`; linhas de `evidence` com `source_type`/`raw_reference` |
+| RDR-015 DiscoveryEvent + Candidate | `tests/test_capture_persistence.py::test_capture_materializes_distinct_entities` | Captura registra origem e coloca Candidate no pipeline | `discovery_event` e `candidate` (state `NEW`) |
+| RDR-021 Audit/Domain events | `tests/test_capture_persistence.py::test_discovery_event_and_audit_preserve_source_and_correlation` | Evento de auditoria append-only preserva fonte e Correlation ID | `audit_event` com `event_type=CAPTURE_RECEIVED`, `source` e `correlation_id` |
+| API pública de captura | `tests/test_api_capture.py::test_manual_capture_roundtrip`, `::test_correlation_id_is_generated_when_absent` | Captura e consulta versionadas pela API com Correlation ID | `POST /captures/manual` 201; `GET /candidates/{id}` 200; `schema_version=1.0` |
+
+### Acceptance evidence, TKT-03
+
+| Acceptance criterion | Verification |
+|---|---|
+| marketplace + external_id é único e captura repetida não duplica identidade | `tests/test_capture_persistence.py::test_repeated_capture_does_not_duplicate_identity`, `::test_unique_constraint_blocks_duplicate_identity`; `tests/test_api_capture.py::test_repeated_capture_does_not_duplicate_identity` |
+| Offer, Product, MarketplaceProduct e Candidate são distintos | `tests/test_capture_persistence.py::test_capture_materializes_distinct_entities`; `tests/test_api_capture.py::test_manual_capture_roundtrip` (4 ids distintos) |
+| Payload inválido ou sensível é rejeitado/sanitizado sem escrita parcial | `tests/test_api_capture.py::test_sensitive_payload_is_rejected_without_writing`, `::test_invalid_payload_returns_structured_error`, `::test_extra_unknown_field_is_rejected`, `::test_title_and_text_are_sanitized`; `tests/test_capture_persistence.py::test_invalid_capture_stops_before_persisting`; `tests/test_capture_domain.py` (sanitização/parse/URL) |
+| DiscoveryEvent e auditoria preservam fonte e Correlation ID | `tests/test_capture_persistence.py::test_discovery_event_and_audit_preserve_source_and_correlation`; `tests/test_api_capture.py::test_manual_capture_roundtrip` |
+| Comportamento pela fronteira pública, sem enfraquecer teste/guardrail | API `POST /captures/manual` e `GET /candidates/{id}`; erros estruturados `RAD-CAP-001..004`; sanitização e recusa de campos sensíveis antes da persistência |
+| Docs/contratos e matriz QA atualizados | este documento, `docs/ERROR_CATALOG.md`, `docs/04_DATA_CONTRACTS.md`, `docs/03_DOMAIN_MODEL.md`, `docs/10_PERSISTENCE_AND_RECOVERY.md`, `README.md` |
+
+Requirement → Test → Acceptance → Evidence completo para TKT-03. Limitações e blockers remanescentes: `PriceObservation`/histórico de preços pertence a RDR-013/TKT-04 e não é criado aqui; `Evidence.confidence` fica nula até o Confidence Engine (RDR-029); não há resolução de `Product` entre marketplaces nem `brand`/`category` normalizados (tickets próprios); a dedupe é sequencial e uma corrida concorrente falha fechado com `RAD-CAP-003` (retryable); nenhum teste live/credenciado foi executado e nenhuma capability foi promovida para AUTO.

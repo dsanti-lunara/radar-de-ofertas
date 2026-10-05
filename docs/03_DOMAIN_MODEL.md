@@ -271,3 +271,14 @@ Estados:
 - REVIEW_REQUIRED
 - BLOCKED
 - UNKNOWN
+
+## Implementação (TKT-03, RDR-011/012/014/015/021)
+
+Uma captura manual materializa, em uma única transação: `Product` e
+`MarketplaceProduct` (identidade única por `marketplace + external_id`; captura
+repetida reutiliza ambos), um novo `Offer` (condição comercial do momento),
+`RawCapture` sanitizado (payload estruturado, sem HTML), `Evidence` por fato
+observado, `DiscoveryEvent` (origem) e `Candidate` (`state=NEW`), além de
+`AuditEvent` append-only com fonte e Correlation ID. `Evidence.confidence` fica
+nula até o Confidence Engine (RDR-029). Implementação pública em
+`POST /captures/manual` e `GET /candidates/{id}`; ver `docs/04_DATA_CONTRACTS.md`.

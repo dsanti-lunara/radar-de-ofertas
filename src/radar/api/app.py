@@ -1,9 +1,11 @@
 """Control Center API (RDR-010 / SPEC-01).
 
-Only the health/version/config boundary exists at this stage; the UI and the
-rest of the API arrive in their own tickets. Health reports fail closed: an
-unhealthy dependency yields HTTP 503 while the body keeps the structured
-contract. Invalid configuration blocks app creation before serving.
+The health/version/config boundary plus the manual capture boundary exist at
+this stage; the UI and the rest of the API arrive in their own tickets. Health
+reports fail closed: an unhealthy dependency yields HTTP 503 while the body
+keeps the structured contract. Invalid configuration blocks app creation
+before serving. Capture validation failures return the structured error
+contract with the Correlation ID.
 """
 
 from __future__ import annotations
@@ -15,14 +17,14 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.engine import Engine
 
 from radar import __version__
+from radar.api.captures import build_capture_router, register_capture_error_handlers
+from radar.api.contracts import CORRELATION_HEADER
 from radar.application.correlation import new_correlation_id
 from radar.bootstrap import build_health_service
 from radar.domain.config import RadarConfig
 from radar.infrastructure.config import ConfigLoader
 from radar.infrastructure.database import create_database_engine
 from radar.infrastructure.settings import Settings
-
-CORRELATION_HEADER = "X-Correlation-ID"
 
 
 def create_app(
@@ -44,6 +46,9 @@ def create_app(
     app.state.settings = resolved_settings
     app.state.engine = resolved_engine
     app.state.config = resolved_config
+
+    register_capture_error_handlers(app)
+    app.include_router(build_capture_router(resolved_engine))
 
     @app.get("/version")
     def version() -> dict[str, Any]:

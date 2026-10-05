@@ -191,6 +191,36 @@ AutomationMode:
 - ASSISTED
 - AUTO
 
+## Configuration contract
+
+Config operacional é JSON (`config/radar.json`, opcional; precedência `defaults < arquivo < env RADAR_*`) e validado por schema com `extra=forbid`. `radarctl config` e `GET /config` expõem o contrato sanitizado abaixo; secret *values* nunca aparecem, apenas referências por nome lógico (RDR-004, RDR-005). `config_hash` é SHA-256 do JSON canônico da configuração efetiva.
+
+```json
+{
+  "schema_version": "1.0",
+  "status": "VALID",
+  "correlation_id": "...",
+  "config": {
+    "schema_version": "1.0",
+    "environment": "development",
+    "timezone": "America/Maceio",
+    "log_level": "INFO",
+    "automation_mode": "SHADOW",
+    "data_dir": "/.../data",
+    "database_url": "sqlite+pysqlite:////.../data/radar.db",
+    "config_hash": "...",
+    "source": "defaults",
+    "secret_refs": ["telegram_bot_token"]
+  },
+  "secrets": {
+    "declared": ["telegram_bot_token"],
+    "status": {"telegram_bot_token": "present"}
+  }
+}
+```
+
+Config inválida bloqueia CLI/API com `RAD-CFG-001`/`RAD-CFG-002`. Secret ausente (`status=missing`) é reportado por nome e bloqueia somente a capability que o requer (`RAD-CFG-003`), sem persistir ou logar o valor.
+
 ## Idempotency
 
 WhatsApp V1 usa grupos explicitamente cadastrados (`destination_type=GROUP`), pela capability `PUBLISH_WHATSAPP_GROUP`; `Channel.WHATSAPP` continua a plataforma. Channels não são a capability V1 deste fluxo. Nome de grupo e message-id não comprovam identidade persistente de destino.

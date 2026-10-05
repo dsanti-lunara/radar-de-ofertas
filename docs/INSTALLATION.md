@@ -53,6 +53,8 @@ radarctl version
 
 Estado no foundation (TKT-01): `status`, `migrate` e `version` já existem. `doctor` pertence a RDR-116 e `pause`/`resume`/`drain`/`backup` aos tickets de controles/backup. `status` é read-only e sai com código diferente de zero quando o serviço não está operacional.
 
+Configuração e secrets (TKT-02): `radarctl config` valida e exibe a configuração sanitizada (`schema_version`, `config_hash`, referências de secret por nome) sem revelar valores. O arquivo `config/radar.json` é opcional (base em `config/radar.example.json`); variáveis `RADAR_*` sobrepõem. Secrets são resolvidos por `RADAR_SECRET_<NOME>` (ou variável explícita na seção `secrets`) e nunca são gravados em config, banco ou logs. Config inválida bloqueia CLI/API com `RAD-CFG-001`/`RAD-CFG-002`.
+
 ## Verificação final
 
 `radarctl doctor` deve validar:

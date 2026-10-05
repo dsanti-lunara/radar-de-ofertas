@@ -62,8 +62,16 @@ Operação local da fundação (TKT-01):
 ```bash
 uv run radarctl migrate       # aplica migrations até head (cria o diretório de dados quando necessário)
 uv run radarctl status        # saúde por CLI; sai != 0 quando não operacional
+uv run radarctl config        # valida e exibe a configuração sanitizada (sem secrets)
 uv run radarctl version
-uv run radar-api              # API local em 127.0.0.1:8000 (GET /health, GET /version)
+uv run radar-api              # API local em 127.0.0.1:8000 (GET /health, GET /version, GET /config)
 ```
+
+Configuração operacional (TKT-02): `config/radar.json` é opcional e validado por
+schema (use `config/radar.example.json` como base); variáveis `RADAR_*` sobrepõem
+o arquivo. Secrets ficam fora do arquivo: cada referência lógica é resolvida por
+`RADAR_SECRET_<NOME>` ou por variável explícita na seção `secrets`. Config
+inválida bloqueia CLI/API com `RAD-CFG-001`/`RAD-CFG-002`; logs são JSON
+sanitizado em stderr com Correlation ID.
 
 Testes live (browser/IA/Telegram/WhatsApp) são opt-in e ficam fora da suíte padrão.

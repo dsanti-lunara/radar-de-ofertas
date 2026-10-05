@@ -9,8 +9,8 @@
     },
     {
       "path": "README.md",
-      "sha256": "240919560c5d2ff1a894a3b609acf6bed384f9efb27f113c30ef52a162d095c5",
-      "bytes": 2576
+      "sha256": "23f40705a38c111a0aea5ba59cfed15ac7bad11f65205e87e8a664652aaffb38",
+      "bytes": 3126
     },
     {
       "path": "docs/00_SDD_MASTER.md",
@@ -34,8 +34,8 @@
     },
     {
       "path": "docs/04_DATA_CONTRACTS.md",
-      "sha256": "208f47b4916e04f4217e3feaa567142342dac098a613e376f62e6967d161a530",
-      "bytes": 3082
+      "sha256": "89fd73137856700ac1b75cbe52136b4142f5200c22f96b7fb4bfae7c644d56c1",
+      "bytes": 10092
     },
     {
       "path": "docs/05_SCORING_ENGINE.md",
@@ -64,8 +64,8 @@
     },
     {
       "path": "docs/10_PERSISTENCE_AND_RECOVERY.md",
-      "sha256": "515f7adff6f3d7931513ab18750055641f43cd260d3cb5dec61470f36656be2d",
-      "bytes": 3065
+      "sha256": "ed270597fb19593afe981af746b5676dee17a00d9ff9866eecdc1ed876933e0a",
+      "bytes": 5246
     },
     {
       "path": "docs/11_OPERATIONS_AND_UI.md",
@@ -79,8 +79,8 @@
     },
     {
       "path": "docs/13_QA_ACCEPTANCE_MATRIX.md",
-      "sha256": "be6728cac7763747aff0993b9125bfe88af39fa75274ed06e94bd602a797da04",
-      "bytes": 10138
+      "sha256": "9f4d656ba711d10a9dbeaa5892b1b3984bcf8153c8a25fdd35f2e6c3cf9f52ed",
+      "bytes": 13596
     },
     {
       "path": "docs/14_DELIVERY_PLAN.md",
@@ -99,13 +99,13 @@
     },
     {
       "path": "docs/ERROR_CATALOG.md",
-      "sha256": "6d79b69163adc36b6baed721ae967bcca2d4a3de01ff4287778f8d5ce36b04a5",
-      "bytes": 4509
+      "sha256": "d4e8e8b7f89dab6659a43f76bb81ba0137abda9af61a85b9aee92306e527fab9",
+      "bytes": 5226
     },
     {
       "path": "docs/INSTALLATION.md",
-      "sha256": "9652c5c3aa6e7c2802cf181546694d435d240a03dc792d9ffe4e6985afa26365",
-      "bytes": 1970
+      "sha256": "22390f38454b8423b9e5746e16e175c68e34a6032aada18e525fb61e6e415333",
+      "bytes": 2481
     },
     {
       "path": "docs/ISSUE_MAP.md",

@@ -59,6 +59,8 @@ Hot reload permitido para:
 - automation modes;
 - category weights.
 
+Implementação (RDR-004): `config/radar.json` é JSON opcional, validado por schema com `extra=forbid`; precedência `defaults < arquivo < variáveis RADAR_*`. `radarctl config` e `GET /config` publicam `schema_version`, `config_hash` (SHA-256 do JSON canônico) e referências de secret por nome, nunca valores. Snapshot de mudanças relevantes e hot reload permanecem tickets próprios.
+
 ## Secrets
 
 Nunca em:
@@ -71,6 +73,8 @@ Nunca em:
 - prompt.
 
 Usar `SecretsProvider` com armazenamento seguro do OS/usuário.
+
+Implementação (RDR-005): o protocolo `SecretsProvider` é implementado por `EnvironmentSecretsProvider` (lê `RADAR_SECRET_<NOME>`, com referência explícita opcional via config). `ScopedSecrets` aplica menor privilégio por componente: pedido fora da allowlist falha com `RAD-CFG-004` e secret ausente com `RAD-CFG-003`, bloqueando somente a capability afetada. O provider não escreve em config/banco; todo valor lido é registrado no redator de logs.
 
 Sessões ML/Shopee/WhatsApp ficam exclusivamente no browser profile.
 
@@ -97,6 +101,8 @@ Nunca logar:
 - OAuth tokens;
 - API secrets;
 - pairing secret.
+
+Implementação (RDR-008): `configure_logging` emite JSON estruturado no `radar` logger (stderr) com `correlation_id` do contexto; `JsonLogFormatter` redige valores de secret registrados pelo provider e mascara campos sensíveis por nome (`password`, `authorization`, `cookie(s)`, `token`, `secret`, `api_key`, `pairing_secret`, etc.). Audit events continuam persistentes e separados.
 
 ## Retenção inicial
 

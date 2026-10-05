@@ -278,3 +278,25 @@ Escopo: iniciar Core/API locais com banco migrado e consultar saúde por CLI/API
 | Docs/contratos e matriz QA atualizados | este documento, `docs/ERROR_CATALOG.md`, `docs/INSTALLATION.md` |
 
 Limitações e blockers remanescentes: apenas a fronteira de fundação (`radar-core`/`radar-api` como processos systemd, `doctor`, controles operacionais e entidades de domínio) pertencem a tickets próprios; nenhuma capability foi promovida para AUTO e nenhum teste live/credenciado foi executado.
+
+## Foundation traceability, TKT-02 (RDR-004, RDR-005, RDR-008)
+
+Escopo: carregar e validar configuração, acessar secrets por referência segura (menor privilégio) e emitir logs JSON sanitizados com Correlation ID. Camadas `unit` e `contract`; nenhum teste live, credencial real, banco criado por `radarctl config` ou provider externo.
+
+| Requirement | Test (arquivo::caso) | Acceptance | Evidence |
+|---|---|---|---|
+| RDR-004 configuration loader | `tests/test_config.py` (14 casos: defaults, env over file, hash, inválidos, JSON malformado, referência de secret) | Config validada por schema, versionada e com hash; inválida bloqueia execução com erro acionável | `radarctl config`; `RAD-CFG-001`/`RAD-CFG-002`; `schema_version=1.0` |
+| RDR-005 SecretsProvider | `tests/test_secrets.py::test_provider_satisfies_protocol_and_returns_none_when_absent`, `::test_scoped_require_missing_blocks_capability`, `::test_scoped_access_outside_allowlist_fails_closed`, `::test_provider_has_no_persistence_side_effects` | Acesso least-privilege; secret ausente bloqueia a capability; nada persistido em config/banco/logs | `RAD-CFG-003`/`RAD-CFG-004`; `Secret` mascarado em `repr`/`str` |
+| RDR-008 structured logging | `tests/test_logging.py` (5 casos: Correlation ID, redação de valor registrado, campos sensíveis, reconfiguração) | Logs JSON sanitizados com Correlation ID em stderr | `configure_logging` + `JsonLogFormatter` |
+
+### Acceptance evidence, TKT-02
+
+| Acceptance criterion | Verification |
+|---|---|
+| Config inválida impede execução com erro acionável | `tests/test_config.py::test_invalid_config_is_actionable`; `tests/test_cli_config.py::test_config_reports_invalid_configuration`, `::test_invalid_configuration_blocks_other_commands`; `tests/test_api_config.py::test_invalid_configuration_blocks_app_creation` |
+| SecretsProvider não grava secrets em config/banco/logs | `tests/test_secrets.py::test_provider_has_no_persistence_side_effects`; `tests/test_config.py::test_config_contract_exposes_secret_references_only`; `tests/test_cli_config.py::test_config_reports_secret_presence_without_leaking_value` |
+| Secret falso não aparece em logs nem exceções; Correlation ID preservado | `tests/test_logging.py`; `tests/test_secrets.py::test_secret_repr_and_str_are_masked`; `tests/test_cli_config.py::test_config_error_never_echoes_environment_secret` (Correlation ID no contrato e no log) |
+| Comportamento pela fronteira pública, sem enfraquecer teste/guardrail | `radarctl config` (stdout versionado + logs JSON em stderr) e `GET /config`; config inválida bloqueia CLI e criação da API |
+| Docs/contratos e matriz QA atualizados | este documento, `docs/ERROR_CATALOG.md`, `docs/04_DATA_CONTRACTS.md`, `docs/INSTALLATION.md`, `README.md`, `docs/10_PERSISTENCE_AND_RECOVERY.md` |
+
+Requirement → Test → Acceptance → Evidence completo para TKT-02. Limitações e blockers remanescentes: as capabilities reais (Telegram, IA, Shopee, WhatsApp) ainda não consomem `ScopedSecrets`, portanto o escopo de menor privilégio por componente é comprovado por contrato/teste e será ligado nos tickets dependentes; o provider concreto atual lê do ambiente (`EnvironmentSecretsProvider`) e o backend de armazenamento seguro do SO (keyring) permanece gate de RDR-005; `config/radar.json` é opcional e não é criado por `radarctl config`; nenhum teste live/credenciado foi executado e nenhuma capability foi promovida para AUTO.

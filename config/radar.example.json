@@ -1,0 +1,8 @@
+{
+  "environment": "development",
+  "timezone": "America/Maceio",
+  "log_level": "INFO",
+  "automation_mode": "SHADOW",
+  "data_dir": "data",
+  "secrets": {}
+}

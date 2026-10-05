@@ -12,6 +12,7 @@ Prefixos sugeridos:
 - RAD-TG
 - RAD-CMP
 - RAD-BKP
+- RAD-CFG
 
 ## Browser
 
@@ -102,6 +103,19 @@ Prefixos sugeridos:
 | Code | Meaning | Retry |
 |---|---|---|
 | RAD-SYS-001 HEALTH_PROBE_FAILED | probe de saúde falhou inesperadamente; CLI/API reportam UNHEALTHY sem derrubar o processo | no |
+
+## Configuration / Secrets
+
+| Code | Meaning | Retry |
+|---|---|---|
+| RAD-CFG-001 CONFIG_INVALID | configuração ausente de schema válido (tipo/enum/JSON) | no |
+| RAD-CFG-002 CONFIG_UNREADABLE | arquivo de config indicado não encontrado ou ilegível | no |
+| RAD-CFG-003 SECRET_UNAVAILABLE | secret referenciado ausente no armazenamento seguro; bloqueia a capability do componente | no |
+| RAD-CFG-004 SECRET_ACCESS_DENIED | componente pediu secret fora do seu escopo de menor privilégio | no |
+
+Config inválida bloqueia a inicialização de CLI/API antes de qualquer comando
+(AUT-224, AUT-225). Secret ausente bloqueia somente a capability afetada; nunca
+expõe valor em mensagem, log ou contrato.
 
 ## Regra
 

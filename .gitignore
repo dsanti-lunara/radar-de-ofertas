@@ -234,3 +234,4 @@ logs/
 diagnostics/
 runtime/
 config/local/
+config/radar.json

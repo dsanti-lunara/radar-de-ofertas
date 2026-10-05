@@ -33,3 +33,15 @@ class RadarError:
         if self.context:
             payload["context"] = dict(self.context)
         return payload
+
+
+class RadarException(Exception):
+    """Exception carrying a structured, actionable :class:`RadarError`.
+
+    ``message`` must never include a secret, cookie or token: callers log and
+    expose ``self.error.to_contract()`` instead of the raw exception text.
+    """
+
+    def __init__(self, error: RadarError) -> None:
+        super().__init__(error.message)
+        self.error = error

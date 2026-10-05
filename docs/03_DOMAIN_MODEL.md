@@ -315,3 +315,20 @@ versionada (RDR-016) é quem guarda o snapshot. Categoria resolvida fora do esco
 da marca gera o Hard Rule `OUT_OF_SCOPE_CATEGORY`; mapeamento ou calibração
 ausente gera warning explícito e `brand_fit=null`, nunca valor inventado. Ver
 `docs/05_SCORING_ENGINE.md` e `docs/04_DATA_CONTRACTS.md`.
+
+## Implementação (TKT-06, RDR-023)
+
+Price Opportunity é um cálculo determinístico e read-only sobre o `Offer`
+persistido do Candidate, sua `PriceObservation` append-only (RDR-013) e as
+condições confirmadas informadas na avaliação. O resultado é exposto por
+`GET /candidates/{candidate_id}/price-opportunity` com breakdown versionado
+(pesos 45/20/20/10/5), `effective_price` (somente com frete conhecido e cupom
+CONFIRMED) e warnings para o Confidence Engine. O preço riscado não é prova de
+vantagem. Histórico insuficiente e referência ausente usam neutro 50 com warning.
+`Coupon / Final Price` e `Shipping Impact` permanecem lacunas explícitas de
+calibração (`score=null`, `calibrated=false`) até decisão humana; o score
+retornado é parcial sobre os componentes aprovados. A persistência própria do
+snapshot pertence à Evaluation (RDR-016/TKT-09). Comparação entre marketplaces
+usa evidência comparável verificada; a equivalência de Product é de RDR-031
+(TKT-10), portanto sem referência o componente fica explícito e neutro. Ver
+`docs/05_SCORING_ENGINE.md` e `docs/04_DATA_CONTRACTS.md`.

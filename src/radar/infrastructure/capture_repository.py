@@ -18,6 +18,7 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from radar.application.price_opportunity_service import CandidatePriceContext
 from radar.domain.audit import AuditEvent
 from radar.domain.capture import (
     Candidate,
@@ -36,6 +37,7 @@ from radar.domain.capture import (
     RawCapture,
     identity_conflict_error,
 )
+from radar.domain.price_opportunity import Coupon, PriceHistoryFact
 from radar.domain.taxonomy import CandidateCategory
 from radar.infrastructure.models import (
     AuditEventRow,
@@ -182,6 +184,52 @@ class SqlAlchemyCaptureRepository:
                 marketplace_product_id=marketplace_product.id,
                 marketplace=marketplace_product.marketplace,
                 raw_category=marketplace_product.raw_category,
+            )
+
+    def get_candidate_price_context(self, candidate_id: str) -> CandidatePriceContext | None:
+        """Read the Offer, confirmed conditions and history of a Candidate (RDR-023).
+
+        Comparable evidence across marketplaces is deliberately ``None`` here:
+        product equivalence is owned by RDR-031 (TKT-10), so this ticket reports
+        the comparison as an explicit gap instead of inventing a reference.
+        """
+
+        with Session(self.engine) as session:
+            candidate = session.get(CandidateRow, candidate_id)
+            if candidate is None:
+                return None
+            offer = session.get(OfferRow, candidate.offer_id)
+            if offer is None:
+                return None
+            marketplace_product = session.get(MarketplaceProductRow, offer.marketplace_product_id)
+            if marketplace_product is None:
+                return None
+            rows = (
+                session.execute(
+                    select(PriceObservationRow)
+                    .where(PriceObservationRow.marketplace_product_id == marketplace_product.id)
+                    .order_by(PriceObservationRow.observed_at, PriceObservationRow.id)
+                )
+                .scalars()
+                .all()
+            )
+            coupon = None if offer.coupon is None else Coupon(code=offer.coupon)
+            return CandidatePriceContext(
+                candidate_id=candidate.id,
+                marketplace_product_id=marketplace_product.id,
+                current_price=Decimal(offer.current_price),
+                captured_at=_parse(offer.captured_at),
+                original_price=_optional_decimal(offer.original_price),
+                shipping_cost=_optional_decimal(offer.shipping_cost),
+                coupon=coupon,
+                history=tuple(
+                    PriceHistoryFact(
+                        price=Decimal(row.price),
+                        observed_at=_parse(row.observed_at),
+                    )
+                    for row in rows
+                ),
+                comparable=None,
             )
 
     def _insert(self, session: Session, aggregate: CaptureAggregate) -> None:

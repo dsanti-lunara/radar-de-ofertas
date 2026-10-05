@@ -125,8 +125,14 @@ quando o `MarketplaceProduct` não existe. Implementação TKT-05 (RDR-022,
 RDR-026): a classificação de categoria retorna `RAD-CAP-004` quando o Candidate
 não existe, `RAD-CAP-006` para brand desconhecida e `RAD-CAP-007` quando a
 `taxonomy_version` solicitada difere da ativa; lacunas de mapeamento/calibração
-não são erros, são warnings explícitos no contrato de classificação. Erros são
-retornados no contrato `{schema_version, status, correlation_id, error}`.
+não são erros, são warnings explícitos no contrato de classificação.
+Implementação TKT-06 (RDR-023): a avaliação de Price Opportunity retorna
+`RAD-CAP-004` quando o Candidate não existe e `RAD-CAP-008` quando uma condição
+informada na avaliação (coupon_state, coupon_amount, shipping_cost,
+comparable_price) é inválida; histórico insuficiente, frete desconhecido,
+referência comparável ausente, cupom não confirmado e preço riscado não são
+erros, são warnings explícitos no contrato. Erros são retornados no contrato
+`{schema_version, status, correlation_id, error}`.
 
 | Code | Meaning | Retry |
 |---|---|---|
@@ -137,6 +143,7 @@ retornados no contrato `{schema_version, status, correlation_id, error}`.
 | RAD-CAP-005 MARKETPLACE_PRODUCT_NOT_FOUND | MarketplaceProduct consultado não existe | no |
 | RAD-CAP-006 CLASSIFICATION_INPUT_INVALID | brand desconhecida na classificação de categoria | no |
 | RAD-CAP-007 TAXONOMY_VERSION_MISMATCH | `taxonomy_version` solicitada difere da taxonomia ativa | no |
+| RAD-CAP-008 PRICE_OPPORTUNITY_INPUT_INVALID | condição de Price Opportunity inválida (coupon_state, coupon_amount, shipping_cost, comparable_price) | no |
 
 
 Config inválida bloqueia a inicialização de CLI/API antes de qualquer comando

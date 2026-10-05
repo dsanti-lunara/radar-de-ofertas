@@ -104,4 +104,17 @@ Radar Beauty segue os valores aprovados; mapeamento/calibração ausente devolve
 Rule `OUT_OF_SCOPE_CATEGORY`. Erros usam `RAD-CAP-004/006/007`; taxonomia
 inválida bloqueia a API com `RAD-CFG-005`. Contrato em `docs/04_DATA_CONTRACTS.md`.
 
+Oportunidade de preço (TKT-06): `GET /candidates/{id}/price-opportunity`
+recomputa, de forma read-only e determinística, o breakdown de Price Opportunity
+a partir do `Offer` e do histórico append-only. Pesos 45/20/20/10/5 e faixas de
+histórico/queda/comparação seguem o SDD-05; histórico insuficiente e referência
+ausente usam neutro 50 com warning para o Confidence Engine; só cupom
+`CONFIRMED` reduz o `effective_price` (que exige frete conhecido) e o preço
+riscado nunca é prova de vantagem. Condições confirmadas (`shipping_cost`,
+`coupon_state`/`coupon_amount`/`coupon_code`, `comparable_price`/
+`comparable_marketplace`) podem ser informadas como query params validados.
+`Coupon / Final Price` e `Shipping Impact` não têm faixas calibradas no SDD e são
+reportados como lacuna (`score=null`, `fully_calibrated=false`), sem valor
+inventado. Erros usam `RAD-CAP-004/008`. Contrato em `docs/04_DATA_CONTRACTS.md`.
+
 Testes live (browser/IA/Telegram/WhatsApp) são opt-in e ficam fora da suíte padrão.

@@ -235,6 +235,62 @@ Nesses casos `brand_fit`/`category`/`priority` ficam `null` quando aplicável,
 `RAD-CFG-005`.
 
 
+## Price Opportunity, implementação (TKT-06, RDR-023)
+
+Implementado em `GET /candidates/{candidate_id}/price-opportunity`
+(`schema_version=1.0`). O endpoint é read-only e idempotente: recomputa o
+breakdown a partir do `Offer` persistido do Candidate e da série append-only de
+`PriceObservation`, sem side effect comercial. Condições confirmadas que a
+captura manual ainda não persiste podem ser informadas como query params
+opcionais e são validadas antes do cálculo: `shipping_cost`, `coupon_state`
+(`CONFIRMED`/`LIKELY`/`UNKNOWN`/`NOT_APPLICABLE`), `coupon_amount`, `coupon_code`,
+`comparable_price` e `comparable_marketplace`.
+
+```json
+{
+  "schema_version": "1.0",
+  "status": "EVALUATED",
+  "correlation_id": "cid-1",
+  "candidate_id": "cand_...",
+  "price_opportunity": 86,
+  "fully_calibrated": false,
+  "weight_covered": 85,
+  "scoring_version": "price-opportunity-1.0",
+  "as_of": "2026-10-05T18:00:00+00:00",
+  "current_price": "80.00",
+  "original_price": "150.00",
+  "effective_price": null,
+  "shipping_cost": null,
+  "shipping_known": false,
+  "coupon": {"code": null, "state": "UNKNOWN", "amount": null, "applied": false, "applied_amount": null},
+  "history": {"observation_count": 2, "prior_observation_count": 1, "source": "30d", "window_days": 30},
+  "components": [
+    {"name": "historical_position", "weight": 45, "score": 100, "calibrated": true},
+    {"name": "recent_price_drop", "weight": 20, "score": 90, "calibrated": true},
+    {"name": "marketplace_comparison", "weight": 20, "score": 50, "calibrated": true},
+    {"name": "coupon_final_price", "weight": 10, "score": null, "calibrated": false},
+    {"name": "shipping_impact", "weight": 5, "score": null, "calibrated": false}
+  ],
+  "warnings": [
+    {"code": "NO_MARKETPLACE_REFERENCE", "message": "..."},
+    {"code": "UNKNOWN_SHIPPING", "message": "..."},
+    {"code": "STRUCK_THROUGH_PRICE_NOT_PROOF", "message": "..."},
+    {"code": "PRICE_OPPORTUNITY_CALIBRATION_REQUIRED", "message": "..."}
+  ]
+}
+```
+
+Lacunas são explícitas, nunca inventadas: `SHORT_PRICE_HISTORY` (histórico
+insuficiente → neutro 50), `NO_PRICE_REFERENCE` (queda recente sem referência →
+50), `NO_MARKETPLACE_REFERENCE` (comparação sem evidência comparável confiável →
+50), `UNKNOWN_SHIPPING` (frete desconhecido → `effective_price=null`),
+`COUPON_NOT_CONFIRMED` (cupom LIKELY/UNKNOWN/NOT_APPLICABLE não reduz o preço
+efetivo), `STRUCK_THROUGH_PRICE_NOT_PROOF` (preço riscado não é prova) e
+`PRICE_OPPORTUNITY_CALIBRATION_REQUIRED` (faixas de Coupon/Final Price e
+Shipping Impact não calibradas no SDD). Erros usam o contrato
+`{schema_version, status:"INVALID", correlation_id, error}` com `RAD-CAP-004`
+(Candidate inexistente) e `RAD-CAP-008` (condição de avaliação inválida).
+
 ## AI Editorial Review input
 
 ```json

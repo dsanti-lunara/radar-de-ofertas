@@ -20,6 +20,7 @@ from radar import __version__
 from radar.api.captures import build_capture_router, register_capture_error_handlers
 from radar.api.classification import build_classification_router
 from radar.api.contracts import CORRELATION_HEADER
+from radar.api.price_opportunity import build_price_opportunity_router
 from radar.application.correlation import new_correlation_id
 from radar.bootstrap import build_health_service
 from radar.domain.config import RadarConfig
@@ -58,6 +59,7 @@ def create_app(
     register_capture_error_handlers(app)
     app.include_router(build_capture_router(resolved_engine))
     app.include_router(build_classification_router(resolved_engine, resolved_taxonomy))
+    app.include_router(build_price_opportunity_router(resolved_engine))
 
     @app.get("/version")
     def version() -> dict[str, Any]:

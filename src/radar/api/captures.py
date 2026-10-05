@@ -33,6 +33,7 @@ from radar.domain.capture import (
     MARKETPLACE_PRODUCT_NOT_FOUND,
 )
 from radar.domain.errors import RadarError, RadarException
+from radar.domain.price_opportunity import PRICE_OPPORTUNITY_INPUT_INVALID
 from radar.domain.taxonomy import (
     CLASSIFICATION_INPUT_INVALID,
     TAXONOMY_VERSION_MISMATCH,
@@ -56,6 +57,7 @@ def _error_status(error_code: str) -> int:
         CAPTURE_SENSITIVE_FIELD,
         CLASSIFICATION_INPUT_INVALID,
         TAXONOMY_VERSION_MISMATCH,
+        PRICE_OPPORTUNITY_INPUT_INVALID,
     ):
         return 422
     return 500

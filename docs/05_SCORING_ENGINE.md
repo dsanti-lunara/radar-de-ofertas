@@ -81,6 +81,26 @@ Estados:
 
 Somente CONFIRMED entra integralmente em claim/preço final.
 
+Implementação (TKT-06, RDR-023): o cálculo é exposto por
+`GET /candidates/{candidate_id}/price-opportunity` (`schema_version=1.0`) e usa
+o histórico append-only (RDR-013) mais as condições confirmadas informadas na
+avaliação. As faixas de Historical Position, Recent Price Drop e Marketplace
+Comparison seguem exatamente a tabela acima; histórico insuficiente e ausência de
+referência usam o neutro 50 com warning (`SHORT_PRICE_HISTORY`,
+`NO_PRICE_REFERENCE`, `NO_MARKETPLACE_REFERENCE`) para o Confidence Engine
+(RDR-029). `effective_price = preço + frete - cupom confirmado` só é calculado
+quando o frete é conhecido; cupom LIKELY/UNKNOWN/NOT_APPLICABLE nunca reduz o
+preço efetivo nem vira claim. O preço riscado (`original_price`) não é prova de
+vantagem e nunca é usado como referência.
+
+O SDD fixa os pesos 45/20/20/10/5 mas **não** calibra faixas de pontuação para
+`Coupon / Final Price` e `Shipping Impact`; esses dois componentes são reportados
+como lacuna explícita (`score=null`, `calibrated=false`,
+`PRICE_OPPORTUNITY_CALIBRATION_REQUIRED`) em vez de valor inventado. O
+`price_opportunity` retornado é um score parcial calculado somente sobre os
+componentes aprovados (peso coberto 85) e carrega `fully_calibrated=false`; a
+calibração completa dos dois componentes exige decisão humana.
+
 ### Seller Quality
 
 Composição inicial:

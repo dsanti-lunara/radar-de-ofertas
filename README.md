@@ -41,3 +41,29 @@ O agente não deve redesenhar silenciosamente uma decisão aprovada. Se encontra
 Este pacote foi consolidado a partir das rodadas SDD-01 a SDD-13 e das premissas do arquivo `Plano_Mestre_Radar_Beauty_Casa_em_Ordem_v1.4.docx`.
 
 O arquivo original não precisa ser usado como contrato de implementação quando houver especificação equivalente neste pacote, mas continua sendo referência de negócio para as duas marcas.
+
+## Desenvolvimento local
+
+Toolchains fixadas: Python 3.13.16 (`.python-version`, gerenciado por `uv`) e Node LTS + pnpm (`packageManager` no `package.json`).
+
+```bash
+uv sync                       # cria .venv e instala ruff, pyright, pytest e hypothesis
+uv run ruff check .           # lint Python
+uv run ruff format --check .  # formatação Python
+uv run pyright                # types Python
+uv run pytest                 # testes seguros, sem credenciais
+
+pnpm install                  # workspace TypeScript
+pnpm lint && pnpm typecheck && pnpm test
+```
+
+Operação local da fundação (TKT-01):
+
+```bash
+uv run radarctl migrate       # aplica migrations até head (cria o diretório de dados quando necessário)
+uv run radarctl status        # saúde por CLI; sai != 0 quando não operacional
+uv run radarctl version
+uv run radar-api              # API local em 127.0.0.1:8000 (GET /health, GET /version)
+```
+
+Testes live (browser/IA/Telegram/WhatsApp) são opt-in e ficam fora da suíte padrão.

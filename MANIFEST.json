@@ -9,8 +9,8 @@
     },
     {
       "path": "README.md",
-      "sha256": "60738ee2b7d62dc233d442c55407031b343a007aac37dae0d39355ce08ab6a54",
-      "bytes": 1572
+      "sha256": "240919560c5d2ff1a894a3b609acf6bed384f9efb27f113c30ef52a162d095c5",
+      "bytes": 2576
     },
     {
       "path": "docs/00_SDD_MASTER.md",
@@ -79,8 +79,8 @@
     },
     {
       "path": "docs/13_QA_ACCEPTANCE_MATRIX.md",
-      "sha256": "00827e544dd4c3008d822b02820bc43c98c910779c188a01dcd729d5b995c752",
-      "bytes": 4718
+      "sha256": "be6728cac7763747aff0993b9125bfe88af39fa75274ed06e94bd602a797da04",
+      "bytes": 10138
     },
     {
       "path": "docs/14_DELIVERY_PLAN.md",
@@ -99,13 +99,13 @@
     },
     {
       "path": "docs/ERROR_CATALOG.md",
-      "sha256": "14a197f050023f4331b7b33542eb133d520d79eac661ccbc490740b30764c96a",
-      "bytes": 3191
+      "sha256": "6d79b69163adc36b6baed721ae967bcca2d4a3de01ff4287778f8d5ce36b04a5",
+      "bytes": 4509
     },
     {
       "path": "docs/INSTALLATION.md",
-      "sha256": "1b2ae20174b00b1a43383db87e8fcdcc96b4f68902444d075e165e9175d2424c",
-      "bytes": 1679
+      "sha256": "9652c5c3aa6e7c2802cf181546694d435d240a03dc792d9ffe4e6985afa26365",
+      "bytes": 1970
     },
     {
       "path": "docs/ISSUE_MAP.md",

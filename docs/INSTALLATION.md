@@ -42,6 +42,7 @@ A implementação deve oferecer interface equivalente a:
 
 ```text
 radarctl status
+radarctl migrate
 radarctl doctor
 radarctl pause
 radarctl resume
@@ -49,6 +50,8 @@ radarctl drain
 radarctl backup
 radarctl version
 ```
+
+Estado no foundation (TKT-01): `status`, `migrate` e `version` já existem. `doctor` pertence a RDR-116 e `pause`/`resume`/`drain`/`backup` aos tickets de controles/backup. `status` é read-only e sai com código diferente de zero quando o serviço não está operacional.
 
 ## Verificação final
 

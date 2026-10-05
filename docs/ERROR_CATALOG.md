@@ -88,13 +88,20 @@ Prefixos sugeridos:
 
 ## Database/Backup
 
-| Code | Meaning |
-|---|---|
-| RAD-DB-001 DATABASE_INTEGRITY_FAILURE | banco inconsistente |
-| RAD-DB-002 MIGRATION_FAILED | migration não concluída |
-| RAD-BKP-001 BACKUP_FAILED | backup não concluído |
-| RAD-BKP-002 BACKUP_DEGRADED | último backup acima do limite |
-| RAD-BKP-003 RESTORE_VALIDATION_FAILED | pacote inválido |
+| Code | Meaning | Retry |
+|---|---|---|
+| RAD-DB-001 DATABASE_INTEGRITY_FAILURE | banco inconsistente | no |
+| RAD-DB-002 MIGRATION_FAILED | migration não concluída | no |
+| RAD-DB-003 DATABASE_UNAVAILABLE | banco inacessível; `radarctl status` read-only reporta sem criar arquivo | yes |
+| RAD-BKP-001 BACKUP_FAILED | backup não concluído | |
+| RAD-BKP-002 BACKUP_DEGRADED | último backup acima do limite | |
+| RAD-BKP-003 RESTORE_VALIDATION_FAILED | pacote inválido | |
+
+## System
+
+| Code | Meaning | Retry |
+|---|---|---|
+| RAD-SYS-001 HEALTH_PROBE_FAILED | probe de saúde falhou inesperadamente; CLI/API reportam UNHEALTHY sem derrubar o processo | no |
 
 ## Regra
 

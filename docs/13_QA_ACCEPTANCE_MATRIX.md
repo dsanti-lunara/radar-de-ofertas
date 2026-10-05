@@ -252,3 +252,29 @@ Toda decisão crítica deve poder ser ligada a:
 `Requirement → Test → Acceptance → Evidence`.
 
 O agente deve expandir esta matriz com IDs de testes reais durante a implementação.
+
+## Foundation traceability, TKT-01 (RDR-001, RDR-002, RDR-003, RDR-006, RDR-007, RDR-009, RDR-010)
+
+Escopo: iniciar Core/API locais com banco migrado e consultar saúde por CLI/API, com toolchains Python/TypeScript verificáveis. Camadas `unit`, `contract` e `integration` com SQLite temporário real; nenhum teste live ou credencial.
+
+| Requirement | Test (arquivo::caso) | Acceptance | Evidence |
+|---|---|---|---|
+| RDR-001 bootstrap monorepo | `tests/test_settings.py`, `packages/radar-contracts/src/health.test.ts` | Toolchains fixadas executam lint/types/testes | `uv sync`; `pnpm install`; árvores `src/radar`, `migrations`, `packages/radar-contracts` |
+| RDR-002 Python quality toolchain | suíte `tests/` (29 casos) | lint/types/testes seguros sem credenciais | `uv run ruff check .`; `uv run ruff format --check .`; `uv run pyright`; `uv run pytest` |
+| RDR-003 TypeScript workspace | `packages/radar-contracts/src/health.test.ts` (6 casos) | TS strict + lint + testes | `pnpm lint`; `pnpm typecheck`; `pnpm test` |
+| RDR-006 SQLite + SQLAlchemy | `tests/test_database_migration.py::test_wal_and_foreign_keys_active`, `::test_foreign_keys_are_enforced` | Banco vazio com FK/WAL ativos | `PRAGMA journal_mode=wal` e `PRAGMA foreign_keys=1` por conexão; violação de FK levanta `IntegrityError` |
+| RDR-007 Alembic migrations | `tests/test_database_migration.py::test_empty_database_migrates_to_head`, `::test_migration_is_idempotent`, `::test_bootstrap_table_records_schema_version` | Banco vazio migra até latest | `radarctl migrate`; revisão `0001_initial` == head |
+| RDR-009 radarctl skeleton | `tests/test_cli.py` (6 casos) | Saúde consultável por CLI | `radarctl status` (exit 0 só quando operacional), `radarctl migrate`, `radarctl version` |
+| RDR-010 system health model | `tests/test_health_model.py`, `tests/test_health_database.py`, `tests/test_api_health.py` | Status diferencia banco indisponível de serviço saudável | `GET /health` 200 `HEALTHY` vs 503 `UNHEALTHY` (`RAD-DB-003`); `SystemHealth` com `schema_version` e `correlation_id` |
+
+### Acceptance evidence, TKT-01
+
+| Acceptance criterion | Verification |
+|---|---|
+| Banco vazio migra até latest e FK/WAL ativos | `tests/test_database_migration.py` (5 casos) |
+| Status diferencia banco indisponível de serviço saudável | `tests/test_health_database.py` (3), `tests/test_api_health.py` (4), `tests/test_cli.py` (6) |
+| Toolchains fixadas executam lint/types/testes sem credenciais | comandos Python/TypeScript acima, todos sem secrets |
+| Comportamento pela fronteira pública, sem enfraquecer teste/guardrail | `GET /health`, `GET /version`, `radarctl status|migrate|version`; probes falham fechados |
+| Docs/contratos e matriz QA atualizados | este documento, `docs/ERROR_CATALOG.md`, `docs/INSTALLATION.md` |
+
+Limitações e blockers remanescentes: apenas a fronteira de fundação (`radar-core`/`radar-api` como processos systemd, `doctor`, controles operacionais e entidades de domínio) pertencem a tickets próprios; nenhuma capability foi promovida para AUTO e nenhum teste live/credenciado foi executado.

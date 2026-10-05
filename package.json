@@ -1,0 +1,22 @@
+{
+  "name": "radar-engine-workspace",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Workspace TypeScript do Radar Engine (RDR-003).",
+  "packageManager": "pnpm@12.4.1",
+  "engines": {
+    "node": ">=24 <25"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "pnpm -r typecheck",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.20.0",
+    "eslint": "^9.20.0",
+    "typescript": "^5.9.0",
+    "typescript-eslint": "^8.24.0",
+    "vitest": "^3.0.0"
+  }
+}

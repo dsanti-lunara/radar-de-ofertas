@@ -1,0 +1,73 @@
+[project]
+name = "radar-engine"
+version = "0.1.0"
+description = "Radar Engine V1: motor local e persistente de automação de afiliados."
+readme = "README.md"
+requires-python = ">=3.13"
+license = { text = "Proprietary" }
+authors = [{ name = "Radar" }]
+dependencies = [
+    "alembic>=1.14",
+    "fastapi>=0.115",
+    "httpx>=0.28",
+    "pydantic>=2.10",
+    "sqlalchemy>=2.0",
+    "uvicorn>=0.34",
+]
+
+[project.scripts]
+radarctl = "radar.cli.main:main"
+radar-api = "radar.api.__main__:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/radar"]
+
+[dependency-groups]
+dev = [
+    "hypothesis>=6.120",
+    "pyright>=1.1.400",
+    "pytest>=8.3",
+    "ruff>=0.9",
+]
+
+[tool.uv]
+default-groups = ["dev"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+src = ["src", "tests"]
+extend-exclude = [".scratch", "docs"]
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I", "UP", "B", "C4", "SIM", "RUF"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["radar"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+markers = [
+    "unit: fast isolated checks without external IO",
+    "contract: public boundary contracts (CLI/API/data)",
+    "integration: real local dependencies such as a temporary SQLite database",
+    "browser_live: opt-in safe-live browser checks",
+    "ai_live: opt-in live AI provider checks",
+    "telegram_live: opt-in live Telegram checks",
+    "whatsapp_live: opt-in live WhatsApp checks",
+    "slow: long-running checks excluded from the default loop",
+]
+
+[tool.pyright]
+include = ["src", "tests"]
+exclude = ["**/node_modules", "**/.venv", "migrations"]
+venvPath = "."
+venv = ".venv"
+typeCheckingMode = "standard"
+pythonVersion = "3.13"
+reportMissingTypeStubs = false

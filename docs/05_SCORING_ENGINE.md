@@ -111,6 +111,20 @@ Composição inicial:
 
 Dados ausentes não viram zero automaticamente. Afetam Confidence.
 
+Implementação (TKT-07, RDR-024): a composição é um cálculo determinístico e
+read-only exposto por `GET /candidates/{candidate_id}/seller-quality`
+(`schema_version=1.0`). Os pesos 40/25/20/15 são congelados. O SDD **não**
+calibra a normalização dos quatro sinais, portanto a normalização é configuração
+versionada e hasheada (`config/seller-quality.json`, opcional; baseline aprovado
+vazio) que mapeia cada sinal bruto para 0..100; a lacuna é explícita e não recebe
+constante inventada. Sinal ausente (`SELLER_QUALITY_MISSING_DATA`), sinal
+inválido (`SELLER_QUALITY_INVALID_DATA`), sinal sem normalização definida
+(`SELLER_QUALITY_NORMALIZATION_NOT_DEFINED`) e sinal contraditório
+(`SELLER_QUALITY_CONTRADICTION`) geram warnings para o Confidence Engine
+(RDR-029). O `seller_quality` retornado é parcial sobre os componentes
+calibrados (`weight_covered`, `fully_calibrated`) e cada componente carrega a
+origem do sinal; o snapshot versionado pertence à Evaluation (RDR-016/TKT-09).
+
 ### Demand
 
 Pode usar:

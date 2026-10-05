@@ -19,6 +19,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from radar.application.price_opportunity_service import CandidatePriceContext
+from radar.application.seller_quality_service import CandidateSellerContext
 from radar.domain.audit import AuditEvent
 from radar.domain.capture import (
     Candidate,
@@ -230,6 +231,34 @@ class SqlAlchemyCaptureRepository:
                     for row in rows
                 ),
                 comparable=None,
+            )
+
+    def get_candidate_seller_context(self, candidate_id: str) -> CandidateSellerContext | None:
+        """Read the seller facts persisted for a Candidate (RDR-024).
+
+        Marketplace reputation and official/trusted status are not persisted by
+        the manual capture yet, so they are reported as explicit gaps here and
+        can only be supplied (validated) at evaluation time.
+        """
+
+        with Session(self.engine) as session:
+            candidate = session.get(CandidateRow, candidate_id)
+            if candidate is None:
+                return None
+            offer = session.get(OfferRow, candidate.offer_id)
+            if offer is None:
+                return None
+            marketplace_product = session.get(MarketplaceProductRow, offer.marketplace_product_id)
+            if marketplace_product is None:
+                return None
+            return CandidateSellerContext(
+                candidate_id=candidate.id,
+                marketplace_product_id=marketplace_product.id,
+                seller_id=offer.seller_id or marketplace_product.seller_id,
+                seller_name=offer.seller_name,
+                rating=None if offer.rating is None else Decimal(str(offer.rating)),
+                sales_count=offer.sales_count,
+                captured_at=_parse(offer.captured_at),
             )
 
     def _insert(self, session: Session, aggregate: CaptureAggregate) -> None:

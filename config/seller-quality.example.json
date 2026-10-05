@@ -1,0 +1,23 @@
+{
+  "schema_version": "1.0",
+  "normalization_version": "seller-quality-normalization-operator",
+  "marketplace_reputation": {
+    "gold": 100,
+    "green": 80,
+    "yellow": 40
+  },
+  "rating": [
+    {"min": "4.5", "max": "5.0", "score": 100},
+    {"min": "4.0", "max": "4.4999", "score": 85},
+    {"min": "3.0", "max": "3.9999", "score": 60}
+  ],
+  "sales_history": [
+    {"min": 1000, "max": null, "score": 100},
+    {"min": 100, "max": 999, "score": 70},
+    {"min": 0, "max": 99, "score": 40}
+  ],
+  "trusted_status": {
+    "true": 100,
+    "false": 40
+  }
+}

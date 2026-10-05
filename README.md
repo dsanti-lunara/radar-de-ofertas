@@ -117,4 +117,17 @@ riscado nunca é prova de vantagem. Condições confirmadas (`shipping_cost`,
 reportados como lacuna (`score=null`, `fully_calibrated=false`), sem valor
 inventado. Erros usam `RAD-CAP-004/008`. Contrato em `docs/04_DATA_CONTRACTS.md`.
 
+Qualidade do vendedor (TKT-07): `GET /candidates/{id}/seller-quality` compõe, de
+forma read-only e determinística, reputation 40% / rating 25% / sales 20% /
+trusted 15% a partir dos fatos de vendedor do `Offer` e de sinais validados
+informados na avaliação. Cada componente carrega a origem do sinal. O SDD não
+calibra a normalização, então ela é configuração versionada/hasheada
+(`config/seller-quality.json`, opcional; use `config/seller-quality.example.json`)
+com baseline aprovado vazio: sinal sem mapeamento é lacuna explícita
+(`SELLER_QUALITY_NORMALIZATION_NOT_DEFINED`), dado ausente não vira zero
+(`SELLER_QUALITY_MISSING_DATA`) e dado inválido/contraditório gera warning. O
+resultado é parcial sobre os componentes calibrados (`weight_covered`); o
+snapshot pertence à Evaluation. Erros usam `RAD-CAP-004/009` e normalização
+inválida bloqueia a API com `RAD-CFG-006`. Contrato em `docs/04_DATA_CONTRACTS.md`.
+
 Testes live (browser/IA/Telegram/WhatsApp) são opt-in e ficam fora da suíte padrão.

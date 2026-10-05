@@ -114,6 +114,7 @@ Prefixos sugeridos:
 | RAD-CFG-003 SECRET_UNAVAILABLE | secret referenciado ausente no armazenamento seguro; bloqueia a capability do componente | no |
 | RAD-CFG-004 SECRET_ACCESS_DENIED | componente pediu secret fora do seu escopo de menor privilégio | no |
 | RAD-CFG-005 TAXONOMY_INVALID | taxonomia de marcas ausente de schema/semântica válidos (versão, brand, categoria, prioridade, Brand Fit, alias) | no |
+| RAD-CFG-006 SELLER_QUALITY_INVALID | normalização de Seller Quality ausente de schema/semântica válidos (versão, score 0..100, bandas sobrepostas, label/chave inválida) | no |
 
 ## Capture / Domain
 
@@ -131,8 +132,12 @@ Implementação TKT-06 (RDR-023): a avaliação de Price Opportunity retorna
 informada na avaliação (coupon_state, coupon_amount, shipping_cost,
 comparable_price) é inválida; histórico insuficiente, frete desconhecido,
 referência comparável ausente, cupom não confirmado e preço riscado não são
-erros, são warnings explícitos no contrato. Erros são retornados no contrato
-`{schema_version, status, correlation_id, error}`.
+erros, são warnings explícitos no contrato. Implementação TKT-07 (RDR-024): a
+avaliação de Seller Quality retorna `RAD-CAP-004` quando o Candidate não existe e
+`RAD-CAP-009` quando um sinal informado (reputation, rating, sales_count,
+trusted) é malformado; sinal ausente, inválido, sem normalização configurada ou
+contraditório não são erros, são warnings explícitos no contrato. Erros são
+retornados no contrato `{schema_version, status, correlation_id, error}`.
 
 | Code | Meaning | Retry |
 |---|---|---|
@@ -144,6 +149,7 @@ erros, são warnings explícitos no contrato. Erros são retornados no contrato
 | RAD-CAP-006 CLASSIFICATION_INPUT_INVALID | brand desconhecida na classificação de categoria | no |
 | RAD-CAP-007 TAXONOMY_VERSION_MISMATCH | `taxonomy_version` solicitada difere da taxonomia ativa | no |
 | RAD-CAP-008 PRICE_OPPORTUNITY_INPUT_INVALID | condição de Price Opportunity inválida (coupon_state, coupon_amount, shipping_cost, comparable_price) | no |
+| RAD-CAP-009 SELLER_QUALITY_INPUT_INVALID | sinal de Seller Quality malformado na avaliação (reputation, rating, sales_count, trusted) | no |
 
 
 Config inválida bloqueia a inicialização de CLI/API antes de qualquer comando

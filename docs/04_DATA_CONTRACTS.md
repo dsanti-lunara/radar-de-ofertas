@@ -291,6 +291,58 @@ Shipping Impact não calibradas no SDD). Erros usam o contrato
 `{schema_version, status:"INVALID", correlation_id, error}` com `RAD-CAP-004`
 (Candidate inexistente) e `RAD-CAP-008` (condição de avaliação inválida).
 
+## Seller Quality, implementação (TKT-07, RDR-024)
+
+Implementado em `GET /candidates/{candidate_id}/seller-quality`
+(`schema_version=1.0`). O endpoint é read-only e idempotente: recomputa a
+composição a partir dos fatos de vendedor do `Offer` persistido do Candidate e da
+normalização versionada ativa, sem side effect comercial. Sinais que a captura
+manual ainda não persiste (marketplace reputation e official/trusted status) podem
+ser informados como query params opcionais e são validados antes do cálculo:
+`reputation`, `rating`, `sales_count` e `trusted` (`true`/`false`). A origem de
+cada sinal é reportada no componente (`persisted_offer` ou `evaluation_input`).
+
+Os pesos macro são congelados (reputation 40%, rating 25%, sales 20%, trusted
+15%). O SDD **não** calibra a normalização dos sinais, então ela é configuração
+versionada e hasheada (`config/seller-quality.json`, opcional; use
+`config/seller-quality.example.json`; `RADAR_SELLER_QUALITY_FILE` força um
+arquivo). O baseline aprovado é intencionalmente vazio: um sinal sem mapeamento é
+lacuna explícita, nunca constante inventada.
+
+```json
+{
+  "schema_version": "1.0",
+  "status": "EVALUATED",
+  "correlation_id": "cid-1",
+  "candidate_id": "cand_...",
+  "seller": {"id": null, "name": "Loja"},
+  "seller_quality": 100,
+  "fully_calibrated": true,
+  "weight_covered": 100,
+  "scoring_version": "seller-quality-1.0",
+  "normalization_version": "seller-quality-normalization-1.0",
+  "normalization_hash": "sha256...",
+  "components": [
+    {"name": "marketplace_reputation", "weight": 40, "score": 100, "calibrated": true, "raw": "gold", "source": "evaluation_input", "reason": "ok"},
+    {"name": "rating", "weight": 25, "score": 100, "calibrated": true, "raw": "4.6", "source": "evaluation_input", "reason": "ok"},
+    {"name": "sales_history", "weight": 20, "score": 100, "calibrated": true, "raw": 2300, "source": "persisted_offer", "reason": "ok"},
+    {"name": "trusted_status", "weight": 15, "score": 100, "calibrated": true, "raw": true, "source": "evaluation_input", "reason": "ok"}
+  ],
+  "warnings": []
+}
+```
+
+Lacunas e dados ruins são explícitos, nunca inventados: `SELLER_QUALITY_MISSING_DATA`
+(sinal ausente → `score=null`, não vira zero), `SELLER_QUALITY_INVALID_DATA`
+(sinal inválido, ex.: rating/sales negativos → ignorado e reportado, ex. Evidence),
+`SELLER_QUALITY_NORMALIZATION_NOT_DEFINED` (sinal sem mapeamento configurado →
+`score=null` e calibração humana necessária) e `SELLER_QUALITY_CONTRADICTION`
+(sinais sem identidade de vendedor). O `seller_quality` é parcial sobre os
+componentes calibrados (`weight_covered`/`fully_calibrated`). Erros usam o
+contrato `{schema_version, status:"INVALID", correlation_id, error}` com
+`RAD-CAP-004` (Candidate inexistente) e `RAD-CAP-009` (sinal de avaliação
+malformado); normalização inválida bloqueia a criação da API com `RAD-CFG-006`.
+
 ## AI Editorial Review input
 
 ```json

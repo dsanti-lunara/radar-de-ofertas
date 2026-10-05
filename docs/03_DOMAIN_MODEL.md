@@ -332,3 +332,18 @@ snapshot pertence à Evaluation (RDR-016/TKT-09). Comparação entre marketplace
 usa evidência comparável verificada; a equivalência de Product é de RDR-031
 (TKT-10), portanto sem referência o componente fica explícito e neutro. Ver
 `docs/05_SCORING_ENGINE.md` e `docs/04_DATA_CONTRACTS.md`.
+
+## Implementação (TKT-07, RDR-024)
+
+Seller Quality é uma composição determinística e read-only sobre os fatos de
+vendedor persistidos no `Offer`/`MarketplaceProduct` do Candidate e sobre os
+sinais informados na avaliação. Os pesos macro são congelados (reputation 40%,
+rating 25%, sales 20%, trusted 15%) e cada componente carrega a origem do sinal.
+A normalização dos quatro sinais não está calibrada nos SDDs, então ela é
+configuração versionada e hasheada (`config/seller-quality.json`, opcional;
+`RADAR_SELLER_QUALITY_FILE` força um arquivo) com baseline aprovado vazio: sinal
+sem mapeamento é lacuna explícita, nunca constante inventada. Dados ausentes não
+viram zero; inválidos e contraditórios geram warnings/Evidence. O resultado é
+exposto por `GET /candidates/{candidate_id}/seller-quality`; o snapshot
+versionado pertence à Evaluation (RDR-016/TKT-09). Ver
+`docs/05_SCORING_ENGINE.md` e `docs/04_DATA_CONTRACTS.md`.

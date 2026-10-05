@@ -26,19 +26,23 @@ from radar.domain.capture import (
     CaptureAggregate,
     CapturedOffer,
     CaptureIntake,
+    CaptureSource,
     DiscoveryEvent,
     Evidence,
     IdFactory,
     Marketplace,
+    MarketplacePriceHistory,
     MarketplaceProduct,
     NormalizedCapture,
     Offer,
+    PriceObservation,
     Product,
     RawCapture,
     build_raw_payload,
     candidate_not_found_error,
     compute_discount_percent,
     default_id_factory,
+    marketplace_product_not_found_error,
     normalize_intake,
     to_utc,
 )
@@ -56,6 +60,12 @@ class CaptureRepository(Protocol):
     def find_marketplace_product(
         self, marketplace: Marketplace, external_id: str
     ) -> MarketplaceProduct | None: ...
+
+    def find_price_observation(
+        self, marketplace_product_id: str, source: CaptureSource, observed_at: datetime
+    ) -> PriceObservation | None: ...
+
+    def get_price_history(self, marketplace_product_id: str) -> MarketplacePriceHistory | None: ...
 
     def save_capture(self, aggregate: CaptureAggregate) -> None: ...
 
@@ -96,6 +106,14 @@ class ManualCaptureService:
         if captured is None:
             raise candidate_not_found_error(candidate_id)
         return captured
+
+    def get_price_history(self, marketplace_product_id: str) -> MarketplacePriceHistory:
+        """Return the append-only observation series or a structured not-found error."""
+
+        history = self.repository.get_price_history(marketplace_product_id)
+        if history is None:
+            raise marketplace_product_not_found_error(marketplace_product_id)
+        return history
 
     def _materialize(
         self,
@@ -165,6 +183,28 @@ class ManualCaptureService:
             schema_version=CAPTURE_SCHEMA_VERSION,
             source_url=normalized.url,
         )
+        # PriceObservation is append-only and identified by
+        # (marketplace_product_id, source, observed_at); a repeated capture with
+        # the same identity reuses the existing observation instead of appending
+        # a duplicate or inventing a new price (AUT-028).
+        existing_observation = self.repository.find_price_observation(
+            marketplace_product_id, normalized.source, captured_at
+        )
+        create_price_observation = existing_observation is None
+        price_observation = (
+            PriceObservation(
+                id=self.id_factory("obs"),
+                marketplace_product_id=marketplace_product_id,
+                price=normalized.current_price,
+                observed_at=captured_at,
+                source=normalized.source,
+                correlation_id=correlation_id,
+                raw_capture_id=raw_capture_id,
+                original_price=normalized.original_price,
+            )
+            if existing_observation is None
+            else existing_observation
+        )
         evidence = self._build_evidence(
             normalized,
             marketplace_product_id=marketplace_product_id,
@@ -211,6 +251,8 @@ class ManualCaptureService:
             marketplace_product=marketplace_product,
             create_marketplace_product=create_marketplace_product,
             offer=offer,
+            price_observation=price_observation,
+            create_price_observation=create_price_observation,
             raw_capture=raw_capture,
             evidence=tuple(evidence),
             discovery_event=discovery_event,
@@ -233,6 +275,7 @@ class ManualCaptureService:
             source=normalized.source.value,
             title=normalized.title,
             captured_at=captured_at,
+            price_observation_id=price_observation.id,
             duplicate_identity=not create_marketplace_product,
         )
         return aggregate, result

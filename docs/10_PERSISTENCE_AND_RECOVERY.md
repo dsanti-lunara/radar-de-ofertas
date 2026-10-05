@@ -21,6 +21,14 @@ constraint de identidade e as FKs são verificadas pelo SQLite. Timestamps são
 ISO-8601 UTC e dinheiro é string decimal (sem float binário). A migration
 `0002_manual_capture` cria o schema e atualiza `schema_version` (`db_schema`).
 
+Implementação (TKT-04): a migration `0003_price_observation` acrescenta a tabela
+append-only `price_observation` (FK para `marketplace_product` e `raw_capture`,
+única por `marketplace_product_id + source + observed_at`) e atualiza
+`schema_version`. Cada captura normalizada grava a observação na mesma transação;
+captura repetida com a mesma identidade reutiliza a linha, sem sobrescrever o
+histórico. `price`/`original_price`/`shipping_cost` são strings decimais e
+`observed_at` é ISO-8601 UTC.
+
 ## Append-only
 
 Não sobrescrever:

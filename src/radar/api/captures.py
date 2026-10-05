@@ -1,11 +1,13 @@
-"""Manual capture public endpoints and structured error handling.
+"""Manual capture and price-history public endpoints and structured errors.
 
 ``POST /captures/manual`` receives the versioned capture, persists the
 RawCapture/Evidence graph and returns the resulting Candidate.
-``GET /candidates/{candidate_id}`` reads that Candidate back so the persisted
-behaviour is observable from the public boundary.
+``GET /candidates/{candidate_id}`` reads that Candidate back and
+``GET /marketplace-products/{id}/price-history`` returns the append-only price
+series with provenance, so the persisted behaviour is observable from the public
+boundary.
 
-(RDR-011, RDR-012, RDR-014, RDR-015, RDR-021.)
+(RDR-011, RDR-012, RDR-013, RDR-014, RDR-015, RDR-021.)
 """
 
 from __future__ import annotations
@@ -28,6 +30,7 @@ from radar.domain.capture import (
     CAPTURE_PAYLOAD_INVALID,
     CAPTURE_SCHEMA_VERSION,
     CAPTURE_SENSITIVE_FIELD,
+    MARKETPLACE_PRODUCT_NOT_FOUND,
 )
 from radar.domain.errors import RadarError, RadarException
 from radar.infrastructure.capture_repository import SqlAlchemyCaptureRepository
@@ -40,7 +43,7 @@ def resolve_correlation_id(request: Request) -> str:
 
 
 def _error_status(error_code: str) -> int:
-    if error_code == CANDIDATE_NOT_FOUND:
+    if error_code in (CANDIDATE_NOT_FOUND, MARKETPLACE_PRODUCT_NOT_FOUND):
         return 404
     if error_code == CAPTURE_IDENTITY_CONFLICT:
         return 409
@@ -125,6 +128,16 @@ def build_capture_router(engine: Engine) -> APIRouter:
         return JSONResponse(
             status_code=200,
             content={"status": "OK", **result.to_contract()},
+            headers={CORRELATION_HEADER: correlation_id, "Cache-Control": "no-store"},
+        )
+
+    @router.get("/marketplace-products/{marketplace_product_id}/price-history")
+    def get_price_history(marketplace_product_id: str, request: Request) -> JSONResponse:
+        correlation_id = bind_correlation_id(resolve_correlation_id(request))
+        history = service.get_price_history(marketplace_product_id)
+        return JSONResponse(
+            status_code=200,
+            content=history.to_contract(correlation_id=correlation_id),
             headers={CORRELATION_HEADER: correlation_id, "Cache-Control": "no-store"},
         )
 

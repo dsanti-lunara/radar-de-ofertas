@@ -18,7 +18,9 @@ from radar.domain.capture import (
     CaptureSource,
     CaptureValidationError,
     Marketplace,
+    MarketplacePriceHistory,
     MarketplaceProduct,
+    PriceObservation,
 )
 from radar.infrastructure.capture_repository import SqlAlchemyCaptureRepository
 
@@ -30,6 +32,7 @@ _TABLES = (
     "product",
     "marketplace_product",
     "offer",
+    "price_observation",
     "raw_capture",
     "evidence",
     "discovery_event",
@@ -208,6 +211,14 @@ class _AlwaysMissingRepository:
         self, marketplace: Marketplace, external_id: str
     ) -> MarketplaceProduct | None:
         return None
+
+    def find_price_observation(
+        self, marketplace_product_id: str, source: CaptureSource, observed_at: datetime
+    ) -> PriceObservation | None:
+        return self._real.find_price_observation(marketplace_product_id, source, observed_at)
+
+    def get_price_history(self, marketplace_product_id: str) -> MarketplacePriceHistory | None:
+        return self._real.get_price_history(marketplace_product_id)
 
     def save_capture(self, aggregate: CaptureAggregate) -> None:
         self._real.save_capture(aggregate)

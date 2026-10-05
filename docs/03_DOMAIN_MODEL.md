@@ -67,14 +67,21 @@ Inclui:
 
 ### PriceObservation
 
-Append-only.
+Append-only e nunca sobrescrita.
 
+- id;
 - marketplace_product_id;
 - price;
 - original_price;
 - shipping_cost;
 - source;
-- observed_at.
+- observed_at;
+- correlation_id;
+- raw_capture_id.
+
+Identidade documentada: `(marketplace_product_id, source, observed_at)`. Captura
+repetida com a mesma identidade reutiliza a observação; não cria duplicata nem
+inventa novo preço. Timestamps em UTC e dinheiro em `Decimal`.
 
 ### Evidence
 
@@ -282,3 +289,15 @@ observado, `DiscoveryEvent` (origem) e `Candidate` (`state=NEW`), além de
 `AuditEvent` append-only com fonte e Correlation ID. `Evidence.confidence` fica
 nula até o Confidence Engine (RDR-029). Implementação pública em
 `POST /captures/manual` e `GET /candidates/{id}`; ver `docs/04_DATA_CONTRACTS.md`.
+
+## Implementação (TKT-04, RDR-013)
+
+Cada captura manual acrescenta uma `PriceObservation` append-only ao
+`MarketplaceProduct` na mesma transação do grafo de captura (nunca em transação
+separada). A identidade `(marketplace_product_id, source, observed_at)` é única
+no banco: captura repetida com a mesma identidade reutiliza a linha existente,
+sem sobrescrever a anterior e sem inventar preço novo. O histórico é consultável
+por `GET /marketplace-products/{id}/price-history` com proveniência (`source`,
+`observed_at`, `correlation_id`, `raw_capture_id`). `shipping_cost` permanece
+nulo até existir captura de frete (ticket próprio). Ver
+`docs/04_DATA_CONTRACTS.md` e `docs/10_PERSISTENCE_AND_RECOVERY.md`.

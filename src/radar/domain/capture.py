@@ -1,11 +1,13 @@
-"""Manual capture intake and provenance values (RDR-011, RDR-012, RDR-014, RDR-015).
+"""Manual capture intake, provenance and price history (RDR-011..RDR-015, RDR-013).
 
 The manual capture path receives a versioned payload from the public boundary,
 sanitizes and validates it, and materializes the distinct domain entities of the
 pipeline: :class:`Product`, :class:`MarketplaceProduct`, :class:`Offer`,
-:class:`RawCapture`, :class:`Evidence`, :class:`DiscoveryEvent` and
-:class:`Candidate`. The module is framework-free (no FastAPI, SQLAlchemy or
-Chrome) so the domain stays independent from infrastructure.
+:class:`PriceObservation`, :class:`RawCapture`, :class:`Evidence`,
+:class:`DiscoveryEvent` and :class:`Candidate`. :class:`PriceObservation` is
+append-only and reused by identity so repeated captures never overwrite history
+or invent a price (AUT-028). The module is framework-free (no FastAPI, SQLAlchemy
+or Chrome) so the domain stays independent from infrastructure.
 
 Marketplace content is untrusted data, never an instruction (AUT-275, AUT-276):
 free-text fields are sanitized here, HTML is never stored (AUT-203) and money is
@@ -30,11 +32,15 @@ from radar.domain.errors import RadarError, RadarException
 #: Version of the public manual-capture contract (``docs/04_DATA_CONTRACTS.md``).
 CAPTURE_SCHEMA_VERSION = "1.0"
 
+#: Version of the public price-history contract (``docs/04_DATA_CONTRACTS.md``).
+PRICE_HISTORY_SCHEMA_VERSION = "1.0"
+
 #: Capture error codes (see ``docs/ERROR_CATALOG.md``).
 CAPTURE_PAYLOAD_INVALID = "RAD-CAP-001"
 CAPTURE_SENSITIVE_FIELD = "RAD-CAP-002"
 CAPTURE_IDENTITY_CONFLICT = "RAD-CAP-003"
 CANDIDATE_NOT_FOUND = "RAD-CAP-004"
+MARKETPLACE_PRODUCT_NOT_FOUND = "RAD-CAP-005"
 
 #: Entity types used by provenance (Evidence) records.
 ENTITY_PRODUCT = "product"
@@ -149,6 +155,17 @@ def candidate_not_found_error(candidate_id: str) -> CaptureValidationError:
         code=CANDIDATE_NOT_FOUND,
         action="Verificar o candidate_id informado",
         context={"candidate_id": candidate_id},
+    )
+
+
+def marketplace_product_not_found_error(marketplace_product_id: str) -> CaptureValidationError:
+    """Build the structured not-found error for a price-history query."""
+
+    return CaptureValidationError(
+        "MarketplaceProduct não encontrado",
+        code=MARKETPLACE_PRODUCT_NOT_FOUND,
+        action="Verificar o marketplace_product_id informado",
+        context={"marketplace_product_id": marketplace_product_id},
     )
 
 
@@ -431,6 +448,36 @@ class Offer:
 
 
 @dataclass(frozen=True, slots=True)
+class PriceObservation:
+    """Append-only monetary observation of a MarketplaceProduct (RDR-013).
+
+    The documented identity of an observation is
+    ``(marketplace_product_id, source, observed_at)``: a repeated capture with
+    the same product, source and observed instant is the *same* observation and
+    must reuse it instead of appending a duplicate or inventing a new price
+    (AUT-028). Existing rows are never overwritten.
+    """
+
+    id: str
+    marketplace_product_id: str
+    price: Decimal
+    observed_at: datetime
+    source: CaptureSource
+    correlation_id: str
+    raw_capture_id: str
+    original_price: Decimal | None = None
+    shipping_cost: Decimal | None = None
+
+
+def price_observation_identity(
+    marketplace_product_id: str, source: CaptureSource, observed_at: datetime
+) -> tuple[str, str, str]:
+    """Return the documented identity of a price observation (AUT-028)."""
+
+    return (marketplace_product_id, source.value, to_utc(observed_at).isoformat())
+
+
+@dataclass(frozen=True, slots=True)
 class RawCapture:
     """Structured payload preserved before normalization (AUT-027).
 
@@ -509,6 +556,8 @@ class CaptureAggregate:
     marketplace_product: MarketplaceProduct
     create_marketplace_product: bool
     offer: Offer
+    price_observation: PriceObservation
+    create_price_observation: bool
     raw_capture: RawCapture
     evidence: tuple[Evidence, ...]
     discovery_event: DiscoveryEvent
@@ -535,6 +584,7 @@ class CapturedOffer:
     source: str
     title: str | None
     captured_at: datetime
+    price_observation_id: str | None = None
     duplicate_identity: bool | None = None
 
     def to_contract(self) -> dict[str, Any]:
@@ -555,9 +605,64 @@ class CapturedOffer:
             "title": self.title,
             "captured_at": self.captured_at.isoformat(),
         }
+        if self.price_observation_id is not None:
+            payload["price_observation_id"] = self.price_observation_id
         if self.duplicate_identity is not None:
             payload["duplicate_identity"] = self.duplicate_identity
         return payload
+
+
+@dataclass(frozen=True, slots=True)
+class PriceHistoryPoint:
+    """One observation projected into the public price-history contract."""
+
+    price_observation_id: str
+    price: Decimal
+    observed_at: datetime
+    source: str
+    correlation_id: str
+    raw_capture_id: str
+    original_price: Decimal | None = None
+    shipping_cost: Decimal | None = None
+
+    def to_contract(self) -> dict[str, Any]:
+        return {
+            "price_observation_id": self.price_observation_id,
+            "price": str(self.price),
+            "original_price": None if self.original_price is None else str(self.original_price),
+            "shipping_cost": None if self.shipping_cost is None else str(self.shipping_cost),
+            "source": self.source,
+            "observed_at": self.observed_at.isoformat(),
+            "correlation_id": self.correlation_id,
+            "raw_capture_id": self.raw_capture_id,
+        }
+
+
+@dataclass(frozen=True, slots=True)
+class MarketplacePriceHistory:
+    """Queryable, chronological price series for one MarketplaceProduct.
+
+    Returned by ``GET /marketplace-products/{id}/price-history``. The series is
+    read-only and append-only by construction; it never computes or infers a
+    price (RDR-013).
+    """
+
+    marketplace_product_id: str
+    marketplace: str
+    external_id: str
+    observations: tuple[PriceHistoryPoint, ...]
+
+    def to_contract(self, *, correlation_id: str) -> dict[str, Any]:
+        return {
+            "schema_version": PRICE_HISTORY_SCHEMA_VERSION,
+            "status": "OK",
+            "correlation_id": correlation_id,
+            "marketplace_product_id": self.marketplace_product_id,
+            "marketplace": self.marketplace,
+            "external_id": self.external_id,
+            "observation_count": len(self.observations),
+            "observations": [point.to_contract() for point in self.observations],
+        }
 
 
 def build_raw_payload(normalized: NormalizedCapture, *, captured_at: datetime) -> dict[str, Any]:

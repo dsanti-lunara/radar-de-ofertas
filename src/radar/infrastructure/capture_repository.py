@@ -11,6 +11,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from datetime import datetime
+from decimal import Decimal
 
 from sqlalchemy import select, update
 from sqlalchemy.engine import Engine
@@ -22,11 +23,15 @@ from radar.domain.capture import (
     Candidate,
     CaptureAggregate,
     CapturedOffer,
+    CaptureSource,
     DiscoveryEvent,
     Evidence,
     Marketplace,
+    MarketplacePriceHistory,
     MarketplaceProduct,
     Offer,
+    PriceHistoryPoint,
+    PriceObservation,
     Product,
     RawCapture,
     identity_conflict_error,
@@ -38,6 +43,7 @@ from radar.infrastructure.models import (
     EvidenceRow,
     MarketplaceProductRow,
     OfferRow,
+    PriceObservationRow,
     ProductRow,
     RawCaptureRow,
 )
@@ -70,6 +76,40 @@ class SqlAlchemyCaptureRepository:
                 )
             ).scalar_one_or_none()
             return None if row is None else _marketplace_product_from_row(row)
+
+    def find_price_observation(
+        self, marketplace_product_id: str, source: CaptureSource, observed_at: datetime
+    ) -> PriceObservation | None:
+        with Session(self.engine) as session:
+            row = session.execute(
+                select(PriceObservationRow).where(
+                    PriceObservationRow.marketplace_product_id == marketplace_product_id,
+                    PriceObservationRow.source == source.value,
+                    PriceObservationRow.observed_at == _iso(observed_at),
+                )
+            ).scalar_one_or_none()
+            return None if row is None else _price_observation_from_row(row)
+
+    def get_price_history(self, marketplace_product_id: str) -> MarketplacePriceHistory | None:
+        with Session(self.engine) as session:
+            product = session.get(MarketplaceProductRow, marketplace_product_id)
+            if product is None:
+                return None
+            rows = (
+                session.execute(
+                    select(PriceObservationRow)
+                    .where(PriceObservationRow.marketplace_product_id == marketplace_product_id)
+                    .order_by(PriceObservationRow.observed_at, PriceObservationRow.id)
+                )
+                .scalars()
+                .all()
+            )
+            return MarketplacePriceHistory(
+                marketplace_product_id=product.id,
+                marketplace=product.marketplace,
+                external_id=product.external_id,
+                observations=tuple(_price_history_point(row) for row in rows),
+            )
 
     def save_capture(self, aggregate: CaptureAggregate) -> None:
         try:
@@ -140,6 +180,9 @@ class SqlAlchemyCaptureRepository:
         session.flush()
         session.add(_offer_to_row(aggregate.offer))
         session.flush()
+        if aggregate.create_price_observation:
+            session.add(_price_observation_to_row(aggregate.price_observation))
+            session.flush()
         session.add(_audit_event_to_row(aggregate.audit_event))
         session.flush()
         session.add(_discovery_event_to_row(aggregate.discovery_event))
@@ -190,6 +233,55 @@ def _marketplace_product_from_row(row: MarketplaceProductRow) -> MarketplaceProd
         title=row.title,
         seller_id=row.seller_id,
         raw_category=row.raw_category,
+    )
+
+
+def _optional_decimal(value: str | None) -> Decimal | None:
+    return None if value is None else Decimal(value)
+
+
+def _price_observation_to_row(observation: PriceObservation) -> PriceObservationRow:
+    return PriceObservationRow(
+        id=observation.id,
+        marketplace_product_id=observation.marketplace_product_id,
+        price=str(observation.price),
+        original_price=(
+            None if observation.original_price is None else str(observation.original_price)
+        ),
+        shipping_cost=(
+            None if observation.shipping_cost is None else str(observation.shipping_cost)
+        ),
+        source=observation.source.value,
+        observed_at=_iso(observation.observed_at),
+        correlation_id=observation.correlation_id,
+        raw_capture_id=observation.raw_capture_id,
+    )
+
+
+def _price_observation_from_row(row: PriceObservationRow) -> PriceObservation:
+    return PriceObservation(
+        id=row.id,
+        marketplace_product_id=row.marketplace_product_id,
+        price=Decimal(row.price),
+        observed_at=_parse(row.observed_at),
+        source=CaptureSource(row.source),
+        correlation_id=row.correlation_id,
+        raw_capture_id=row.raw_capture_id,
+        original_price=_optional_decimal(row.original_price),
+        shipping_cost=_optional_decimal(row.shipping_cost),
+    )
+
+
+def _price_history_point(row: PriceObservationRow) -> PriceHistoryPoint:
+    return PriceHistoryPoint(
+        price_observation_id=row.id,
+        price=Decimal(row.price),
+        observed_at=_parse(row.observed_at),
+        source=row.source,
+        correlation_id=row.correlation_id,
+        raw_capture_id=row.raw_capture_id,
+        original_price=_optional_decimal(row.original_price),
+        shipping_cost=_optional_decimal(row.shipping_cost),
     )
 
 

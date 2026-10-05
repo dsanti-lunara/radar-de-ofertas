@@ -23,7 +23,7 @@ pytestmark = pytest.mark.integration
 def test_empty_database_migrates_to_head(
     migrated_engine: Engine, migrated_database_url: str
 ) -> None:
-    assert head_revision(migrated_database_url) == "0002_manual_capture"
+    assert head_revision(migrated_database_url) == "0003_price_observation"
     assert current_revision(migrated_engine) == head_revision(migrated_database_url)
 
 
@@ -79,8 +79,31 @@ def test_migration_from_previous_revision_to_head(database_url: str) -> None:
     upgrade_to_head(database_url)
     engine = create_database_engine(database_url)
     try:
+        assert current_revision(engine) == "0003_price_observation"
+        tables = set(inspect(engine).get_table_names())
+        assert "candidate" in tables
+        assert "price_observation" in tables
+    finally:
+        engine.dispose()
+
+
+def test_migration_adds_price_observation_from_capture_revision(database_url: str) -> None:
+    ensure_sqlite_database_directory(database_url)
+    config = make_alembic_config(database_url)
+    command.upgrade(config, "0002_manual_capture")
+
+    engine = create_database_engine(database_url)
+    try:
         assert current_revision(engine) == "0002_manual_capture"
-        assert "candidate" in inspect(engine).get_table_names()
+        assert "price_observation" not in inspect(engine).get_table_names()
+    finally:
+        engine.dispose()
+
+    upgrade_to_head(database_url)
+    engine = create_database_engine(database_url)
+    try:
+        assert current_revision(engine) == "0003_price_observation"
+        assert "price_observation" in inspect(engine).get_table_names()
     finally:
         engine.dispose()
 
@@ -96,6 +119,7 @@ def test_downgrade_reverts_capture_schema(database_url: str) -> None:
         tables = set(inspect(engine).get_table_names())
         assert "candidate" not in tables
         assert "marketplace_product" not in tables
+        assert "price_observation" not in tables
         with engine.connect() as connection:
             version = connection.exec_driver_sql(
                 "SELECT version FROM schema_version WHERE component = 'db_schema'"

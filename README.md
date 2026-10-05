@@ -83,4 +83,13 @@ Captura manual (TKT-03): `POST /captures/manual` recebe o contrato versionado
 e erros retornam `RAD-CAP-001..004` com Correlation ID. Contrato em
 `docs/04_DATA_CONTRACTS.md`.
 
+Histórico de preços (TKT-04): cada captura normalizada acrescenta uma
+`PriceObservation` append-only ao `MarketplaceProduct` na mesma transação. A
+identidade `(marketplace_product_id, source, observed_at)` é única: captura
+repetida reutiliza a observação, sem sobrescrever o histórico nem inventar preço.
+`GET /marketplace-products/{id}/price-history` retorna a série cronológica com
+proveniência (`source`, `observed_at`, `correlation_id`, `raw_capture_id`),
+dinheiro em string decimal e timestamps UTC; MarketplaceProduct inexistente
+retorna `RAD-CAP-005`.
+
 Testes live (browser/IA/Telegram/WhatsApp) são opt-in e ficam fora da suíte padrão.

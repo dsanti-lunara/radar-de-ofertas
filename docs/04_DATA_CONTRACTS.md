@@ -133,8 +133,49 @@ Candidate.
 `duplicate_identity`, que é um fato do momento da captura) e preserva o
 `correlation_id` original da captura no corpo. Erros retornam
 `{schema_version, status:"INVALID", correlation_id, error}` com códigos
-`RAD-CAP-001..004` (ver `docs/ERROR_CATALOG.md`). `Evidence.confidence` fica
-nula nesta etapa; a calibração pertence ao Confidence Engine (RDR-029).
+`RAD-CAP-001..005` (ver `docs/ERROR_CATALOG.md`). `Evidence.confidence` fica
+nula nesta etapa; a calibração pertence ao Confidence Engine (RDR-029). A
+captura retorna também `price_observation_id`, a observação append-only criada ou
+reutilizada.
+
+## Price history, implementação (TKT-04)
+
+Implementado em `GET /marketplace-products/{marketplace_product_id}/price-history`
+(`schema_version=1.0`). Cada captura normalizada acrescenta uma
+`PriceObservation` append-only na mesma transação do grafo de captura. A
+identidade documentada é `(marketplace_product_id, source, observed_at)`; a
+captura repetida com a mesma identidade reutiliza a observação existente, sem
+sobrescrever o histórico e sem inventar novo preço. `price`/`original_price`/
+`shipping_cost` são strings decimais (nunca float binário) e `observed_at` é
+UTC. A série é retornada em ordem cronológica com proveniência.
+
+```json
+{
+  "schema_version": "1.0",
+  "status": "OK",
+  "correlation_id": "cid-history",
+  "marketplace_product_id": "mkt_...",
+  "marketplace": "MERCADO_LIVRE",
+  "external_id": "MLB123",
+  "observation_count": 2,
+  "observations": [
+    {
+      "price_observation_id": "obs_...",
+      "price": "79.90",
+      "original_price": "109.90",
+      "shipping_cost": null,
+      "source": "BROWSER_EXTENSION",
+      "observed_at": "2026-10-05T12:00:00+00:00",
+      "correlation_id": "cid-1",
+      "raw_capture_id": "raw_..."
+    }
+  ]
+}
+```
+
+MarketplaceProduct inexistente retorna 404 com `RAD-CAP-005`. `shipping_cost`
+permanece `null` até existir captura de frete (ticket próprio); a observação não
+calcula frete, desconto nem score.
 
 
 ## AI Editorial Review input

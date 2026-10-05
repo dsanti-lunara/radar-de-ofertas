@@ -16,6 +16,7 @@ _TABLES = (
     "product",
     "marketplace_product",
     "offer",
+    "price_observation",
     "raw_capture",
     "evidence",
     "discovery_event",

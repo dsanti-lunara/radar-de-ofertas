@@ -1,9 +1,10 @@
-"""SQLAlchemy mappings for capture, provenance and audit persistence.
+"""SQLAlchemy mappings for capture, price history, provenance and audit persistence.
 
 Timestamps are stored as ISO-8601 UTC strings (AUT-231) and money as decimal
 strings (AUT-232) so SQLite never round-trips a price through binary floating
-point. The tables enforce the `marketplace + external_id` identity at the
-database level (AUT-233, ``docs/03_DOMAIN_MODEL.md``).
+point. The tables enforce the `marketplace + external_id` identity and the
+append-only `price_observation` identity at the database level
+(AUT-233, AUT-028, ``docs/03_DOMAIN_MODEL.md``).
 """
 
 from __future__ import annotations
@@ -69,6 +70,32 @@ class OfferRow(Base):
     captured_at: Mapped[str] = mapped_column(String(40), nullable=False)
     source: Mapped[str] = mapped_column(String(32), nullable=False)
     correlation_id: Mapped[str] = mapped_column(String(64), nullable=False)
+
+
+class PriceObservationRow(Base):
+    __tablename__ = "price_observation"
+    __table_args__ = (
+        UniqueConstraint(
+            "marketplace_product_id",
+            "source",
+            "observed_at",
+            name="uq_price_observation_identity",
+        ),
+    )
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    marketplace_product_id: Mapped[str] = mapped_column(
+        String(64), ForeignKey("marketplace_product.id"), nullable=False
+    )
+    price: Mapped[str] = mapped_column(String(40), nullable=False)
+    original_price: Mapped[str | None] = mapped_column(String(40))
+    shipping_cost: Mapped[str | None] = mapped_column(String(40))
+    source: Mapped[str] = mapped_column(String(32), nullable=False)
+    observed_at: Mapped[str] = mapped_column(String(40), nullable=False)
+    correlation_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    raw_capture_id: Mapped[str] = mapped_column(
+        String(64), ForeignKey("raw_capture.id"), nullable=False
+    )
 
 
 class RawCaptureRow(Base):

@@ -118,7 +118,9 @@ Prefixos sugeridos:
 
 Implementação TKT-03 (RDR-011, RDR-012, RDR-014, RDR-015, RDR-021): a captura
 manual é validada antes de qualquer escrita e persiste em uma única transação,
-portanto falha sem escrita parcial. Erros são retornados no contrato
+portanto falha sem escrita parcial. Implementação TKT-04 (RDR-013): a consulta de
+histórico `GET /marketplace-products/{id}/price-history` retorna `RAD-CAP-005`
+quando o `MarketplaceProduct` não existe. Erros são retornados no contrato
 `{schema_version, status, correlation_id, error}`.
 
 | Code | Meaning | Retry |
@@ -127,6 +129,7 @@ portanto falha sem escrita parcial. Erros são retornados no contrato
 | RAD-CAP-002 CAPTURE_SENSITIVE_FIELD | campo sensível (token/secret/cookie/password) recusado na captura | no |
 | RAD-CAP-003 CAPTURE_IDENTITY_CONFLICT | corrida de identidade `marketplace + external_id`; identidade já existe | yes |
 | RAD-CAP-004 CANDIDATE_NOT_FOUND | Candidate consultado não existe | no |
+| RAD-CAP-005 MARKETPLACE_PRODUCT_NOT_FOUND | MarketplaceProduct consultado não existe | no |
 
 
 Config inválida bloqueia a inicialização de CLI/API antes de qualquer comando

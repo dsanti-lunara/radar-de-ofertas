@@ -326,3 +326,28 @@ Escopo: receber uma captura manual versionada pela fronteira pública, sanitizar
 | Docs/contratos e matriz QA atualizados | este documento, `docs/ERROR_CATALOG.md`, `docs/04_DATA_CONTRACTS.md`, `docs/03_DOMAIN_MODEL.md`, `docs/10_PERSISTENCE_AND_RECOVERY.md`, `README.md` |
 
 Requirement → Test → Acceptance → Evidence completo para TKT-03. Limitações e blockers remanescentes: `PriceObservation`/histórico de preços pertence a RDR-013/TKT-04 e não é criado aqui; `Evidence.confidence` fica nula até o Confidence Engine (RDR-029); não há resolução de `Product` entre marketplaces nem `brand`/`category` normalizados (tickets próprios); a dedupe é sequencial e uma corrida concorrente falha fechado com `RAD-CAP-003` (retryable); nenhum teste live/credenciado foi executado e nenhuma capability foi promovida para AUTO.
+
+## Foundation traceability, TKT-04 (RDR-013)
+
+Escopo: acrescentar observações monetárias append-only ao `MarketplaceProduct` durante a captura normalizada e consultar a série com proveniência. Camadas `unit`, `contract` e `integration` com SQLite temporário real, relógio/id controlados; nenhum teste live, credencial, provider externo ou side effect comercial.
+
+| Requirement | Test (arquivo::caso) | Acceptance | Evidence |
+|---|---|---|---|
+| RDR-013 PriceObservation append-only | `tests/test_price_history_persistence.py::test_capture_appends_price_observation_with_provenance`, `::test_previous_observations_are_never_overwritten` | Observação criada na captura; a anterior nunca é sobrescrita | `price_observation` (2 linhas, primeira preservada); `observed_at`/`price` originais |
+| Identidade documentada da observação | `tests/test_price_history_domain.py::test_price_observation_identity_is_stable_across_timezones`, `::test_price_observation_identity_distinguishes_source_and_instant`; `tests/test_price_history_persistence.py::test_repeated_capture_with_same_identity_reuses_observation`; `tests/test_api_price_history.py::test_repeated_identical_capture_keeps_single_observation` | Captura repetida segue `(marketplace_product_id, source, observed_at)` e reutiliza a observação sem inventar novo preço | constraint `uq_price_observation_identity`; 1 linha e mesmo `price_observation_id` na repetição |
+| Dinheiro decimal e timestamps UTC | `tests/test_price_history_domain.py::test_price_history_contract_serializes_decimal_and_utc`; `tests/test_price_history_persistence.py::test_price_observation_money_is_decimal_and_timestamps_are_utc` | Preço é string decimal (`Decimal` no domínio) e `observed_at` é UTC | `price = "79.90"` (str) e `observed_at` com `+00:00` |
+| FK e rollback no banco real | `tests/test_price_history_persistence.py::test_price_observation_foreign_key_is_enforced`, `::test_failed_capture_rolls_back_price_observation`; `tests/test_database_migration.py::test_migration_adds_price_observation_from_capture_revision`, `::test_downgrade_reverts_capture_schema` | FKs de `price_observation` verificadas; transação falha sem escrita parcial; migration N→N+1 | `IntegrityError` na FK; `price_observation`/`offer`/`marketplace_product` inalterados após `RAD-CAP-003`; revision `0003_price_observation` |
+| API pública de histórico | `tests/test_api_price_history.py::test_price_history_returns_series_with_provenance`, `::test_unknown_marketplace_product_returns_structured_404`; `tests/test_price_history_persistence.py::test_price_history_not_found_raises_structured_error` | Série consultável e versionada com Correlation ID e erro estruturado | `GET /marketplace-products/{id}/price-history` 200 `schema_version=1.0`; 404 `RAD-CAP-005` |
+
+### Acceptance evidence, TKT-04
+
+| Acceptance criterion | Verification |
+|---|---|
+| Observações anteriores nunca são sobrescritas | `tests/test_price_history_persistence.py::test_previous_observations_are_never_overwritten` |
+| Dinheiro não usa float binário e timestamps são UTC | `tests/test_price_history_domain.py::test_price_history_contract_serializes_decimal_and_utc`; `tests/test_price_history_persistence.py::test_price_observation_money_is_decimal_and_timestamps_are_utc` |
+| Captura repetida segue identidade documentada sem inventar novo preço | `tests/test_price_history_persistence.py::test_repeated_capture_with_same_identity_reuses_observation`; `tests/test_api_price_history.py::test_repeated_identical_capture_keeps_single_observation` |
+| Banco real verifica FK e rollback | `tests/test_price_history_persistence.py::test_price_observation_foreign_key_is_enforced`, `::test_failed_capture_rolls_back_price_observation` |
+| Comportamento pela fronteira pública, sem enfraquecer teste/guardrail | `POST /captures/manual` retorna `price_observation_id`; `GET /marketplace-products/{id}/price-history`; erro `RAD-CAP-005` |
+| Docs/contratos e matriz QA atualizados | este documento, `docs/03_DOMAIN_MODEL.md`, `docs/04_DATA_CONTRACTS.md`, `docs/10_PERSISTENCE_AND_RECOVERY.md`, `docs/ERROR_CATALOG.md`, `README.md` |
+
+Requirement → Test → Acceptance → Evidence completo para TKT-04. Limitações e blockers remanescentes: `shipping_cost` permanece nulo até existir captura de frete (ticket próprio); a série ainda não alimenta o Price Opportunity/Deal Score (RDR-023/RDR-027, tickets próprios) nem o Confidence Engine (RDR-029); a dedupe é sequencial pela identidade única e uma corrida concorrente na mesma identidade falha fechado no banco; nenhum teste live/credenciado foi executado e nenhuma capability foi promovida para AUTO.

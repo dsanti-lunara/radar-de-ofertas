@@ -43,6 +43,7 @@ class CaptureProductContract(_StrictContract):
     external_id: str = Field(min_length=1, max_length=128)
     title: str | None = Field(default=None, max_length=512)
     url: str | None = Field(default=None, max_length=2048)
+    category: str | None = Field(default=None, max_length=512)
 
 
 class CaptureOfferContract(_StrictContract):
@@ -95,6 +96,7 @@ class ManualCaptureContract(_StrictContract):
             original_price=self.offer.original_price,
             title=self.product.title,
             url=self.product.url,
+            category=self.product.category,
             sales_count=self.offer.sales_count,
             seller_name=seller.name if seller is not None else None,
             seller_id=seller.id if seller is not None else None,

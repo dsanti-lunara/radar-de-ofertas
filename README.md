@@ -92,4 +92,16 @@ proveniência (`source`, `observed_at`, `correlation_id`, `raw_capture_id`),
 dinheiro em string decimal e timestamps UTC; MarketplaceProduct inexistente
 retorna `RAD-CAP-005`.
 
+Classificação de categoria (TKT-05): a captura aceita `product.category`
+opcional (categoria bruta) e
+`GET /candidates/{id}/classification/{brand}` classifica o Candidate pela
+taxonomia versionada das marcas (`RADAR_BEAUTY`/`CASA_EM_ORDEM`) e resolve Brand
+Fit explicável. A taxonomia é configuração versionada/hasheada em
+`config/brand-taxonomy.json` (opcional; use `config/brand-taxonomy.example.json`;
+`RADAR_TAXONOMY_FILE` força um arquivo) sobre o baseline aprovado. Brand Fit de
+Radar Beauty segue os valores aprovados; mapeamento/calibração ausente devolve
+`brand_fit=null` com warning explícito e categoria fora de escopo devolve o Hard
+Rule `OUT_OF_SCOPE_CATEGORY`. Erros usam `RAD-CAP-004/006/007`; taxonomia
+inválida bloqueia a API com `RAD-CFG-005`. Contrato em `docs/04_DATA_CONTRACTS.md`.
+
 Testes live (browser/IA/Telegram/WhatsApp) são opt-in e ficam fora da suíte padrão.

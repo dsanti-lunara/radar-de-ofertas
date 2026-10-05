@@ -18,37 +18,46 @@ from sqlalchemy.engine import Engine
 
 from radar import __version__
 from radar.api.captures import build_capture_router, register_capture_error_handlers
+from radar.api.classification import build_classification_router
 from radar.api.contracts import CORRELATION_HEADER
 from radar.application.correlation import new_correlation_id
 from radar.bootstrap import build_health_service
 from radar.domain.config import RadarConfig
+from radar.domain.taxonomy import BrandTaxonomy
 from radar.infrastructure.config import ConfigLoader
 from radar.infrastructure.database import create_database_engine
 from radar.infrastructure.settings import Settings
+from radar.infrastructure.taxonomy import TaxonomyLoader
 
 
 def create_app(
     settings: Settings | None = None,
     engine: Engine | None = None,
     config: RadarConfig | None = None,
+    taxonomy: BrandTaxonomy | None = None,
 ) -> FastAPI:
     # Invalid configuration raises ConfigInvalidError, so the API never serves
-    # with a config that failed schema validation (RDR-004).
+    # with a config that failed schema validation (RDR-004). The taxonomy is
+    # loaded the same way: an invalid taxonomy file blocks app creation instead
+    # of serving an uncalibrated Brand Fit.
     resolved_config = config or ConfigLoader.from_env().load()
     resolved_settings = settings or Settings(
         database_url=resolved_config.database_url,
         log_level=resolved_config.log_level,
     )
     resolved_engine = engine or create_database_engine(resolved_settings.database_url)
+    resolved_taxonomy = taxonomy or TaxonomyLoader.from_env().load()
     health_service = build_health_service(resolved_settings, resolved_engine)
 
     app = FastAPI(title="Radar Engine API", version=__version__)
     app.state.settings = resolved_settings
     app.state.engine = resolved_engine
     app.state.config = resolved_config
+    app.state.taxonomy = resolved_taxonomy
 
     register_capture_error_handlers(app)
     app.include_router(build_capture_router(resolved_engine))
+    app.include_router(build_classification_router(resolved_engine, resolved_taxonomy))
 
     @app.get("/version")
     def version() -> dict[str, Any]:

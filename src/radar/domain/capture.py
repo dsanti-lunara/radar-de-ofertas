@@ -293,6 +293,7 @@ class CaptureIntake:
     original_price: object | None = None
     title: str | None = None
     url: str | None = None
+    category: str | None = None
     sales_count: int | None = None
     seller_name: str | None = None
     seller_id: str | None = None
@@ -316,6 +317,7 @@ class NormalizedCapture:
     seller_id: str | None
     captured_at: datetime | None
     schema_version: str
+    category: str | None = None
 
 
 def normalize_intake(intake: CaptureIntake) -> NormalizedCapture:
@@ -356,6 +358,7 @@ def normalize_intake(intake: CaptureIntake) -> NormalizedCapture:
     title = _sanitize_optional_text(intake.title, field_name="title")
     seller_name = _sanitize_optional_text(intake.seller_name, field_name="seller_name")
     seller_id = _sanitize_optional_text(intake.seller_id, field_name="seller_id")
+    category = _sanitize_optional_text(intake.category, field_name="category")
     url = validate_source_url(intake.url)
 
     captured_at = to_utc(intake.captured_at) if intake.captured_at is not None else None
@@ -373,6 +376,7 @@ def normalize_intake(intake: CaptureIntake) -> NormalizedCapture:
         seller_id=seller_id,
         captured_at=captured_at,
         schema_version=CAPTURE_SCHEMA_VERSION,
+        category=category,
     )
 
 
@@ -684,6 +688,7 @@ def build_raw_payload(normalized: NormalizedCapture, *, captured_at: datetime) -
             "external_id": normalized.external_id,
             "title": normalized.title,
             "url": normalized.url,
+            "category": normalized.category,
         },
         "offer": {
             "current_price": str(normalized.current_price),

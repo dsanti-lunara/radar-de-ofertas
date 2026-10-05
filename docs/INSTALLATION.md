@@ -55,6 +55,8 @@ Estado no foundation (TKT-01): `status`, `migrate` e `version` já existem. `doc
 
 Configuração e secrets (TKT-02): `radarctl config` valida e exibe a configuração sanitizada (`schema_version`, `config_hash`, referências de secret por nome) sem revelar valores. O arquivo `config/radar.json` é opcional (base em `config/radar.example.json`); variáveis `RADAR_*` sobrepõem. Secrets são resolvidos por `RADAR_SECRET_<NOME>` (ou variável explícita na seção `secrets`) e nunca são gravados em config, banco ou logs. Config inválida bloqueia CLI/API com `RAD-CFG-001`/`RAD-CFG-002`.
 
+Taxonomia de marcas (TKT-05): `config/brand-taxonomy.json` é opcional (base em `config/brand-taxonomy.example.json`); `RADAR_TAXONOMY_FILE` força um arquivo explícito. Taxonomia inválida bloqueia a criação da API com `RAD-CFG-005`. O baseline aprovado é usado quando o arquivo não existe.
+
 ## Verificação final
 
 `radarctl doctor` deve validar:

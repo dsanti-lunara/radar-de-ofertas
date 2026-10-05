@@ -145,12 +145,17 @@ class ManualCaptureService:
                 url=normalized.url,
                 title=normalized.title,
                 seller_id=normalized.seller_id,
+                raw_category=normalized.category,
             )
         else:
             product = None
             product_id = existing.product_id
             marketplace_product_id = existing.id
-            marketplace_product = replace(existing, last_seen_at=captured_at)
+            marketplace_product = replace(
+                existing,
+                last_seen_at=captured_at,
+                raw_category=normalized.category or existing.raw_category,
+            )
 
         offer_id = self.id_factory("off")
         raw_capture_id = self.id_factory("raw")
@@ -300,6 +305,15 @@ class ManualCaptureService:
         if normalized.title is not None:
             facts.append(
                 (ENTITY_MARKETPLACE_PRODUCT, marketplace_product_id, "title", normalized.title)
+            )
+        if normalized.category is not None:
+            facts.append(
+                (
+                    ENTITY_MARKETPLACE_PRODUCT,
+                    marketplace_product_id,
+                    "raw_category",
+                    normalized.category,
+                )
             )
         if normalized.url is not None:
             facts.append(

@@ -77,7 +77,8 @@ DOM failure:
   "product": {
     "external_id": "MLB123",
     "title": "Produto",
-    "url": "https://..."
+    "url": "https://...",
+    "category": "Perfumes"
   },
   "offer": {
     "current_price": "79.90",
@@ -178,6 +179,62 @@ permanece `null` até existir captura de frete (ticket próprio); a observação
 calcula frete, desconto nem score.
 
 
+## Classificação de categoria e Brand Fit, implementação (TKT-05, RDR-022, RDR-026)
+
+A captura manual (`POST /captures/manual`) passou a aceitar `product.category`
+opcional (categoria bruta do marketplace), sanitizada e persistida em
+`MarketplaceProduct.raw_category` e em `Evidence` (`raw_category`); é um
+acréscimo retrocompatível do contrato `schema_version=1.0` (campo opcional).
+
+A classificação é exposta em
+`GET /candidates/{candidate_id}/classification/{brand}?taxonomy_version=...`.
+`brand` é `RADAR_BEAUTY` ou `CASA_EM_ORDEM`; `taxonomy_version` é opcional e,
+quando informada, precisa coincidir com a taxonomia ativa (senão `RAD-CAP-007`).
+O endpoint é read-only e determinístico: recomputa o resultado a partir do
+Candidate e da taxonomia versionada, sem side effect comercial.
+
+A taxonomia é configuração versionada e hasheada (AUT-045, AUT-207), carregada
+de `config/brand-taxonomy.json` (opcional; `RADAR_TAXONOMY_FILE` força um
+arquivo) sobre o baseline aprovado. Radar Beauty usa os valores aprovados do
+SDD-05; Casa em Ordem tem prioridades aprovadas, mas Brand Fit sem calibração
+aprovada, portanto devolve `brand_fit: null` com warning explícito em vez de
+valor inventado. Categoria resolvida fora do escopo da marca produz o Hard Rule
+`OUT_OF_SCOPE_CATEGORY` (SDD-05) no campo `hard_rules`, que precede score e IA.
+
+```json
+{
+  "schema_version": "1.0",
+  "status": "CLASSIFIED",
+  "correlation_id": "cid-1",
+  "candidate_id": "cand_...",
+  "brand": "RADAR_BEAUTY",
+  "raw_category": "Perfumes",
+  "category": "perfume",
+  "priority": 1,
+  "brand_fit": 100,
+  "calibrated": true,
+  "calibration_required": false,
+  "taxonomy_version": "brand-taxonomy-1.0",
+  "taxonomy_hash": "sha256...",
+  "warnings": [],
+  "hard_rules": []
+}
+```
+
+Lacunas são explícitas, nunca inventadas:
+
+- `CATEGORY_NOT_PROVIDED`: Candidate sem categoria capturada;
+- `CATEGORY_MAPPING_NOT_DEFINED`: categoria bruta sem alias na taxonomia;
+- `BRAND_FIT_CALIBRATION_REQUIRED`: categoria em escopo sem Brand Fit aprovado.
+
+Nesses casos `brand_fit`/`category`/`priority` ficam `null` quando aplicável,
+`calibrated=false` e `calibration_required=true`. Erros usam o contrato
+`{schema_version, status:"INVALID", correlation_id, error}` com `RAD-CAP-004`
+(Candidate inexistente), `RAD-CAP-006` (brand desconhecida) e `RAD-CAP-007`
+(versão divergente); taxonomia inválida bloqueia a criação da API com
+`RAD-CFG-005`.
+
+
 ## AI Editorial Review input
 
 ```json
@@ -257,6 +314,10 @@ Marketplace:
 Brand:
 - RADAR_BEAUTY
 - CASA_EM_ORDEM
+
+CanonicalCategory (taxonomia versionada, TKT-05):
+- perfume, body_splash, hair, skincare, makeup, accessories (Radar Beauty);
+- organization, kitchen, utilities, cleaning, laundry, bathroom, decor, smart_home (Casa em Ordem).
 
 Channel:
 - TELEGRAM

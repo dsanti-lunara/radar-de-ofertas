@@ -301,3 +301,17 @@ por `GET /marketplace-products/{id}/price-history` com proveniência (`source`,
 `observed_at`, `correlation_id`, `raw_capture_id`). `shipping_cost` permanece
 nulo até existir captura de frete (ticket próprio). Ver
 `docs/04_DATA_CONTRACTS.md` e `docs/10_PERSISTENCE_AND_RECOVERY.md`.
+
+## Implementação (TKT-05, RDR-022/026)
+
+A categoria bruta do marketplace é opcionalmente capturada em
+`product.category` e persistida em `MarketplaceProduct.raw_category` (campo já
+previsto no modelo). A taxonomia de marcas é configuração versionada e hasheada
+(`Brand` × categoria canônica → prioridade e Brand Fit aprovado); a classificação
+é exposta por
+`GET /candidates/{candidate_id}/classification/{brand}?taxonomy_version=...`.
+O resultado é read-only e determinístico (sem persistência própria): a Evaluation
+versionada (RDR-016) é quem guarda o snapshot. Categoria resolvida fora do escopo
+da marca gera o Hard Rule `OUT_OF_SCOPE_CATEGORY`; mapeamento ou calibração
+ausente gera warning explícito e `brand_fit=null`, nunca valor inventado. Ver
+`docs/05_SCORING_ENGINE.md` e `docs/04_DATA_CONTRACTS.md`.

@@ -235,3 +235,4 @@ diagnostics/
 runtime/
 config/local/
 config/radar.json
+config/brand-taxonomy.json

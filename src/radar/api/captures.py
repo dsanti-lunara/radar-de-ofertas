@@ -33,6 +33,10 @@ from radar.domain.capture import (
     MARKETPLACE_PRODUCT_NOT_FOUND,
 )
 from radar.domain.errors import RadarError, RadarException
+from radar.domain.taxonomy import (
+    CLASSIFICATION_INPUT_INVALID,
+    TAXONOMY_VERSION_MISMATCH,
+)
 from radar.infrastructure.capture_repository import SqlAlchemyCaptureRepository
 
 
@@ -47,7 +51,12 @@ def _error_status(error_code: str) -> int:
         return 404
     if error_code == CAPTURE_IDENTITY_CONFLICT:
         return 409
-    if error_code in (CAPTURE_PAYLOAD_INVALID, CAPTURE_SENSITIVE_FIELD):
+    if error_code in (
+        CAPTURE_PAYLOAD_INVALID,
+        CAPTURE_SENSITIVE_FIELD,
+        CLASSIFICATION_INPUT_INVALID,
+        TAXONOMY_VERSION_MISMATCH,
+    ):
         return 422
     return 500
 

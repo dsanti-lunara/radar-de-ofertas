@@ -1,0 +1,69 @@
+{
+  "schema_version": "1.0",
+  "taxonomy_version": "brand-taxonomy-1.0",
+  "brands": {
+    "RADAR_BEAUTY": {
+      "categories": {
+        "perfume": {"priority": 1, "brand_fit": 100},
+        "body_splash": {"priority": 1, "brand_fit": 100},
+        "hair": {"priority": 2, "brand_fit": 85},
+        "skincare": {"priority": 2, "brand_fit": 85},
+        "makeup": {"priority": 3, "brand_fit": 65},
+        "accessories": {"priority": 3, "brand_fit": 60}
+      }
+    },
+    "CASA_EM_ORDEM": {
+      "categories": {
+        "organization": {"priority": 1},
+        "kitchen": {"priority": 1},
+        "utilities": {"priority": 1},
+        "cleaning": {"priority": 2},
+        "laundry": {"priority": 2},
+        "bathroom": {"priority": 2},
+        "decor": {"priority": 3},
+        "smart_home": {"priority": 3}
+      }
+    }
+  },
+  "aliases": {
+    "perfume": "perfume",
+    "perfumes": "perfume",
+    "fragrance": "perfume",
+    "fragrancia": "perfume",
+    "fragrância": "perfume",
+    "body splash": "body_splash",
+    "body_splash": "body_splash",
+    "hair": "hair",
+    "cabelo": "hair",
+    "cabelos": "hair",
+    "hair care": "hair",
+    "skincare": "skincare",
+    "skin care": "skincare",
+    "cuidados com a pele": "skincare",
+    "makeup": "makeup",
+    "make up": "makeup",
+    "maquiagem": "makeup",
+    "accessories": "accessories",
+    "acessorios": "accessories",
+    "acessórios": "accessories",
+    "organization": "organization",
+    "organizacao": "organization",
+    "organização": "organization",
+    "kitchen": "kitchen",
+    "cozinha": "kitchen",
+    "utilities": "utilities",
+    "utilidades": "utilities",
+    "cleaning": "cleaning",
+    "limpeza": "cleaning",
+    "laundry": "laundry",
+    "lavanderia": "laundry",
+    "bathroom": "bathroom",
+    "banheiro": "bathroom",
+    "decor": "decor",
+    "decoracao": "decor",
+    "decoração": "decor",
+    "smart home": "smart_home",
+    "smart_home": "smart_home",
+    "casa inteligente": "smart_home"
+  }
+}

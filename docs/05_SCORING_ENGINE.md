@@ -114,6 +114,15 @@ Radar Beauty, base inicial:
 
 Casa em Ordem deve refletir suas prioridades de organização/cozinha/utilidades primeiro.
 
+Implementação (TKT-05, RDR-022, RDR-026): a taxonomia de marcas é configuração
+versionada e hasheada (`config/brand-taxonomy.json`, opcional) sobre um baseline
+aprovado. O baseline usa exatamente os valores de Radar Beauty acima; as
+prioridades de Casa em Ordem vêm do SDD-01, mas o Brand Fit de Casa em Ordem
+**não** está calibrado nos SDDs. A classificação reporta a lacuna
+(`BRAND_FIT_CALIBRATION_REQUIRED`, `brand_fit=null`, `calibrated=false`) em vez
+de inventar valor. Categoria resolvida fora do escopo da marca produz o Hard Rule
+`OUT_OF_SCOPE_CATEGORY` no contrato de avaliação, antes de score e IA.
+
 ## Threshold inicial
 
 ```text

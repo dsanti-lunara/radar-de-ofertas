@@ -36,6 +36,7 @@ from radar.domain.capture import (
     RawCapture,
     identity_conflict_error,
 )
+from radar.domain.taxonomy import CandidateCategory
 from radar.infrastructure.models import (
     AuditEventRow,
     CandidateRow,
@@ -163,6 +164,26 @@ class SqlAlchemyCaptureRepository:
                 duplicate_identity=None,
             )
 
+    def get_candidate_category(self, candidate_id: str) -> CandidateCategory | None:
+        """Read the raw category context of a persisted Candidate (RDR-022)."""
+
+        with Session(self.engine) as session:
+            candidate = session.get(CandidateRow, candidate_id)
+            if candidate is None:
+                return None
+            offer = session.get(OfferRow, candidate.offer_id)
+            if offer is None:
+                return None
+            marketplace_product = session.get(MarketplaceProductRow, offer.marketplace_product_id)
+            if marketplace_product is None:
+                return None
+            return CandidateCategory(
+                candidate_id=candidate.id,
+                marketplace_product_id=marketplace_product.id,
+                marketplace=marketplace_product.marketplace,
+                raw_category=marketplace_product.raw_category,
+            )
+
     def _insert(self, session: Session, aggregate: CaptureAggregate) -> None:
         if aggregate.product is not None:
             session.add(_product_to_row(aggregate.product))
@@ -174,7 +195,10 @@ class SqlAlchemyCaptureRepository:
             session.execute(
                 update(MarketplaceProductRow)
                 .where(MarketplaceProductRow.id == aggregate.marketplace_product.id)
-                .values(last_seen_at=_iso(aggregate.marketplace_product.last_seen_at))
+                .values(
+                    last_seen_at=_iso(aggregate.marketplace_product.last_seen_at),
+                    raw_category=aggregate.marketplace_product.raw_category,
+                )
             )
         session.add(_raw_capture_to_row(aggregate.raw_capture))
         session.flush()

@@ -351,3 +351,33 @@ Escopo: acrescentar observações monetárias append-only ao `MarketplaceProduct
 | Docs/contratos e matriz QA atualizados | este documento, `docs/03_DOMAIN_MODEL.md`, `docs/04_DATA_CONTRACTS.md`, `docs/10_PERSISTENCE_AND_RECOVERY.md`, `docs/ERROR_CATALOG.md`, `README.md` |
 
 Requirement → Test → Acceptance → Evidence completo para TKT-04. Limitações e blockers remanescentes: `shipping_cost` permanece nulo até existir captura de frete (ticket próprio); a série ainda não alimenta o Price Opportunity/Deal Score (RDR-023/RDR-027, tickets próprios) nem o Confidence Engine (RDR-029); a dedupe é sequencial pela identidade única e uma corrida concorrente na mesma identidade falha fechado no banco; nenhum teste live/credenciado foi executado e nenhuma capability foi promovida para AUTO.
+
+## Foundation traceability, TKT-05 (RDR-022, RDR-026)
+
+Escopo: classificar a categoria bruta de um Candidate contra a taxonomia
+versionada das marcas e resolver Brand Fit explicável, com lacunas explícitas e
+Hard Rule para categoria fora de escopo. Camadas `unit`, `contract` e
+`integration` com SQLite temporário real; relógio/id controlados; nenhum teste
+live, credencial, provider externo ou side effect comercial.
+
+| Requirement | Test (arquivo::caso) | Acceptance | Evidence |
+|---|---|---|---|
+| RDR-022 Brand taxonomy | `tests/test_taxonomy_domain.py::test_approved_taxonomy_carries_radar_beauty_values`, `::test_approved_taxonomy_does_not_invent_casa_em_ordem_brand_fit`, `::test_approved_taxonomy_is_versioned_and_hashed`; `tests/test_taxonomy_config.py::test_loader_without_file_returns_approved_taxonomy`, `::test_loader_reads_versioned_file` | Taxonomia versionada/hasheada e carregada de configuração validada | `taxonomy_version`/`taxonomy_hash` no contrato; `config/brand-taxonomy.json` |
+| RDR-026 Brand Fit | `tests/test_api_classification.py::test_radar_beauty_brand_fit_uses_approved_values` (6 categorias), `::test_capture_persists_raw_category`, `::test_repeated_capture_updates_raw_category_without_duplicating_identity`; `tests/test_taxonomy_domain.py::test_radar_beauty_brand_fit_is_explainable` | Brand Fit segue valores aprovados e configuração versionada | `GET /candidates/{id}/classification/{brand}` 200; `brand_fit`/`priority`/`taxonomy_hash` |
+| Escopo das marcas | `tests/test_api_classification.py::test_casa_em_ordem_priorities_respect_scope_and_report_calibration_gap`, `::test_out_of_scope_category_emits_hard_rule`; `tests/test_taxonomy_domain.py::test_out_of_scope_category_emits_hard_rule` | Categorias/prioridades respeitam escopo; fora de escopo → Hard Rule | `hard_rules=[OUT_OF_SCOPE_CATEGORY]`; prioridade de Casa em Ordem |
+| Lacuna explícita | `tests/test_api_classification.py::test_undefined_mapping_is_explicit_gap`, `::test_missing_category_is_explicit_gap`; `tests/test_taxonomy_domain.py::test_undefined_mapping_is_explicit_gap_without_invented_value`, `::test_missing_category_is_explicit_gap`, `::test_casa_em_ordem_calibration_gap_is_explicit` | Mapeamento/calibração ausente não recebe valor inventado | `warnings=[CATEGORY_MAPPING_NOT_DEFINED/CATEGORY_NOT_PROVIDED/BRAND_FIT_CALIBRATION_REQUIRED]`; `brand_fit=null`; `calibrated=false` |
+| Config incompleta falha fechado | `tests/test_taxonomy_config.py::test_loader_invalid_json_fails_closed`, `::test_loader_invalid_document_fails_closed`, `::test_loader_explicit_missing_file_fails_closed`; `tests/test_taxonomy_domain.py::test_build_taxonomy_rejects_missing_version`, `::test_build_taxonomy_rejects_unknown_brand`, `::test_build_taxonomy_rejects_unknown_category`, `::test_build_taxonomy_rejects_out_of_range_brand_fit`, `::test_build_taxonomy_rejects_alias_to_unknown_category` | Config de taxonomia inválida não é apresentada como validada | `RAD-CFG-005`; API bloqueada na criação |
+| API pública e erros | `tests/test_api_classification.py::test_unknown_brand_returns_structured_error`, `::test_taxonomy_version_mismatch_returns_structured_error`, `::test_candidate_not_found_returns_structured_404`, `::test_classification_correlation_id_is_generated_when_absent` | Fronteira pública versionada com Correlation ID e erro estruturado | `RAD-CAP-004/006/007`; header `X-Correlation-ID`; `Cache-Control: no-store` |
+
+### Acceptance evidence, TKT-05
+
+| Acceptance criterion | Verification |
+|---|---|
+| Categorias e prioridades respeitam escopo das marcas | `tests/test_api_classification.py::test_radar_beauty_brand_fit_uses_approved_values`, `::test_casa_em_ordem_priorities_respect_scope_and_report_calibration_gap`; `tests/test_taxonomy_domain.py::test_approved_taxonomy_carries_radar_beauty_values` |
+| Brand Fit segue valores aprovados e configuração versionada | `tests/test_api_classification.py::test_radar_beauty_brand_fit_uses_approved_values`; `tests/test_taxonomy_config.py::test_loader_reads_versioned_file`; hash estável em `tests/test_taxonomy_domain.py::test_content_hash_changes_with_content_and_is_stable` |
+| Mapeamentos não definidos não recebem valor inventado | `tests/test_api_classification.py::test_undefined_mapping_is_explicit_gap`, `::test_missing_category_is_explicit_gap`; `tests/test_taxonomy_domain.py::test_casa_em_ordem_calibration_gap_is_explicit` |
+| Categoria fora de escopo resulta em Hard Rule no contrato de avaliação | `tests/test_api_classification.py::test_out_of_scope_category_emits_hard_rule`; `tests/test_taxonomy_domain.py::test_out_of_scope_category_emits_hard_rule` |
+| Comportamento pela fronteira pública, sem enfraquecer teste/guardrail | `GET /candidates/{id}/classification/{brand}`; erros `RAD-CAP-004/006/007`; nenhum teste/guardrail removido |
+| Docs/contratos e matriz QA atualizados | este documento, `docs/03_DOMAIN_MODEL.md`, `docs/04_DATA_CONTRACTS.md`, `docs/05_SCORING_ENGINE.md`, `docs/ERROR_CATALOG.md`, `README.md` |
+
+Requirement → Test → Acceptance → Evidence completo para TKT-05. Limitações e blockers remanescentes: o Brand Fit de Casa em Ordem permanece **sem calibração aprovada** nos SDDs, portanto a classificação devolve `brand_fit=null` com `BRAND_FIT_CALIBRATION_REQUIRED` (lacuna explícita, requer decisão humana) e não inventa valor; a classificação é read-only e determinística, sem persistência própria — o snapshot versionado pertence à Evaluation (RDR-016); `Product.category`/resolução entre marketplaces e normalização por categoria (RDR-025/TKT-08) são tickets próprios; o resultado ainda não alimenta Deal Score (RDR-027) nem Confidence (RDR-029); nenhum teste live/credenciado foi executado e nenhuma capability foi promovida para AUTO.

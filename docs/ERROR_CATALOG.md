@@ -113,6 +113,7 @@ Prefixos sugeridos:
 | RAD-CFG-002 CONFIG_UNREADABLE | arquivo de config indicado não encontrado ou ilegível | no |
 | RAD-CFG-003 SECRET_UNAVAILABLE | secret referenciado ausente no armazenamento seguro; bloqueia a capability do componente | no |
 | RAD-CFG-004 SECRET_ACCESS_DENIED | componente pediu secret fora do seu escopo de menor privilégio | no |
+| RAD-CFG-005 TAXONOMY_INVALID | taxonomia de marcas ausente de schema/semântica válidos (versão, brand, categoria, prioridade, Brand Fit, alias) | no |
 
 ## Capture / Domain
 
@@ -120,8 +121,12 @@ Implementação TKT-03 (RDR-011, RDR-012, RDR-014, RDR-015, RDR-021): a captura
 manual é validada antes de qualquer escrita e persiste em uma única transação,
 portanto falha sem escrita parcial. Implementação TKT-04 (RDR-013): a consulta de
 histórico `GET /marketplace-products/{id}/price-history` retorna `RAD-CAP-005`
-quando o `MarketplaceProduct` não existe. Erros são retornados no contrato
-`{schema_version, status, correlation_id, error}`.
+quando o `MarketplaceProduct` não existe. Implementação TKT-05 (RDR-022,
+RDR-026): a classificação de categoria retorna `RAD-CAP-004` quando o Candidate
+não existe, `RAD-CAP-006` para brand desconhecida e `RAD-CAP-007` quando a
+`taxonomy_version` solicitada difere da ativa; lacunas de mapeamento/calibração
+não são erros, são warnings explícitos no contrato de classificação. Erros são
+retornados no contrato `{schema_version, status, correlation_id, error}`.
 
 | Code | Meaning | Retry |
 |---|---|---|
@@ -130,6 +135,8 @@ quando o `MarketplaceProduct` não existe. Erros são retornados no contrato
 | RAD-CAP-003 CAPTURE_IDENTITY_CONFLICT | corrida de identidade `marketplace + external_id`; identidade já existe | yes |
 | RAD-CAP-004 CANDIDATE_NOT_FOUND | Candidate consultado não existe | no |
 | RAD-CAP-005 MARKETPLACE_PRODUCT_NOT_FOUND | MarketplaceProduct consultado não existe | no |
+| RAD-CAP-006 CLASSIFICATION_INPUT_INVALID | brand desconhecida na classificação de categoria | no |
+| RAD-CAP-007 TAXONOMY_VERSION_MISMATCH | `taxonomy_version` solicitada difere da taxonomia ativa | no |
 
 
 Config inválida bloqueia a inicialização de CLI/API antes de qualquer comando

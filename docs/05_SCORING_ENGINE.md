@@ -136,6 +136,26 @@ Pode usar:
 
 Normalização deve evoluir por categoria.
 
+Implementação (TKT-08, RDR-025): a avaliação é um cálculo determinístico e
+read-only exposto por `GET /candidates/{candidate_id}/demand`
+(`schema_version=1.0`). A categoria canônica do Candidate é resolvida pela
+taxonomia versionada (RDR-022) a partir da categoria bruta capturada e a
+normalização é configuração versionada e hasheada por categoria
+(`config/demand.json`, opcional; baseline aprovado vazio), sem IA em nenhum
+passo (AUT-031). Cada componente (`sales_count`, `rating_count`, `trend`,
+`affiliate_portal`, `badges`) registra a origem do sinal (`persisted_offer` ou
+`evaluation_input`) e o `raw` lido. O SDD **não** calibra nem o mapeamento nem os
+pesos de composição, portanto eles vêm da configuração: sinal sem
+mapeamento/peso na categoria é lacuna explícita (`score=null`,
+`DEMAND_NORMALIZATION_NOT_DEFINED`) e o `demand` retornado é parcial sobre os
+componentes calibrados (`weight_covered`, `fully_calibrated`). Ausência de dado
+não vira zero: sinal ausente (`DEMAND_MISSING_DATA`), inválido
+(`DEMAND_INVALID_DATA`) ou categoria não resolvida (`DEMAND_CATEGORY_NOT_DEFINED`)
+geram warnings para o Confidence Engine (RDR-029), sem inventar volume ou
+conversões. Configuração de categoria incompleta resulta em
+`fully_calibrated=false` e nunca é apresentada como validada. O snapshot
+versionado pertence à Evaluation (RDR-016/TKT-09).
+
 ### Brand Fit
 
 Radar Beauty, base inicial:

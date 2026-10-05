@@ -343,6 +343,65 @@ contrato `{schema_version, status:"INVALID", correlation_id, error}` com
 `RAD-CAP-004` (Candidate inexistente) e `RAD-CAP-009` (sinal de avaliação
 malformado); normalização inválida bloqueia a criação da API com `RAD-CFG-006`.
 
+## Demand, implementação (TKT-08, RDR-025)
+
+Implementado em `GET /candidates/{candidate_id}/demand` (`schema_version=1.0`). O
+endpoint é read-only e idempotente: recomputa o breakdown determinístico a partir
+da categoria bruta e do `sales_count` persistidos do Candidate e da normalização
+versionada ativa, sem side effect comercial. A categoria canônica é resolvida com
+a taxonomia versionada (TKT-05); sinais que a captura manual ainda não persiste
+(`rating_count`, `trend`, `affiliate_portal`, `badges`) podem ser informados como
+query params opcionais e são validados antes do cálculo. A origem de cada sinal é
+reportada no componente (`persisted_offer` ou `evaluation_input`).
+
+A normalização de Demand **evolui por categoria** e é configuração versionada e
+hasheada (`config/demand.json`, opcional; use `config/demand.example.json`;
+`RADAR_DEMAND_FILE` força um arquivo). Cada categoria define os pesos de
+composição e o mapeamento de cada sinal para `0..100`; `sales_count`/`rating_count`
+usam bandas, `trend`/`affiliate_portal`/`badges` usam mapas de label, e o
+componente `badges` assume o score do badge reconhecido mais forte. O baseline
+aprovado é intencionalmente vazio: categoria/sinal sem mapeamento é lacuna
+explícita, nunca constante inventada. Nenhum passo chama IA.
+
+```json
+{
+  "schema_version": "1.0",
+  "status": "EVALUATED",
+  "correlation_id": "cid-1",
+  "candidate_id": "cand_...",
+  "raw_category": "Perfumes",
+  "category": "perfume",
+  "demand": 100,
+  "fully_calibrated": true,
+  "weight_covered": 100,
+  "scoring_version": "demand-1.0",
+  "normalization_version": "demand-normalization-1.0",
+  "normalization_hash": "sha256...",
+  "components": [
+    {"name": "sales_count", "weight": 40, "score": 100, "calibrated": true, "raw": 2300, "source": "persisted_offer", "reason": "ok"},
+    {"name": "rating_count", "weight": 20, "score": 100, "calibrated": true, "raw": 600, "source": "evaluation_input", "reason": "ok"},
+    {"name": "trend", "weight": 20, "score": 100, "calibrated": true, "raw": "rising", "source": "evaluation_input", "reason": "ok"},
+    {"name": "affiliate_portal", "weight": 10, "score": 100, "calibrated": true, "raw": "featured", "source": "evaluation_input", "reason": "ok"},
+    {"name": "badges", "weight": 10, "score": 100, "calibrated": true, "raw": ["best seller"], "source": "evaluation_input", "reason": "ok"}
+  ],
+  "warnings": []
+}
+```
+
+Lacunas e dados ruins são explícitos, nunca inventados: `DEMAND_MISSING_DATA`
+(sinal ausente → `score=null`, não vira zero, não inventa volume/conversões),
+`DEMAND_INVALID_DATA` (sinal inválido, ex.: contagem negativa ou label vazio),
+`DEMAND_NORMALIZATION_NOT_DEFINED` (categoria/sinal/badge sem mapeamento
+configurado → `score=null` e calibração humana necessária) e
+`DEMAND_CATEGORY_NOT_DEFINED` (categoria do Candidate não resolvida pela
+taxonomia). O `demand` é parcial sobre os componentes calibrados
+(`weight_covered`/`fully_calibrated`); configuração incompleta de categoria
+resulta em `fully_calibrated=false`, nunca em resultado apresentado como
+validado. Erros usam o contrato `{schema_version, status:"INVALID",
+correlation_id, error}` com `RAD-CAP-004` (Candidate inexistente) e `RAD-CAP-010`
+(sinal de avaliação malformado); normalização inválida bloqueia a criação da API
+com `RAD-CFG-007`.
+
 ## AI Editorial Review input
 
 ```json

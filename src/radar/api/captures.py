@@ -32,6 +32,7 @@ from radar.domain.capture import (
     CAPTURE_SENSITIVE_FIELD,
     MARKETPLACE_PRODUCT_NOT_FOUND,
 )
+from radar.domain.demand import DEMAND_INPUT_INVALID
 from radar.domain.errors import RadarError, RadarException
 from radar.domain.price_opportunity import PRICE_OPPORTUNITY_INPUT_INVALID
 from radar.domain.seller_quality import SELLER_QUALITY_INPUT_INVALID
@@ -57,9 +58,10 @@ def _error_status(error_code: str) -> int:
         CAPTURE_PAYLOAD_INVALID,
         CAPTURE_SENSITIVE_FIELD,
         CLASSIFICATION_INPUT_INVALID,
-        TAXONOMY_VERSION_MISMATCH,
+        DEMAND_INPUT_INVALID,
         PRICE_OPPORTUNITY_INPUT_INVALID,
         SELLER_QUALITY_INPUT_INVALID,
+        TAXONOMY_VERSION_MISMATCH,
     ):
         return 422
     return 500

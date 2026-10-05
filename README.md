@@ -130,4 +130,19 @@ resultado é parcial sobre os componentes calibrados (`weight_covered`); o
 snapshot pertence à Evaluation. Erros usam `RAD-CAP-004/009` e normalização
 inválida bloqueia a API com `RAD-CFG-006`. Contrato em `docs/04_DATA_CONTRACTS.md`.
 
+Demanda por categoria (TKT-08): `GET /candidates/{id}/demand` calcula, de forma
+read-only e determinística, o breakdown de Demand a partir da categoria bruta e do
+`sales_count` persistidos e de sinais validados informados na avaliação
+(`rating_count`, `trend`, `affiliate_portal`, `badges`). A categoria canônica é
+resolvida pela taxonomia versionada e cada componente carrega a origem do sinal
+(`persisted_offer`/`evaluation_input`). A normalização **evolui por categoria** e
+é configuração versionada/hasheada (`config/demand.json`, opcional; use
+`config/demand.example.json`) com baseline aprovado vazio: sinal/categoria sem
+mapeamento ou peso é lacuna explícita (`DEMAND_NORMALIZATION_NOT_DEFINED`), dado
+ausente não vira zero (`DEMAND_MISSING_DATA`) e categoria não resolvida é
+explícita (`DEMAND_CATEGORY_NOT_DEFINED`). Configuração incompleta resulta em
+`fully_calibrated=false` e nunca é apresentada como validada; nenhum passo usa
+IA. Erros usam `RAD-CAP-004/010` e normalização inválida bloqueia a API com
+`RAD-CFG-007`. Contrato em `docs/04_DATA_CONTRACTS.md`.
+
 Testes live (browser/IA/Telegram/WhatsApp) são opt-in e ficam fora da suíte padrão.

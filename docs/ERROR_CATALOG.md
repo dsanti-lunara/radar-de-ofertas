@@ -115,6 +115,7 @@ Prefixos sugeridos:
 | RAD-CFG-004 SECRET_ACCESS_DENIED | componente pediu secret fora do seu escopo de menor privilégio | no |
 | RAD-CFG-005 TAXONOMY_INVALID | taxonomia de marcas ausente de schema/semântica válidos (versão, brand, categoria, prioridade, Brand Fit, alias) | no |
 | RAD-CFG-006 SELLER_QUALITY_INVALID | normalização de Seller Quality ausente de schema/semântica válidos (versão, score 0..100, bandas sobrepostas, label/chave inválida) | no |
+| RAD-CFG-007 DEMAND_INVALID | normalização de Demand ausente de schema/semântica válidos (versão, categoria canônica, sinal, peso/score 0..100, bandas sobrepostas, label/chave inválida) | no |
 
 ## Capture / Domain
 
@@ -136,7 +137,12 @@ erros, são warnings explícitos no contrato. Implementação TKT-07 (RDR-024): 
 avaliação de Seller Quality retorna `RAD-CAP-004` quando o Candidate não existe e
 `RAD-CAP-009` quando um sinal informado (reputation, rating, sales_count,
 trusted) é malformado; sinal ausente, inválido, sem normalização configurada ou
-contraditório não são erros, são warnings explícitos no contrato. Erros são
+contraditório não são erros, são warnings explícitos no contrato. Implementação
+TKT-08 (RDR-025): a avaliação de Demand retorna `RAD-CAP-004` quando o Candidate
+não existe e `RAD-CAP-010` quando um sinal informado (rating_count, trend,
+affiliate_portal, badges) é malformado; sinal ausente, inválido, sem normalização
+configurada para a categoria ou categoria não resolvida não são erros, são
+warnings explícitos no contrato. Erros são
 retornados no contrato `{schema_version, status, correlation_id, error}`.
 
 | Code | Meaning | Retry |
@@ -150,6 +156,7 @@ retornados no contrato `{schema_version, status, correlation_id, error}`.
 | RAD-CAP-007 TAXONOMY_VERSION_MISMATCH | `taxonomy_version` solicitada difere da taxonomia ativa | no |
 | RAD-CAP-008 PRICE_OPPORTUNITY_INPUT_INVALID | condição de Price Opportunity inválida (coupon_state, coupon_amount, shipping_cost, comparable_price) | no |
 | RAD-CAP-009 SELLER_QUALITY_INPUT_INVALID | sinal de Seller Quality malformado na avaliação (reputation, rating, sales_count, trusted) | no |
+| RAD-CAP-010 DEMAND_INPUT_INVALID | sinal de Demand malformado na avaliação (rating_count, trend, affiliate_portal, badges) | no |
 
 
 Config inválida bloqueia a inicialização de CLI/API antes de qualquer comando

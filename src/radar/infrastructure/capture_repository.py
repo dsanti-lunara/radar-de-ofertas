@@ -18,6 +18,7 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from radar.application.demand_service import CandidateDemandContext
 from radar.application.price_opportunity_service import CandidatePriceContext
 from radar.application.seller_quality_service import CandidateSellerContext
 from radar.domain.audit import AuditEvent
@@ -257,6 +258,34 @@ class SqlAlchemyCaptureRepository:
                 seller_id=offer.seller_id or marketplace_product.seller_id,
                 seller_name=offer.seller_name,
                 rating=None if offer.rating is None else Decimal(str(offer.rating)),
+                sales_count=offer.sales_count,
+                captured_at=_parse(offer.captured_at),
+            )
+
+    def get_candidate_demand_context(self, candidate_id: str) -> CandidateDemandContext | None:
+        """Read the demand facts persisted for a Candidate (RDR-025).
+
+        Only the raw category and the sales count are persisted by the manual
+        capture; the remaining demand signals (rating count, trend, affiliate
+        portal signal and badges) are not persisted yet, so they can only be
+        supplied (validated) at evaluation time.
+        """
+
+        with Session(self.engine) as session:
+            candidate = session.get(CandidateRow, candidate_id)
+            if candidate is None:
+                return None
+            offer = session.get(OfferRow, candidate.offer_id)
+            if offer is None:
+                return None
+            marketplace_product = session.get(MarketplaceProductRow, offer.marketplace_product_id)
+            if marketplace_product is None:
+                return None
+            return CandidateDemandContext(
+                candidate_id=candidate.id,
+                marketplace_product_id=marketplace_product.id,
+                marketplace=marketplace_product.marketplace,
+                raw_category=marketplace_product.raw_category,
                 sales_count=offer.sales_count,
                 captured_at=_parse(offer.captured_at),
             )

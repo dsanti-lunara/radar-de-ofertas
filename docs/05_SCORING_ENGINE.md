@@ -318,3 +318,39 @@ Guardar:
 - scoring version.
 
 Avaliações antigas nunca são sobrescritas.
+
+## Implementação (TKT-09, RDR-016/027/028/029/030)
+
+A Evaluation é imutável, versionada e append-only (`evaluation`; migration
+`0004_evaluation`), exposta por `POST /candidates/{candidate_id}/evaluations` e
+`GET /candidates/{candidate_id}/evaluations` (`schema_version=1.0`). O domínio
+`radar.domain.evaluation` é determinístico e livre de framework; a IA nunca
+calcula score, decide compliance ou cria link (AUT-031, AUT-084).
+
+- **Deal Score**: `Deal = Price*0.40 + Seller*0.25 + Demand*0.20 + BrandFit*0.15`
+  com pesos congelados 40/25/20/15 e escala `0..100`. Brand Fit é resolvido pela
+  taxonomia ativa (TKT-05); Price/Seller/Demand são as saídas normalizadas dos
+  TKT-06/07/08. Componente obrigatório ausente mantém `deal_score=null` e produz a
+  Hard Rule bloqueante `INSUFFICIENT_REQUIRED_DATA` (nunca zero inventado).
+  **Comissão não entra no Deal**: `DealFacts` não tem campo de comissão.
+- **Monetization Score**: pesos 40/25/20/15 (comissão estimada, comissão efetiva
+  %, conversion evidence, comissão extra). Conversion Evidence começa neutro 50
+  até haver histórico próprio (AUT-053) com warning explícito; componentes
+  ausentes são excluídos do agregado parcial. Monetization nunca aprova oferta
+  rejeitada nem contorna guardrail — a matriz de decisão não o consome.
+- **Confidence**: pesos 30/25/20/15/10 (source, freshness, completeness, price
+  history depth, cross validation) e faixas `0..49 LOW`, `50..79 MEDIUM`,
+  `80..100 HIGH`, calculada independentemente do Deal (AUT-054).
+- **Decision Matrix**: Hard Rules sempre vencem (AUT-056). `<60` → `REJECT`;
+  `60..<80` com `LOW`/sem Confidence → `REJECT`, senão `REVIEW`; `>=80` com
+  `LOW`/sem Confidence → `REVIEW`, `MEDIUM`/`HIGH` → `APPROVE`. `>=80 HIGH` sem
+  Hard Rule é `auto_eligible=true`, mas **nenhuma capability é promovida para
+  AUTO** por esta avaliação (AUT-258, AUT-452).
+
+Cada Evaluation persiste `passed_rules`, `failed_rules`, `warnings`, breakdown,
+feature snapshot, `scoring_version`, `deal_scoring_version`,
+`monetization_scoring_version`, `confidence_scoring_version`, `taxonomy_version`
+e `taxonomy_hash` (AUT-030, AUT-065). Triggers do SQLite rejeitam `UPDATE`/`DELETE`
+na tabela `evaluation`; reavaliar cria uma nova versão e nunca sobrescreve a
+anterior. Um `AuditEvent` `EVALUATION_RECORDED` é gravado na mesma transação.
+Ver `docs/04_DATA_CONTRACTS.md`.

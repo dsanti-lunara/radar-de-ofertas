@@ -29,6 +29,16 @@ captura repetida com a mesma identidade reutiliza a linha, sem sobrescrever o
 histórico. `price`/`original_price`/`shipping_cost` são strings decimais e
 `observed_at` é ISO-8601 UTC.
 
+Implementação (TKT-09): a migration `0004_evaluation` acrescenta a tabela
+append-only `evaluation` (FK para `candidate` e `audit_event`, índice
+`candidate_id + created_at`) e atualiza `schema_version`. A tabela guarda o
+`deal_score` decimal, `monetization_score`, `confidence`, `decision`,
+`passed_rules`/`failed_rules`, `warnings`, breakdown, feature snapshot e as
+scoring versions. Triggers `trg_evaluation_no_update`/`trg_evaluation_no_delete`
+rejeitam `UPDATE`/`DELETE` no banco, então uma Evaluation antiga nunca é
+sobrescrita; o `AuditEvent` `EVALUATION_RECORDED` é gravado na mesma transação da
+Evaluation.
+
 ## Append-only
 
 Não sobrescrever:

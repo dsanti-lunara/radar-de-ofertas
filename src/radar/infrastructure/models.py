@@ -9,7 +9,7 @@ append-only `price_observation` identity at the database level
 
 from __future__ import annotations
 
-from sqlalchemy import Float, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import Boolean, Float, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -171,3 +171,42 @@ class CandidateRow(Base):
     )
     created_at: Mapped[str] = mapped_column(String(40), nullable=False)
     updated_at: Mapped[str] = mapped_column(String(40), nullable=False)
+
+
+class EvaluationRow(Base):
+    """Append-only, immutable Evaluation snapshot (RDR-016, AUT-030, AUT-065).
+
+    SQLite triggers installed by migration ``0004_evaluation`` reject any UPDATE
+    or DELETE, so old evaluations are never overwritten. The feature snapshot,
+    breakdown and scoring versions are stored as JSON so the decision stays
+    reproducible and auditable.
+    """
+
+    __tablename__ = "evaluation"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    candidate_id: Mapped[str] = mapped_column(
+        String(64), ForeignKey("candidate.id"), nullable=False
+    )
+    brand: Mapped[str] = mapped_column(String(32), nullable=False)
+    deal_score: Mapped[str | None] = mapped_column(String(40))
+    monetization_score: Mapped[int | None] = mapped_column(Integer)
+    confidence: Mapped[str | None] = mapped_column(String(16))
+    decision: Mapped[str] = mapped_column(String(16), nullable=False)
+    auto_eligible: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    passed_rules: Mapped[str] = mapped_column(Text, nullable=False)
+    failed_rules: Mapped[str] = mapped_column(Text, nullable=False)
+    warnings: Mapped[str] = mapped_column(Text, nullable=False)
+    breakdown: Mapped[str] = mapped_column(Text, nullable=False)
+    feature_snapshot: Mapped[str] = mapped_column(Text, nullable=False)
+    scoring_version: Mapped[str] = mapped_column(String(32), nullable=False)
+    deal_scoring_version: Mapped[str] = mapped_column(String(32), nullable=False)
+    monetization_scoring_version: Mapped[str] = mapped_column(String(32), nullable=False)
+    confidence_scoring_version: Mapped[str] = mapped_column(String(32), nullable=False)
+    taxonomy_version: Mapped[str | None] = mapped_column(String(64))
+    taxonomy_hash: Mapped[str | None] = mapped_column(String(64))
+    audit_event_id: Mapped[str] = mapped_column(
+        String(64), ForeignKey("audit_event.id"), nullable=False
+    )
+    correlation_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    created_at: Mapped[str] = mapped_column(String(40), nullable=False)

@@ -142,7 +142,12 @@ TKT-08 (RDR-025): a avaliação de Demand retorna `RAD-CAP-004` quando o Candida
 não existe e `RAD-CAP-010` quando um sinal informado (rating_count, trend,
 affiliate_portal, badges) é malformado; sinal ausente, inválido, sem normalização
 configurada para a categoria ou categoria não resolvida não são erros, são
-warnings explícitos no contrato. Erros são
+warnings explícitos no contrato. Implementação TKT-09 (RDR-016, RDR-027..RDR-030):
+a avaliação de Candidate retorna `RAD-CAP-004` quando o Candidate não existe e
+`RAD-CAP-011` quando um componente de score está fora de `0..100` ou uma Hard Rule
+declarada é desconhecida; Hard Rules violadas e dado obrigatório ausente não são
+erros de transporte, são `failed_rules`/warnings explícitos que forçam `REJECT`.
+Erros são
 retornados no contrato `{schema_version, status, correlation_id, error}`.
 
 | Code | Meaning | Retry |
@@ -157,6 +162,7 @@ retornados no contrato `{schema_version, status, correlation_id, error}`.
 | RAD-CAP-008 PRICE_OPPORTUNITY_INPUT_INVALID | condição de Price Opportunity inválida (coupon_state, coupon_amount, shipping_cost, comparable_price) | no |
 | RAD-CAP-009 SELLER_QUALITY_INPUT_INVALID | sinal de Seller Quality malformado na avaliação (reputation, rating, sales_count, trusted) | no |
 | RAD-CAP-010 DEMAND_INPUT_INVALID | sinal de Demand malformado na avaliação (rating_count, trend, affiliate_portal, badges) | no |
+| RAD-CAP-011 EVALUATION_INPUT_INVALID | componente de Evaluation fora de `0..100` ou Hard Rule declarada desconhecida | no |
 
 
 Config inválida bloqueia a inicialização de CLI/API antes de qualquer comando

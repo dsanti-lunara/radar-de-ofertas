@@ -347,3 +347,22 @@ viram zero; inválidos e contraditórios geram warnings/Evidence. O resultado é
 exposto por `GET /candidates/{candidate_id}/seller-quality`; o snapshot
 versionado pertence à Evaluation (RDR-016/TKT-09). Ver
 `docs/05_SCORING_ENGINE.md` e `docs/04_DATA_CONTRACTS.md`.
+
+## Implementação (TKT-09, RDR-016/027/028/029/030)
+
+A `Evaluation` é imutável, versionada e append-only. Ela compõe os scores
+determinísticos das dependências (Price Opportunity, Seller Quality, Demand e
+Brand Fit) e aplica as Hard Rules antes de qualquer score, IA, link ou publicação
+(AUT-056): dado obrigatório ausente produz a Hard Rule bloqueante
+`INSUFFICIENT_REQUIRED_DATA` e categoria fora de escopo propaga
+`OUT_OF_SCOPE_CATEGORY`. O Deal usa pesos congelados 40/25/20/15 e nunca recebe
+comissão (AUT-051); a Monetization (40/25/20/15) só ordena oportunidades já
+aceitáveis; a Confidence (30/25/20/15/10) é independente do Deal (AUT-054). Cada
+Evaluation persiste `deal_score`, `monetization_score`, `confidence`, `decision`,
+`passed_rules`/`failed_rules`, breakdown, feature snapshot e as scoring versions
+(AUT-030, AUT-065), com triggers de banco que rejeitam `UPDATE`/`DELETE` e um
+`AuditEvent` `EVALUATION_RECORDED` na mesma transação. A fronteira pública é
+`POST /candidates/{candidate_id}/evaluations` e
+`GET /candidates/{candidate_id}/evaluations`. Ver
+`docs/05_SCORING_ENGINE.md`, `docs/04_DATA_CONTRACTS.md` e
+`docs/10_PERSISTENCE_AND_RECOVERY.md`.

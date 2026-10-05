@@ -402,6 +402,83 @@ correlation_id, error}` com `RAD-CAP-004` (Candidate inexistente) e `RAD-CAP-010
 (sinal de avaliação malformado); normalização inválida bloqueia a criação da API
 com `RAD-CFG-007`.
 
+## Evaluation, implementação (TKT-09, RDR-016/027/028/029/030)
+
+`POST /candidates/{candidate_id}/evaluations` (`schema_version=1.0`) compõe e
+persiste uma Evaluation imutável a partir dos componentes normalizados das
+dependências e da taxonomia ativa; `GET /candidates/{candidate_id}/evaluations`
+retorna as evaluations armazenadas em ordem cronológica. Brand Fit é resolvido
+pela taxonomia (TKT-05), não é informado pelo cliente; `price_opportunity`,
+`seller_quality` e `demand` são as saídas dos TKT-06/07/08. A Monetization
+(40/25/20/15) e a Confidence (30/25/20/15/10) são informadas como componentes.
+Hard Rules declaradas (`hard_rules`) são validadas contra a lista do SDD-05.
+
+```json
+{
+  "schema_version": "1.0",
+  "brand": "RADAR_BEAUTY",
+  "deal": {"price_opportunity": 100, "seller_quality": 100, "demand": 100},
+  "monetization": {
+    "estimated_commission": 97,
+    "effective_commission_percent": 97,
+    "conversion_evidence": 97,
+    "extra_commission": 97
+  },
+  "confidence": {
+    "source_reliability": 100,
+    "freshness": 100,
+    "completeness": 100,
+    "price_history_depth": 100,
+    "cross_validation": 100
+  },
+  "hard_rules": []
+}
+```
+
+Resposta (`201`):
+
+```json
+{
+  "schema_version": "1.0",
+  "status": "EVALUATED",
+  "correlation_id": "cid-1",
+  "evaluation_id": "eval_...",
+  "candidate_id": "cand_...",
+  "brand": "RADAR_BEAUTY",
+  "deal_score": "100.00",
+  "monetization_score": 97,
+  "confidence": "HIGH",
+  "decision": "APPROVE",
+  "auto_eligible": true,
+  "passed_rules": ["INSUFFICIENT_REQUIRED_DATA", "OUT_OF_SCOPE_CATEGORY"],
+  "failed_rules": [],
+  "warnings": [],
+  "breakdown": {"deal": {"scoring_version": "deal-1.0", "score": "100.00", "components": []}, "monetization": {}, "confidence": {}},
+  "feature_snapshot": {"brand": "RADAR_BEAUTY", "deal": {"price_opportunity": 100, "seller_quality": 100, "demand": 100, "brand_fit": 100}},
+  "scoring_version": "evaluation-1.0",
+  "deal_scoring_version": "deal-1.0",
+  "monetization_scoring_version": "monetization-1.0",
+  "confidence_scoring_version": "confidence-1.0",
+  "taxonomy_version": "brand-taxonomy-1.0",
+  "taxonomy_hash": "sha256...",
+  "audit_event_id": "aud_...",
+  "created_at": "2026-10-05T12:00:00+00:00"
+}
+```
+
+Hard Rules precedem score, IA, link e publicação (AUT-056): categoria fora de
+escopo propaga `OUT_OF_SCOPE_CATEGORY` e componente obrigatório do Deal ausente
+produz `INSUFFICIENT_REQUIRED_DATA`, ambos forçando `REJECT`. `deal_score` fica
+`null` quando falta dado obrigatório, nunca `0`. A matriz Deal x Confidence segue
+`docs/05_SCORING_ENGINE.md`; Monetization nunca eleva um Deal rejeitado.
+`auto_eligible=true` só indica elegibilidade (Deal `>=80` + Confidence `HIGH` sem
+Hard Rule) e **não** promove nenhuma capability para AUTO. A Evaluation é
+append-only (triggers no banco) e cada versão preserva breakdown, feature
+snapshot e scoring versions; reavaliar cria nova versão. Erros usam
+`{schema_version, status:"INVALID", correlation_id, error}` com `RAD-CAP-004`
+(Candidate inexistente) e `RAD-CAP-011` (componente fora de `0..100` ou Hard Rule
+desconhecida).
+
 ## AI Editorial Review input
 
 ```json

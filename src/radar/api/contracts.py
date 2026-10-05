@@ -22,6 +22,8 @@ from radar.domain.capture import (
     Marketplace,
     find_sensitive_fields,
 )
+from radar.domain.evaluation import EVALUATION_SCHEMA_VERSION
+from radar.domain.taxonomy import Brand
 
 #: Request/response header carrying the pipeline Correlation ID (AUT-040).
 CORRELATION_HEADER = "X-Correlation-ID"
@@ -103,3 +105,54 @@ class ManualCaptureContract(_StrictContract):
             captured_at=self.captured_at,
             schema_version=self.schema_version,
         )
+
+
+class EvaluationDealContract(_StrictContract):
+    """Normalized Deal components produced by the dependent tickets.
+
+    Brand Fit is resolved from the active taxonomy, not supplied here, so a
+    caller cannot bypass the approved calibration.
+    """
+
+    price_opportunity: int | None = None
+    seller_quality: int | None = None
+    demand: int | None = None
+
+
+class EvaluationMonetizationContract(_StrictContract):
+    """Monetization components (``docs/05_SCORING_ENGINE.md``)."""
+
+    estimated_commission: int | None = None
+    effective_commission_percent: int | None = None
+    conversion_evidence: int | None = None
+    extra_commission: int | None = None
+
+
+class EvaluationConfidenceContract(_StrictContract):
+    """Confidence components (``docs/05_SCORING_ENGINE.md``)."""
+
+    source_reliability: int | None = None
+    freshness: int | None = None
+    completeness: int | None = None
+    price_history_depth: int | None = None
+    cross_validation: int | None = None
+
+
+class EvaluationRequestContract(_StrictContract):
+    """Versioned input received by the public Evaluation boundary (RDR-016)."""
+
+    schema_version: str = EVALUATION_SCHEMA_VERSION
+    brand: Brand
+    deal: EvaluationDealContract
+    monetization: EvaluationMonetizationContract = Field(
+        default_factory=EvaluationMonetizationContract
+    )
+    confidence: EvaluationConfidenceContract = Field(default_factory=EvaluationConfidenceContract)
+    hard_rules: list[str] = Field(default_factory=list)
+
+    @field_validator("schema_version")
+    @classmethod
+    def _validate_schema_version(cls, value: str) -> str:
+        if value != EVALUATION_SCHEMA_VERSION:
+            raise ValueError("schema_version de Evaluation não suportada")
+        return value

@@ -145,4 +145,19 @@ explícita (`DEMAND_CATEGORY_NOT_DEFINED`). Configuração incompleta resulta em
 IA. Erros usam `RAD-CAP-004/010` e normalização inválida bloqueia a API com
 `RAD-CFG-007`. Contrato em `docs/04_DATA_CONTRACTS.md`.
 
+Decisão do Candidate (TKT-09): `POST /candidates/{id}/evaluations` compõe e
+persiste uma **Evaluation imutável** com Deal, Monetization e Confidence e a
+Decision Matrix; `GET /candidates/{id}/evaluations` consulta as versões
+armazenadas. O Deal usa os pesos congelados 40/25/20/15 e nunca recebe comissão
+(AUT-051); a Monetization (40/25/20/15) só ordena oportunidades aceitáveis; a
+Confidence (30/25/20/15/10) é independente. Hard Rules precedem score, IA, link e
+publicação (AUT-056): dado obrigatório ausente é bloqueante
+(`INSUFFICIENT_REQUIRED_DATA`) e categoria fora de escopo propaga
+`OUT_OF_SCOPE_CATEGORY`, ambos forçando `REJECT`. Cada Evaluation guarda
+breakdown, feature snapshot, `passed_rules`/`failed_rules`, scoring versions e
+`taxonomy_version`/`hash` (AUT-030, AUT-065); a tabela é append-only com triggers
+que rejeitam `UPDATE`/`DELETE` e um `AuditEvent` `EVALUATION_RECORDED` é gravado na
+mesma transação. `auto_eligible=true` é apenas elegibilidade, nunca promoção para
+AUTO. Erros usam `RAD-CAP-004/011`. Contrato em `docs/04_DATA_CONTRACTS.md`.
+
 Testes live (browser/IA/Telegram/WhatsApp) são opt-in e ficam fora da suíte padrão.

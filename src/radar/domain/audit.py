@@ -17,6 +17,9 @@ AUDIT_SCHEMA_VERSION = "1.0"
 #: Event type recorded when a manual capture is accepted.
 CAPTURE_RECEIVED = "CAPTURE_RECEIVED"
 
+#: Event type recorded when an immutable Evaluation is persisted (RDR-016).
+EVALUATION_RECORDED = "EVALUATION_RECORDED"
+
 
 @dataclass(frozen=True, slots=True)
 class AuditEvent:

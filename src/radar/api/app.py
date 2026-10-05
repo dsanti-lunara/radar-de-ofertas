@@ -21,6 +21,7 @@ from radar.api.captures import build_capture_router, register_capture_error_hand
 from radar.api.classification import build_classification_router
 from radar.api.contracts import CORRELATION_HEADER
 from radar.api.demand import build_demand_router
+from radar.api.evaluation import build_evaluation_router
 from radar.api.price_opportunity import build_price_opportunity_router
 from radar.api.seller_quality import build_seller_quality_router
 from radar.application.correlation import new_correlation_id
@@ -75,6 +76,7 @@ def create_app(
     app.include_router(build_price_opportunity_router(resolved_engine))
     app.include_router(build_seller_quality_router(resolved_engine, resolved_seller_quality))
     app.include_router(build_demand_router(resolved_engine, resolved_taxonomy, resolved_demand))
+    app.include_router(build_evaluation_router(resolved_engine, resolved_taxonomy))
 
     @app.get("/version")
     def version() -> dict[str, Any]:

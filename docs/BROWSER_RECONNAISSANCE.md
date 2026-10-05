@@ -1,5 +1,11 @@
 # Browser Reconnaissance, roteiro obrigatório para o Codex
 
+## Status da execução registrada
+
+**Investigação FINALIZADA** na sessão de 2026-10-02 America/Sao_Paulo (2026-10-03 UTC), por autorização do operador. Resultado vigente: [avaliação consolidada](recon/2026-10-02/BROWSER_RECON_COMPLETION.md), incluindo ML, Shopee API/portal/site público e WhatsApp **Groups**, conforme decisão do usuário. Evidências, URLs, limitações e gaps estão no pacote; 14 verificações offline passaram.
+
+Fechamento da investigação não aprova adapters ou produção. Pendências de implementação, API autenticada e homologação estão nos [gates de produção](recon/2026-10-02/PRODUCTION_READINESS.md). O roteiro abaixo continua sendo referência; seus contratos foram reconciliados para Groups em 2026-10-03; identidade/fixtures/adapter/Chrome VM continuam gates antes do envio.
+
 Este arquivo existe exclusivamente para a investigação real das superfícies autenticadas antes da implementação de adapters.
 
 ## Objetivo
@@ -136,9 +142,11 @@ Produzir:
 - gap report
 - atualizar `SHOPEE_CAPABILITY_REPORT.md`
 
-## WhatsApp Channels
+## WhatsApp Groups
 
-Investigar somente canais configurados/test channel.
+Consumir E-WA-01..06 e registrar gaps sem refazer ou inferir experimento. Nome/header não comprova identidade persistente; investigar pareamento/reverificação permitidos, sem storage/tokens. Fixtures/fallbacks/Chrome VM/unknown result são aceites próprios; nenhum novo envio é autorizado pelo roteiro.
+
+Investigar somente grupos cadastrados/grupo sandbox.
 
 ### WA-01, WhatsApp Web carregado
 - logged-in;
@@ -146,10 +154,10 @@ Investigar somente canais configurados/test channel.
 - loading;
 - reconnect.
 
-### WA-02, seleção do canal
+### WA-02, seleção do grupo
 - como identificar o destino de forma estável;
 - se há identificador persistente melhor que texto;
-- estado de canal correto.
+- estado de grupo/vínculo correto.
 
 ### WA-03, compositor
 - contenteditable;

@@ -1,0 +1,71 @@
+# Issues publicadas do Radar V1
+
+Publicação retomável; registro somente de URLs confirmadas pelo GitHub.
+
+- [TKT-01](https://github.com/dsanti-lunara/radar-de-ofertas/issues/1) — Inicializar o Radar e consultar saúde local
+- [TKT-02](https://github.com/dsanti-lunara/radar-de-ofertas/issues/2) — Carregar configuração e proteger segredos
+- [TKT-03](https://github.com/dsanti-lunara/radar-de-ofertas/issues/3) — Capturar oferta manual com proveniência
+- [TKT-04](https://github.com/dsanti-lunara/radar-de-ofertas/issues/4) — Consultar histórico próprio de preços
+- [TKT-05](https://github.com/dsanti-lunara/radar-de-ofertas/issues/5) — Classificar categoria e adequação às marcas
+- [TKT-06](https://github.com/dsanti-lunara/radar-de-ofertas/issues/6) — Avaliar oportunidade de preço
+- [TKT-07](https://github.com/dsanti-lunara/radar-de-ofertas/issues/7) — Avaliar qualidade do vendedor
+- [TKT-08](https://github.com/dsanti-lunara/radar-de-ofertas/issues/8) — Avaliar demanda por categoria
+- [TKT-09](https://github.com/dsanti-lunara/radar-de-ofertas/issues/9) — Decidir Candidate com scores e Hard Rules
+- [TKT-10](https://github.com/dsanti-lunara/radar-de-ofertas/issues/10) — Comparar fonte de compra sem favorecer comissão
+- [TKT-11](https://github.com/dsanti-lunara/radar-de-ofertas/issues/11) — Produzir claims comerciais verificáveis
+- [TKT-12](https://github.com/dsanti-lunara/radar-de-ofertas/issues/12) — Impedir duplicação e autorizar repost elegível
+- [TKT-13](https://github.com/dsanti-lunara/radar-de-ofertas/issues/13) — Executar job local com claim e lease
+- [TKT-14](https://github.com/dsanti-lunara/radar-de-ofertas/issues/14) — Recuperar retries e encaminhar Dead Jobs
+- [TKT-15](https://github.com/dsanti-lunara/radar-de-ofertas/issues/15) — Agendar sem executar ticks perdidos em massa
+- [TKT-16](https://github.com/dsanti-lunara/radar-de-ofertas/issues/16) — Criar Opportunity pelo Workflow Engine
+- [TKT-17](https://github.com/dsanti-lunara/radar-de-ofertas/issues/17) — Controlar SHADOW, ASSISTED e interrupção externa
+- [TKT-18](https://github.com/dsanti-lunara/radar-de-ofertas/issues/18) — Recuperar jobs seguros após crash
+- [TKT-19](https://github.com/dsanti-lunara/radar-de-ofertas/issues/19) — Revisar Candidate com IA Fake e Knowledge versionado
+- [TKT-20](https://github.com/dsanti-lunara/radar-de-ofertas/issues/20) — Gerar link Fake com TrackingContext auditável
+- [TKT-21](https://github.com/dsanti-lunara/radar-de-ofertas/issues/21) — Gerar preview validado sem inventar fatos
+- [TKT-22](https://github.com/dsanti-lunara/radar-de-ofertas/issues/22) — Reutilizar IA somente quando contexto equivale
+- [TKT-23](https://github.com/dsanti-lunara/radar-de-ofertas/issues/23) — Concluir Slice 1 com publicação Fake idempotente
+- [TKT-24](https://github.com/dsanti-lunara/radar-de-ofertas/issues/24) — Suspender envio de resultado desconhecido
+- [TKT-25](https://github.com/dsanti-lunara/radar-de-ofertas/issues/25) — Consultar saúde pelo Control Center
+- [TKT-26](https://github.com/dsanti-lunara/radar-de-ofertas/issues/26) — Revisar oportunidades na UI sem autorizar envio
+- [TKT-27](https://github.com/dsanti-lunara/radar-de-ofertas/issues/27) — Consultar e aprovar publicação na UI
+- [TKT-28](https://github.com/dsanti-lunara/radar-de-ofertas/issues/28) — Operar HumanActions, jobs e configurações na UI
+- [TKT-29](https://github.com/dsanti-lunara/radar-de-ofertas/issues/29) — Validar acesso oficial à IA (SPIKE-01)
+- [TKT-30](https://github.com/dsanti-lunara/radar-de-ofertas/issues/30) — Integrar provider IA real aprovado
+- [TKT-31](https://github.com/dsanti-lunara/radar-de-ofertas/issues/31) — Validar IA com datasets editorial e adversarial
+- [TKT-32](https://github.com/dsanti-lunara/radar-de-ofertas/issues/32) — Publicar Telegram pelo contrato com sandbox bloqueado por padrão
+- [TKT-33](https://github.com/dsanti-lunara/radar-de-ofertas/issues/33) — Editar e expirar publicação Telegram
+- [TKT-34](https://github.com/dsanti-lunara/radar-de-ofertas/issues/34) — Notificar o operador em destino privado
+- [TKT-35](https://github.com/dsanti-lunara/radar-de-ofertas/issues/35) — Validar Slice 2 com IA real e Telegram sandbox
+- [TKT-36](https://github.com/dsanti-lunara/radar-de-ofertas/issues/36) — Investigar ML e validar fixtures de navegador
+- [TKT-37](https://github.com/dsanti-lunara/radar-de-ofertas/issues/37) — Validar Shopee Affiliate API da conta (SPIKE-02)
+- [TKT-38](https://github.com/dsanti-lunara/radar-de-ofertas/issues/38) — Investigar Shopee e validar fixtures de navegador
+- [TKT-39](https://github.com/dsanti-lunara/radar-de-ofertas/issues/39) — Investigar WhatsApp Channels e validar fixtures
+- [TKT-40](https://github.com/dsanti-lunara/radar-de-ofertas/issues/40) — Parear Browser Bridge e consultar heartbeat
+- [TKT-41](https://github.com/dsanti-lunara/radar-de-ofertas/issues/41) — Executar job Browser seguro e persistente
+- [TKT-42](https://github.com/dsanti-lunara/radar-de-ofertas/issues/42) — Detectar página e emitir diagnóstico sanitizado
+- [TKT-43](https://github.com/dsanti-lunara/radar-de-ofertas/issues/43) — Descobrir ML por API oficial e normalizar Candidate
+- [TKT-44](https://github.com/dsanti-lunara/radar-de-ofertas/issues/44) — Capturar ML pelo navegador com contexto correto
+- [TKT-45](https://github.com/dsanti-lunara/radar-de-ofertas/issues/45) — Gerar link afiliado ML pelo fluxo validado
+- [TKT-46](https://github.com/dsanti-lunara/radar-de-ofertas/issues/46) — Validar Slice 3 ML até Telegram sandbox
+- [TKT-47](https://github.com/dsanti-lunara/radar-de-ofertas/issues/47) — Descobrir Shopee por API validada
+- [TKT-48](https://github.com/dsanti-lunara/radar-de-ofertas/issues/48) — Gerar link Shopee por API e Sub IDs
+- [TKT-49](https://github.com/dsanti-lunara/radar-de-ofertas/issues/49) — Capturar Shopee de forma assistida
+- [TKT-50](https://github.com/dsanti-lunara/radar-de-ofertas/issues/50) — Gerar link Shopee pelo fallback assistido
+- [TKT-51](https://github.com/dsanti-lunara/radar-de-ofertas/issues/51) — Validar Slice 3 Shopee até Telegram sandbox
+- [TKT-52](https://github.com/dsanti-lunara/radar-de-ofertas/issues/52) — Preparar mensagem WhatsApp no canal certo
+- [TKT-53](https://github.com/dsanti-lunara/radar-de-ofertas/issues/53) — Enviar WhatsApp em ASSISTED com revisão explícita
+- [TKT-54](https://github.com/dsanti-lunara/radar-de-ofertas/issues/54) — Validar Slice 4 WhatsApp sandbox
+- [TKT-55](https://github.com/dsanti-lunara/radar-de-ofertas/issues/55) — Homologar canais reais em ASSISTED
+- [TKT-56](https://github.com/dsanti-lunara/radar-de-ofertas/issues/56) — Criar backup consistente verificável
+- [TKT-57](https://github.com/dsanti-lunara/radar-de-ofertas/issues/57) — Restaurar sem repetir publicações pós-backup
+- [TKT-58](https://github.com/dsanti-lunara/radar-de-ofertas/issues/58) — Aplicar retenção e proteção contra disco crítico
+- [TKT-59](https://github.com/dsanti-lunara/radar-de-ofertas/issues/59) — Diagnosticar instalação com radarctl doctor
+- [TKT-60](https://github.com/dsanti-lunara/radar-de-ofertas/issues/60) — Instalar Execution Node com auto-start seguro
+- [TKT-61](https://github.com/dsanti-lunara/radar-de-ofertas/issues/61) — Atualizar e reverter release com salvaguardas
+- [TKT-62](https://github.com/dsanti-lunara/radar-de-ofertas/issues/62) — Validar perda de rede e recuperação isolada
+- [TKT-63](https://github.com/dsanti-lunara/radar-de-ofertas/issues/63) — Homologar reboot e restart na VM alvo
+- [TKT-64](https://github.com/dsanti-lunara/radar-de-ofertas/issues/64) — Fechar matriz de segurança e compliance
+- [TKT-65](https://github.com/dsanti-lunara/radar-de-ofertas/issues/65) — Executar piloto SHADOW de 24 horas
+- [TKT-66](https://github.com/dsanti-lunara/radar-de-ofertas/issues/66) — Executar soak estendido e avaliar estabilidade
+- [TKT-67](https://github.com/dsanti-lunara/radar-de-ofertas/issues/67) — Auditar readiness da V1 e entregar operação controlada

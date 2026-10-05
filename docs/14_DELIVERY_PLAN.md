@@ -39,7 +39,7 @@ Shopee Affiliate API:
 Browser Recon ML + Shopee.
 
 ### SPIKE-04
-Browser Recon WhatsApp Channels.
+Browser Recon WhatsApp Groups cadastrados.
 
 ## Milestones
 
@@ -63,6 +63,8 @@ Browser Recon WhatsApp Channels.
 
 ## Vertical slices
 
+Shopee Slice 3 aceita captura API+link API, captura pública assistida+link API ou captura assistida+link manual validado. Portal afiliado não é fallback operacional por extensão. Cada rota exige dados atuais, guards, disclosure e sandbox autorizado. Recon finalizado não encerra API live/adapter/homologação.
+
 ### Slice 1
 Manual/Fake Offer
 → Real Scoring
@@ -85,7 +87,7 @@ ML/Shopee real
 
 ### Slice 4
 Real offer
-→ WhatsApp Test Channel
+→ WhatsApp Grupo Sandbox
 em ASSISTED.
 
 ## Critical path

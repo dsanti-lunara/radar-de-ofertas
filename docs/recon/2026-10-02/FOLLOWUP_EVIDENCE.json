@@ -1,0 +1,261 @@
+{
+  "schema_version": "recon-followup-1",
+  "status": "OBSERVED_NOT_ADAPTER_ACCEPTANCE",
+  "authorization": {
+    "link_generation": true,
+    "ml_recommendation_effect_disclosed": true,
+    "whatsapp_group_scope_user_requested": true,
+    "single_sandbox_message": true,
+    "auto_enabled": false
+  },
+  "ml": {
+    "short_host": "meli.la",
+    "full_host": "www.mercadolivre.com.br",
+    "full_path_pattern": "/social/<affiliate>",
+    "tracking_parameter_names": [
+      "matt_word",
+      "matt_tool",
+      "forceInApp",
+      "ref"
+    ],
+    "tracking_value_matches_current_label": true,
+    "bar_short_equal_generator_short": true,
+    "full_clipboard_matches_after_settle": true,
+    "bar_short_clipboard_matches_after_trim": true,
+    "output_section_after_invalid_input_visible": true,
+    "invalid_error": "Não foi possível gerar o link.",
+    "expected_catalog_id": "MLB43187757",
+    "expected_item_id": "MLB5178681714",
+    "landing_expected_product_observed": true,
+    "real_link_values_omitted": true
+  },
+  "shopee": {
+    "short_host": "s.shopee.com.br",
+    "shop_id": "1487590844",
+    "item_id": "22193956904",
+    "custom_utm_content": "recon20261002-sandbox---",
+    "advanced_utm_content": "recon20261002-sandbox-technical-beauty-test01",
+    "subids": [
+      "recon20261002",
+      "sandbox",
+      "technical",
+      "beauty",
+      "test01"
+    ],
+    "redirect_paths": [
+      "/product/1487590844/22193956904",
+      "/opaanlp/1487590844/22193956904"
+    ],
+    "product_title_confirmed": true,
+    "copy_clipboard_confirmed": false,
+    "challenge": {
+      "heading": "Tente Novamente Mais Tarde",
+      "message": "A verificação falhou. Tente novamente em alguns minutos.",
+      "manual_resolution": true
+    },
+    "invalid_url_cases": {
+      "inputs": [
+        "nao-e-url",
+        "https://example.com/radar-recon"
+      ],
+      "short_result_observed": false,
+      "visible_error_observed": false,
+      "server_rejection_proven": false
+    }
+  },
+  "whatsapp": {
+    "fixture_kind": "Semantic projection of sanctioned sandbox only; not complete raw page HTML",
+    "destination_type": "GROUP",
+    "destination_name": "CASA EM ORDEM | PROMOS #1",
+    "persistent_destination_id_confirmed": false,
+    "composer_testid": "conversation-compose-box-input",
+    "composer_role": "textbox",
+    "composer_contenteditable": true,
+    "blocks": [
+      "RADAR RECON 20261002",
+      "Teste técnico no grupo sandbox.",
+      "https://example.com/radar-recon"
+    ],
+    "innertext_blank_lines_observed": true,
+    "preview_host": "example.com",
+    "send_count": 1,
+    "preflight_destination_matches": true,
+    "preflight_blocks_match": true,
+    "preflight_send_unique": true,
+    "click_send_count": 1,
+    "post_composer_empty": true,
+    "post_message_marker_present": true,
+    "post_message_status": "Enviada",
+    "message_id_value": "<redacted>",
+    "message_id_persistence_proven": false,
+    "post_time": "22:57",
+    "delivered_or_read_confirmed": false,
+    "member_count_observed": 1,
+    "ephemeral_days_observed": 7
+  },
+  "selector_registry": {
+    "status": "CANDIDATE",
+    "fallbacks_tested": false,
+    "entries": [
+      {
+        "capability": "GENERATE_ML_AFFILIATE_LINK",
+        "page": "/afiliados/linkbuilder",
+        "element": "result",
+        "primary": "role=textbox name='Copie o link e comece a compartilhá-lo' exact",
+        "fallback_1": "#textfield-copyLink-1",
+        "fallback_2": "textarea scoped to confirmed output section",
+        "reason": "Label/id observed; spelling may differ slightly between AX and DOM",
+        "ambiguity": "Require current attempt context and no error; output section presence is insufficient",
+        "states": [
+          "SHORT",
+          "FULL",
+          "ERROR_SECTION_PRESENT"
+        ],
+        "evidence": [
+          "E-ML-08",
+          "E-ML-09",
+          "E-ML-13"
+        ]
+      },
+      {
+        "capability": "GENERATE_ML_AFFILIATE_LINK",
+        "page": "ML product",
+        "element": "bar result",
+        "primary": "testid=text-field__label_link within dialog 'Gerar link / ID de produto'",
+        "fallback_1": "dialog textarea scoped by Link do produto",
+        "fallback_2": "dialog #P0-1 only after unique/context checks",
+        "reason": "Specific testid observed",
+        "ambiguity": "P0 ids reused across contexts; modal label scopes necessary",
+        "states": [
+          "READY"
+        ],
+        "evidence": [
+          "E-ML-11"
+        ]
+      },
+      {
+        "capability": "GENERATE_ML_AFFILIATE_LINK",
+        "page": "ML product",
+        "element": "bar copy",
+        "primary": "testid=copy-button__label_link in verified dialog",
+        "fallback_1": "dialog button aria-label='Link do produto'",
+        "fallback_2": "button associated with text-field__label_link",
+        "reason": "Specific testid/aria observed",
+        "ambiguity": "Do not confuse expanded trigger and copy button",
+        "states": [
+          "READY"
+        ],
+        "evidence": [
+          "E-ML-11",
+          "E-ML-12"
+        ]
+      },
+      {
+        "capability": "GENERATE_SHOPEE_AFFILIATE_LINK",
+        "page": "product offer detail",
+        "element": "advanced sub IDs",
+        "primary": "dialog textbox label='Sub_id {n}'",
+        "fallback_1": "#getLinkModal_sub_id{n}",
+        "fallback_2": "dialog input tied to label for getLinkModal_sub_id{n}",
+        "reason": "Five IDs and advanced radio observed",
+        "ambiguity": "customLink vs getLinkModal must never be interchangeable",
+        "states": [
+          "STANDARD",
+          "ADVANCED"
+        ],
+        "evidence": [
+          "E-SP-17",
+          "E-SP-18"
+        ]
+      },
+      {
+        "capability": "GENERATE_SHOPEE_AFFILIATE_LINK",
+        "page": "modal/conversion",
+        "element": "short result",
+        "primary": "unique disabled textarea scoped to 'Por favor, copie o link' in verified result",
+        "fallback_1": "dialog textarea[disabled] after expected product proof",
+        "fallback_2": "result section textbox[disabled] with allowed short-link host",
+        "reason": "DOM result is direct source; copy host not reliable",
+        "ambiguity": "No semantic label; zero/multiple result matches fail closed",
+        "states": [
+          "LOADING",
+          "READY"
+        ],
+        "evidence": [
+          "E-SP-15",
+          "E-SP-17",
+          "E-SP-19"
+        ]
+      },
+      {
+        "capability": "WHATSAPP_GROUP_SEND_PROPOSED",
+        "page": "web.whatsapp.com registered group",
+        "element": "destination header",
+        "primary": "#main [data-testid='conversation-header'] [data-testid='conversation-info-header']",
+        "fallback_1": "#main header button with exact configured group name",
+        "fallback_2": "#main header scoped by exact configured group name and group composer aria",
+        "reason": "Header testids observed, not stable destination identity",
+        "ambiguity": "Name-only match fails identity gate for homonymous groups; no persistent group ID confirmed",
+        "states": [
+          "READY"
+        ],
+        "evidence": [
+          "E-WA-01",
+          "E-WA-06"
+        ]
+      },
+      {
+        "capability": "WHATSAPP_GROUP_SEND_PROPOSED",
+        "page": "registered group",
+        "element": "composer",
+        "primary": "#main [data-testid='conversation-compose-box-input']",
+        "fallback_1": "#main footer role=textbox with exact group-specific aria-label",
+        "fallback_2": "#main footer unique [contenteditable='true'][role='textbox']",
+        "reason": "testid/contenteditable/role observed",
+        "ambiguity": "Sidebar search and other editables excluded; verify destination immediately before typing",
+        "states": [
+          "EMPTY",
+          "DRAFT",
+          "POST_SEND_EMPTY"
+        ],
+        "evidence": [
+          "E-WA-02",
+          "E-WA-04"
+        ]
+      },
+      {
+        "capability": "WHATSAPP_GROUP_SEND_PROPOSED",
+        "page": "registered group",
+        "element": "send",
+        "primary": "#main footer role=button name='Enviar' exact",
+        "fallback_1": "#main footer button[aria-label='Enviar']",
+        "fallback_2": "unique visible aria-label Enviar adjacent to verified composer",
+        "reason": "Exact aria-label; one button observed",
+        "ambiguity": "Requires one enabled match, exact draft/context/approval; voice button is different state",
+        "states": [
+          "DRAFT"
+        ],
+        "evidence": [
+          "E-WA-03",
+          "E-WA-04"
+        ]
+      },
+      {
+        "capability": "WHATSAPP_GROUP_SEND_PROPOSED",
+        "page": "registered group",
+        "element": "post send evidence",
+        "primary": "#main bubble matching exact approved technical marker then data-id + label Enviada",
+        "fallback_1": "#main [data-testid^='conv-msg-'] matching expected body/preview",
+        "fallback_2": "scoped outgoing bubble with body/time/status unique, HumanAction if insufficient",
+        "reason": "data-id/testid and Enviada observed",
+        "ambiguity": "Marker/time/name alone not proof of same remote send; message disappearance due ephemeral setting",
+        "states": [
+          "SENT"
+        ],
+        "evidence": [
+          "E-WA-05"
+        ]
+      }
+    ]
+  }
+}

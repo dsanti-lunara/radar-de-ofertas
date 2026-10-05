@@ -12,6 +12,8 @@ Quanto mais externa a camada, menor o volume.
 ## Testes obrigatórios por domínio
 
 ### Scoring
+
+Range Shopee/card/desconto riscado não prova preço de variante nem histórico independente. CHALLENGE ou dados atuais indisponíveis impedem revalidação pré-envio; cache não substitui essa evidência.
 - boundaries 59.99/60/79.99/80;
 - hard rules precedem scores;
 - comissão nunca aumenta Deal Score;
@@ -46,8 +48,13 @@ Não testar frase exata, testar propriedades.
 - migration N→N+1;
 - rollback transacional;
 - backup/restore.
+- restore de backup anterior a envio remoto: diagnóstico/processamento seguro retomam, envios permanecem bloqueados até reconciliação;
+- jobs restaurados e novas publicações não enviam durante esse bloqueio; ausência de registro local não autoriza reenvio;
+- reconciliação pós-restore registra evidência/decisão em auditoria; resultado desconhecido gera HumanAction sem reenvio automático.
 
 ### Workflow
+
+Shopee API: 200 com errors/partial data falha fechado; Int64/Decimal preservados, assinatura de bytes exatos, paginação específica, 10020 por reason, 10030/backoff e 10035/entitlement. Mutation unknown não recebe retry cego. ML: etiqueta charset/30/unicidade, resultado stale, social landing com outro produto destacado e contexto catálogo/anúncio errado devem falhar.
 - retry;
 - no retry em AUTH_REQUIRED;
 - Dead Job;
@@ -60,6 +67,8 @@ Não testar frase exata, testar propriedades.
 - recovery pós-crash.
 
 ### Browser
+
+Recon 2026-10-02 fornece 14 verificações de artefatos, não aceite de adapters. Registry/fallbacks candidatos precisam de testes completos, negativos e SAFE_LIVE no Chrome dedicado/VM antes de SIDE_EFFECT autorizado. CHALLENGE suspende somente parte afetada e exige revalidação na retomada.
 Níveis:
 - FIXTURE
 - SAFE_LIVE
@@ -76,6 +85,8 @@ Adapter acceptance:
 - sandbox side effect quando aplicável.
 
 ### Telegram
+- resultado remoto desconhecido: registro persistente, publicação suspensa, zero reenvio automático e HumanAction;
+- revisão sem evidência suficiente não autoriza nova tentativa;
 - send;
 - edit;
 - invalid destination;
@@ -85,6 +96,13 @@ Adapter acceptance:
 - lifecycle revision.
 
 ### WhatsApp
+
+- GROUP allowlisted, marca e ambiente corretos; homônimos, vínculo ausente/inválido ou troca após preview produzem zero clique;
+- serializer canônico multiline/preview/hash; innerText/textContent não são contrato implícito;
+- Send ausente/duplicado e marker/status pós-envio ausentes;
+- Enviada não comprova entregue/lida; receipt deve corresponder à publication/revision e tentativa;
+- crash após envio antes de commit, reload/reconnect/MV3 e mensagem temporária de sete dias preservam dedupe;
+- resultado desconhecido suspende e gera HumanAction, sem reenvio automático; restore mantém bloqueio GRILL-003.
 - sandbox destination;
 - destination mismatch blocks;
 - message hash mismatch blocks;
@@ -93,6 +111,8 @@ Adapter acceptance:
 - duplicate prevention.
 
 ### Security
+- SHADOW: aprovação de Candidate/publicação não causa envio comercial;
+- ASSISTED: aprovação de Candidate não autoriza envio; publicação exige aprovação humana explícita e guardrails vigentes;
 - invalid bridge token;
 - replayed nonce;
 - unauthorized host;
@@ -113,7 +133,7 @@ Adapter acceptance:
 | C | preço 79→109 antes do envio | revalidate, rescore, bloquear |
 | D | IA escreve preço errado | Numeric Guard bloqueia |
 | E | Shopee auth expira | só browser Shopee pausa, restante continua |
-| F | WhatsApp está no canal errado | DESTINATION_MISMATCH, zero envio |
+| F | WhatsApp está no grupo/vínculo errado | DESTINATION_MISMATCH, zero envio |
 | G | Core cai no publishing | reconcile, zero duplicação |
 | H | VM reinicia | startup/recovery/schedule coalesced |
 | I | restore | histórico volta, secrets/sessions não |

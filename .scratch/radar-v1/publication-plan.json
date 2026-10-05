@@ -1,0 +1,1747 @@
+{
+  "status": "published",
+  "repository": "dsanti-lunara/radar-de-ofertas",
+  "label": "ready-for-agent",
+  "published": [
+    {
+      "id": "TKT-01",
+      "title": "Inicializar o Radar e consultar saúde local",
+      "number": 1,
+      "url": "https://github.com/dsanti-lunara/radar-de-ofertas/issues/1",
+      "databaseId": 5685117762,
+      "verified": true,
+      "nativeBlocking": "no-unconditional-blockers"
+    },
+    {
+      "id": "TKT-02",
+      "title": "Carregar configuração e proteger segredos",
+      "number": 2,
+      "url": "https://github.com/dsanti-lunara/radar-de-ofertas/issues/2",
+      "databaseId": 5685118332,
+      "verified": true,
+      "nativeBlocking": "applied"
+    },
+    {
+      "id": "TKT-03",
+      "title": "Capturar oferta manual com proveniência",
+      "number": 3,
+      "url": "https://github.com/dsanti-lunara/radar-de-ofertas/issues/3",
+      "databaseId": 5685118961,
+      "verified": true,
+      "nativeBlocking": "applied"
+    },
+    {
+      "id": "TKT-04",
+      "title": "Consultar histórico próprio de preços",
+      "number": 4,
+      "url": "https://github.com/dsanti-lunara/radar-de-ofertas/issues/4",
+      "databaseId": 5685119489,
+      "verified": true,
+      "nativeBlocking": "applied"
+    },
+    {
+      "id": "TKT-05",
+      "title": "Classificar categoria e adequação às marcas",
+      "number": 5,
+      "url": "https://github.com/dsanti-lunara/radar-de-ofertas/issues/5",
+      "databaseId": 5685120173,
+      "verified": true,
+      "nativeBlocking": "applied"
+    },
+    {
+      "id": "TKT-06",
+      "title": "Avaliar oportunidade de preço",
+      "number": 6,
+      "url": "https://github.com/dsanti-lunara/radar-de-ofertas/issues/6",
+      "databaseId": 5685120739,
+      "verified": true,
+      "nativeBlocking": "applied"
+    },
+    {
+      "id": "TKT-07",
+      "title": "Avaliar qualidade do vendedor",
+      "number": 7,
+      "url": "https://github.com/dsanti-lunara/radar-de-ofertas/issues/7",
+      "databaseId": 5685121356,
+      "verified": true,
+      "nativeBlocking": "applied"
+    },
+    {
+      "id": "TKT-08",
+      "title": "Avaliar demanda por categoria",
+      "number": 8,
+      "url": "https://github.com/dsanti-lunara/radar-de-ofertas/issues/8",
+      "databaseId": 5685121975,
+      "verified": true,
+      "nativeBlocking": "applied"
+    },
+    {
+      "id": "TKT-09",
+      "title": "Decidir Candidate com scores e Hard Rules",
+      "number": 9,
+      "url": "https://github.com/dsanti-lunara/radar-de-ofertas/issues/9",
+      "databaseId": 5685122433,
+      "verified": true,
+      "nativeBlocking": "applied"
+    },
+    {
+      "id": "TKT-10",
+      "title": "Comparar fonte de compra sem favorecer comissão",
+      "number": 10,
+      "url": "https://github.com/dsanti-lunara/radar-de-ofertas/issues/10",
+      "databaseId": 5685123160,
+      "verified": true,
+      "nativeBlocking": "applied"
+    },
+    {
+      "id": "TKT-11",
+      "title": "Produzir claims comerciais verificáveis",
+      "number": 11,
+      "url": "https://github.com/dsanti-lunara/radar-de-ofertas/issues/11",
+      "databaseId": 5685123668,
+      "verified": true,
+      "nativeBlocking": "applied"
+    },
+    {
+      "id": "TKT-12",
+      "title": "Impedir duplicação e autorizar repost elegível",
+      "number": 12,
+      "url": "https://github.com/dsanti-lunara/radar-de-ofertas/issues/12",
+      "databaseId": 5685124316,
+      "verified": true,
+      "nativeBlocking": "applied"
+    },
+    {
+      "id": "TKT-13",
+      "title": "Executar job local com claim e lease",
+      "number": 13,
+      "url": "https://github.com/dsanti-lunara/radar-de-ofertas/issues/13",
+      "databaseId": 5685124801,
+      "verified": true,
+      "nativeBlocking": "applied"
+    },
+    {
+      "id": "TKT-14",
+      "title": "Recuperar retries e encaminhar Dead Jobs",
+      "number": 14,
+      "url": "https://github.com/dsanti-lunara/radar-de-ofertas/issues/14",
+      "databaseId": 5685125186,
+      "verified": true,
+      "nativeBlocking": "applied"
+    },
+    {
+      "id": "TKT-15",
+      "title": "Agendar sem executar ticks perdidos em massa",
+      "number": 15,
+      "url": "https://github.com/dsanti-lunara/radar-de-ofertas/issues/15",
+      "databaseId": 5685125618,
+      "verified": true,
+      "nativeBlocking": "applied"
+    },
+    {
+      "id": "TKT-16",
+      "title": "Criar Opportunity pelo Workflow Engine",
+      "number": 16,
+      "url": "https://github.com/dsanti-lunara/radar-de-ofertas/issues/16",
+      "databaseId": 5685126031,
+      "verified": true,
+      "nativeBlocking": "applied"
+    },
+    {
+      "id": "TKT-17",
+      "title": "Controlar SHADOW, ASSISTED e interrupção externa",
+      "number": 17,
+      "url": "https://github.com/dsanti-lunara/radar-de-ofertas/issues/17",
+      "databaseId": 5685126515,
+      "verified": true,
+      "nativeBlocking": "applied"
+    },
+    {
+      "id": "TKT-18",
+      "title": "Recuperar jobs seguros após crash",
+      "number": 18,
+      "url": "https://github.com/dsanti-lunara/radar-de-ofertas/issues/18",
+      "databaseId": 5685126855,
+      "verified": true,
+      "nativeBlocking": "applied"
+    },
+    {
+      "id": "TKT-19",
+      "title": "Revisar Candidate com IA Fake e Knowledge versionado",
+      "number": 19,
+      "url": "https://github.com/dsanti-lunara/radar-de-ofertas/issues/19",
+      "databaseId": 5685127472,
+      "verified": true,
+      "nativeBlocking": "applied"
+    },
+    {
+      "id": "TKT-20",
+      "title": "Gerar link Fake com TrackingContext auditável",
+      "number": 20,
+      "url": "https://github.com/dsanti-lunara/radar-de-ofertas/issues/20",
+      "databaseId": 5685127971,
+      "verified": true,
+      "nativeBlocking": "applied"
+    },
+    {
+      "id": "TKT-21",
+      "title": "Gerar preview validado sem inventar fatos",
+      "number": 21,
+      "url": "https://github.com/dsanti-lunara/radar-de-ofertas/issues/21",
+      "databaseId": 5685128353,
+      "verified": true,
+      "nativeBlocking": "applied"
+    },
+    {
+      "id": "TKT-22",
+      "title": "Reutilizar IA somente quando contexto equivale",
+      "number": 22,
+      "url": "https://github.com/dsanti-lunara/radar-de-ofertas/issues/22",
+      "databaseId": 5685129002,
+      "verified": true,
+      "nativeBlocking": "applied"
+    },
+    {
+      "id": "TKT-23",
+      "title": "Concluir Slice 1 com publicação Fake idempotente",
+      "number": 23,
+      "url": "https://github.com/dsanti-lunara/radar-de-ofertas/issues/23",
+      "databaseId": 5685129517,
+      "verified": true,
+      "nativeBlocking": "applied"
+    },
+    {
+      "id": "TKT-24",
+      "title": "Suspender envio de resultado desconhecido",
+      "number": 24,
+      "url": "https://github.com/dsanti-lunara/radar-de-ofertas/issues/24",
+      "databaseId": 5685130306,
+      "verified": true,
+      "nativeBlocking": "applied"
+    },
+    {
+      "id": "TKT-25",
+      "title": "Consultar saúde pelo Control Center",
+      "number": 25,
+      "url": "https://github.com/dsanti-lunara/radar-de-ofertas/issues/25",
+      "databaseId": 5685130651,
+      "verified": true,
+      "nativeBlocking": "applied"
+    },
+    {
+      "id": "TKT-26",
+      "title": "Revisar oportunidades na UI sem autorizar envio",
+      "number": 26,
+      "url": "https://github.com/dsanti-lunara/radar-de-ofertas/issues/26",
+      "databaseId": 5685131021,
+      "verified": true,
+      "nativeBlocking": "applied"
+    },
+    {
+      "id": "TKT-27",
+      "title": "Consultar e aprovar publicação na UI",
+      "number": 27,
+      "url": "https://github.com/dsanti-lunara/radar-de-ofertas/issues/27",
+      "databaseId": 5685131522,
+      "verified": true,
+      "nativeBlocking": "applied"
+    },
+    {
+      "id": "TKT-28",
+      "title": "Operar HumanActions, jobs e configurações na UI",
+      "number": 28,
+      "url": "https://github.com/dsanti-lunara/radar-de-ofertas/issues/28",
+      "databaseId": 5685131990,
+      "verified": true,
+      "nativeBlocking": "applied"
+    },
+    {
+      "id": "TKT-29",
+      "title": "Validar acesso oficial à IA (SPIKE-01)",
+      "number": 29,
+      "url": "https://github.com/dsanti-lunara/radar-de-ofertas/issues/29",
+      "databaseId": 5685132542,
+      "verified": true,
+      "nativeBlocking": "no-unconditional-blockers"
+    },
+    {
+      "id": "TKT-30",
+      "title": "Integrar provider IA real aprovado",
+      "number": 30,
+      "url": "https://github.com/dsanti-lunara/radar-de-ofertas/issues/30",
+      "databaseId": 5685132740,
+      "verified": true,
+      "nativeBlocking": "applied"
+    },
+    {
+      "id": "TKT-31",
+      "title": "Validar IA com datasets editorial e adversarial",
+      "number": 31,
+      "url": "https://github.com/dsanti-lunara/radar-de-ofertas/issues/31",
+      "databaseId": 5685133268,
+      "verified": true,
+      "nativeBlocking": "applied"
+    },
+    {
+      "id": "TKT-32",
+      "title": "Publicar Telegram pelo contrato com sandbox bloqueado por padrão",
+      "number": 32,
+      "url": "https://github.com/dsanti-lunara/radar-de-ofertas/issues/32",
+      "databaseId": 5685133630,
+      "verified": true,
+      "nativeBlocking": "applied"
+    },
+    {
+      "id": "TKT-33",
+      "title": "Editar e expirar publicação Telegram",
+      "number": 33,
+      "url": "https://github.com/dsanti-lunara/radar-de-ofertas/issues/33",
+      "databaseId": 5685134054,
+      "verified": true,
+      "nativeBlocking": "applied"
+    },
+    {
+      "id": "TKT-34",
+      "title": "Notificar o operador em destino privado",
+      "number": 34,
+      "url": "https://github.com/dsanti-lunara/radar-de-ofertas/issues/34",
+      "databaseId": 5685134430,
+      "verified": true,
+      "nativeBlocking": "applied"
+    },
+    {
+      "id": "TKT-35",
+      "title": "Validar Slice 2 com IA real e Telegram sandbox",
+      "number": 35,
+      "url": "https://github.com/dsanti-lunara/radar-de-ofertas/issues/35",
+      "databaseId": 5685134881,
+      "verified": true,
+      "nativeBlocking": "applied"
+    },
+    {
+      "id": "TKT-36",
+      "title": "Consolidar recon ML e validar fixtures",
+      "number": 36,
+      "url": "https://github.com/dsanti-lunara/radar-de-ofertas/issues/36",
+      "databaseId": 5685135456,
+      "verified": true,
+      "nativeBlocking": "no-unconditional-blockers"
+    },
+    {
+      "id": "TKT-37",
+      "title": "Validar Shopee Affiliate API da conta (SPIKE-02)",
+      "number": 37,
+      "url": "https://github.com/dsanti-lunara/radar-de-ofertas/issues/37",
+      "databaseId": 5685135657,
+      "verified": true,
+      "nativeBlocking": "no-unconditional-blockers"
+    },
+    {
+      "id": "TKT-38",
+      "title": "Consolidar recon Shopee e validar fixtures",
+      "number": 38,
+      "url": "https://github.com/dsanti-lunara/radar-de-ofertas/issues/38",
+      "databaseId": 5685135872,
+      "verified": true,
+      "nativeBlocking": "no-unconditional-blockers"
+    },
+    {
+      "id": "TKT-39",
+      "title": "Consolidar recon WhatsApp Groups e validar fixtures",
+      "number": 39,
+      "url": "https://github.com/dsanti-lunara/radar-de-ofertas/issues/39",
+      "databaseId": 5685136087,
+      "verified": true,
+      "nativeBlocking": "no-unconditional-blockers"
+    },
+    {
+      "id": "TKT-40",
+      "title": "Parear Browser Bridge e consultar heartbeat",
+      "number": 40,
+      "url": "https://github.com/dsanti-lunara/radar-de-ofertas/issues/40",
+      "databaseId": 5685136361,
+      "verified": true,
+      "nativeBlocking": "applied"
+    },
+    {
+      "id": "TKT-41",
+      "title": "Executar job Browser seguro e persistente",
+      "number": 41,
+      "url": "https://github.com/dsanti-lunara/radar-de-ofertas/issues/41",
+      "databaseId": 5685136736,
+      "verified": true,
+      "nativeBlocking": "applied"
+    },
+    {
+      "id": "TKT-42",
+      "title": "Detectar página e emitir diagnóstico sanitizado",
+      "number": 42,
+      "url": "https://github.com/dsanti-lunara/radar-de-ofertas/issues/42",
+      "databaseId": 5685137209,
+      "verified": true,
+      "nativeBlocking": "applied"
+    },
+    {
+      "id": "TKT-43",
+      "title": "Descobrir ML por API oficial e normalizar Candidate",
+      "number": 43,
+      "url": "https://github.com/dsanti-lunara/radar-de-ofertas/issues/43",
+      "databaseId": 5685137575,
+      "verified": true,
+      "nativeBlocking": "applied"
+    },
+    {
+      "id": "TKT-44",
+      "title": "Capturar ML pelo navegador com contexto correto",
+      "number": 44,
+      "url": "https://github.com/dsanti-lunara/radar-de-ofertas/issues/44",
+      "databaseId": 5685138023,
+      "verified": true,
+      "nativeBlocking": "applied"
+    },
+    {
+      "id": "TKT-45",
+      "title": "Gerar link afiliado ML pelo fluxo validado",
+      "number": 45,
+      "url": "https://github.com/dsanti-lunara/radar-de-ofertas/issues/45",
+      "databaseId": 5685138568,
+      "verified": true,
+      "nativeBlocking": "applied"
+    },
+    {
+      "id": "TKT-46",
+      "title": "Validar Slice 3 ML até Telegram sandbox",
+      "number": 46,
+      "url": "https://github.com/dsanti-lunara/radar-de-ofertas/issues/46",
+      "databaseId": 5685138996,
+      "verified": true,
+      "nativeBlocking": "applied"
+    },
+    {
+      "id": "TKT-47",
+      "title": "Descobrir Shopee por API validada",
+      "number": 47,
+      "url": "https://github.com/dsanti-lunara/radar-de-ofertas/issues/47",
+      "databaseId": 5685139615,
+      "verified": true,
+      "nativeBlocking": "applied"
+    },
+    {
+      "id": "TKT-48",
+      "title": "Gerar link Shopee por API e Sub IDs",
+      "number": 48,
+      "url": "https://github.com/dsanti-lunara/radar-de-ofertas/issues/48",
+      "databaseId": 5685140210,
+      "verified": true,
+      "nativeBlocking": "applied"
+    },
+    {
+      "id": "TKT-49",
+      "title": "Capturar Shopee de forma assistida",
+      "number": 49,
+      "url": "https://github.com/dsanti-lunara/radar-de-ofertas/issues/49",
+      "databaseId": 5685140992,
+      "verified": true,
+      "nativeBlocking": "applied"
+    },
+    {
+      "id": "TKT-50",
+      "title": "Validar link Shopee gerado manualmente",
+      "number": 50,
+      "url": "https://github.com/dsanti-lunara/radar-de-ofertas/issues/50",
+      "databaseId": 5685141852,
+      "verified": true,
+      "nativeBlocking": "applied"
+    },
+    {
+      "id": "TKT-51",
+      "title": "Validar Slice 3 Shopee até Telegram sandbox",
+      "number": 51,
+      "url": "https://github.com/dsanti-lunara/radar-de-ofertas/issues/51",
+      "databaseId": 5685142602,
+      "verified": true,
+      "nativeBlocking": "applied"
+    },
+    {
+      "id": "TKT-52",
+      "title": "Preparar mensagem WhatsApp no grupo cadastrado",
+      "number": 52,
+      "url": "https://github.com/dsanti-lunara/radar-de-ofertas/issues/52",
+      "databaseId": 5685143199,
+      "verified": true,
+      "nativeBlocking": "applied"
+    },
+    {
+      "id": "TKT-53",
+      "title": "Enviar WhatsApp em ASSISTED com revisão explícita",
+      "number": 53,
+      "url": "https://github.com/dsanti-lunara/radar-de-ofertas/issues/53",
+      "databaseId": 5685143740,
+      "verified": true,
+      "nativeBlocking": "applied"
+    },
+    {
+      "id": "TKT-54",
+      "title": "Validar Slice 4 WhatsApp sandbox",
+      "number": 54,
+      "url": "https://github.com/dsanti-lunara/radar-de-ofertas/issues/54",
+      "databaseId": 5685144311,
+      "verified": true,
+      "nativeBlocking": "applied"
+    },
+    {
+      "id": "TKT-55",
+      "title": "Homologar destinos reais e grupos WhatsApp em ASSISTED",
+      "number": 55,
+      "url": "https://github.com/dsanti-lunara/radar-de-ofertas/issues/55",
+      "databaseId": 5685144831,
+      "verified": true,
+      "nativeBlocking": "applied"
+    },
+    {
+      "id": "TKT-56",
+      "title": "Criar backup consistente verificável",
+      "number": 56,
+      "url": "https://github.com/dsanti-lunara/radar-de-ofertas/issues/56",
+      "databaseId": 5685145209,
+      "verified": true,
+      "nativeBlocking": "applied"
+    },
+    {
+      "id": "TKT-57",
+      "title": "Restaurar sem repetir publicações pós-backup",
+      "number": 57,
+      "url": "https://github.com/dsanti-lunara/radar-de-ofertas/issues/57",
+      "databaseId": 5685145653,
+      "verified": true,
+      "nativeBlocking": "applied"
+    },
+    {
+      "id": "TKT-58",
+      "title": "Aplicar retenção e proteção contra disco crítico",
+      "number": 58,
+      "url": "https://github.com/dsanti-lunara/radar-de-ofertas/issues/58",
+      "databaseId": 5685146135,
+      "verified": true,
+      "nativeBlocking": "applied"
+    },
+    {
+      "id": "TKT-59",
+      "title": "Diagnosticar instalação com radarctl doctor",
+      "number": 59,
+      "url": "https://github.com/dsanti-lunara/radar-de-ofertas/issues/59",
+      "databaseId": 5685146675,
+      "verified": true,
+      "nativeBlocking": "applied"
+    },
+    {
+      "id": "TKT-60",
+      "title": "Instalar Execution Node com auto-start seguro",
+      "number": 60,
+      "url": "https://github.com/dsanti-lunara/radar-de-ofertas/issues/60",
+      "databaseId": 5685147409,
+      "verified": true,
+      "nativeBlocking": "applied"
+    },
+    {
+      "id": "TKT-61",
+      "title": "Atualizar e reverter release com salvaguardas",
+      "number": 61,
+      "url": "https://github.com/dsanti-lunara/radar-de-ofertas/issues/61",
+      "databaseId": 5685147965,
+      "verified": true,
+      "nativeBlocking": "applied"
+    },
+    {
+      "id": "TKT-62",
+      "title": "Validar perda de rede e recuperação isolada",
+      "number": 62,
+      "url": "https://github.com/dsanti-lunara/radar-de-ofertas/issues/62",
+      "databaseId": 5685148387,
+      "verified": true,
+      "nativeBlocking": "applied"
+    },
+    {
+      "id": "TKT-63",
+      "title": "Homologar reboot e restart na VM alvo",
+      "number": 63,
+      "url": "https://github.com/dsanti-lunara/radar-de-ofertas/issues/63",
+      "databaseId": 5685149051,
+      "verified": true,
+      "nativeBlocking": "applied"
+    },
+    {
+      "id": "TKT-64",
+      "title": "Fechar matriz de segurança e compliance",
+      "number": 64,
+      "url": "https://github.com/dsanti-lunara/radar-de-ofertas/issues/64",
+      "databaseId": 5685149691,
+      "verified": true,
+      "nativeBlocking": "applied"
+    },
+    {
+      "id": "TKT-65",
+      "title": "Executar piloto SHADOW de 24 horas",
+      "number": 65,
+      "url": "https://github.com/dsanti-lunara/radar-de-ofertas/issues/65",
+      "databaseId": 5685150870,
+      "verified": true,
+      "nativeBlocking": "applied"
+    },
+    {
+      "id": "TKT-66",
+      "title": "Executar soak estendido e avaliar estabilidade",
+      "number": 66,
+      "url": "https://github.com/dsanti-lunara/radar-de-ofertas/issues/66",
+      "databaseId": 5685151811,
+      "verified": true,
+      "nativeBlocking": "applied"
+    },
+    {
+      "id": "TKT-67",
+      "title": "Auditar readiness da V1 e entregar operação controlada",
+      "number": 67,
+      "url": "https://github.com/dsanti-lunara/radar-de-ofertas/issues/67",
+      "databaseId": 5685152252,
+      "verified": true,
+      "nativeBlocking": "applied"
+    }
+  ],
+  "tickets": [
+    {
+      "id": "TKT-01",
+      "title": "Inicializar o Radar e consultar saúde local",
+      "blockedBy": [],
+      "alternativeRoutes": [],
+      "rdr": [
+        "RDR-001",
+        "RDR-002",
+        "RDR-003",
+        "RDR-006",
+        "RDR-007",
+        "RDR-009",
+        "RDR-010"
+      ],
+      "spec": "SPEC-01",
+      "bodyFile": "issues/01-inicializar-o-radar-e-consultar-saude-local.md",
+      "externalGate": "Sem gate externo adicional; usar testes seguros e providers Fake."
+    },
+    {
+      "id": "TKT-02",
+      "title": "Carregar configuração e proteger segredos",
+      "blockedBy": [
+        "TKT-01"
+      ],
+      "alternativeRoutes": [],
+      "rdr": [
+        "RDR-004",
+        "RDR-005",
+        "RDR-008"
+      ],
+      "spec": "SPEC-01",
+      "bodyFile": "issues/02-carregar-configuracao-e-proteger-segredos.md",
+      "externalGate": "Sem gate externo adicional; usar testes seguros e providers Fake."
+    },
+    {
+      "id": "TKT-03",
+      "title": "Capturar oferta manual com proveniência",
+      "blockedBy": [
+        "TKT-02"
+      ],
+      "alternativeRoutes": [],
+      "rdr": [
+        "RDR-011",
+        "RDR-012",
+        "RDR-014",
+        "RDR-015",
+        "RDR-021"
+      ],
+      "spec": "SPEC-01",
+      "bodyFile": "issues/03-capturar-oferta-manual-com-proveniencia.md",
+      "externalGate": "Sem gate externo adicional; usar testes seguros e providers Fake."
+    },
+    {
+      "id": "TKT-04",
+      "title": "Consultar histórico próprio de preços",
+      "blockedBy": [
+        "TKT-03"
+      ],
+      "alternativeRoutes": [],
+      "rdr": [
+        "RDR-013"
+      ],
+      "spec": "SPEC-01",
+      "bodyFile": "issues/04-consultar-historico-proprio-de-precos.md",
+      "externalGate": "Sem gate externo adicional; usar testes seguros e providers Fake."
+    },
+    {
+      "id": "TKT-05",
+      "title": "Classificar categoria e adequação às marcas",
+      "blockedBy": [
+        "TKT-03"
+      ],
+      "alternativeRoutes": [],
+      "rdr": [
+        "RDR-022",
+        "RDR-026"
+      ],
+      "spec": "SPEC-02",
+      "bodyFile": "issues/05-classificar-categoria-e-adequacao-as-marcas.md",
+      "externalGate": "Sem gate externo adicional; usar testes seguros e providers Fake."
+    },
+    {
+      "id": "TKT-06",
+      "title": "Avaliar oportunidade de preço",
+      "blockedBy": [
+        "TKT-04"
+      ],
+      "alternativeRoutes": [],
+      "rdr": [
+        "RDR-023"
+      ],
+      "spec": "SPEC-02",
+      "bodyFile": "issues/06-avaliar-oportunidade-de-preco.md",
+      "externalGate": "Sem gate externo adicional; usar testes seguros e providers Fake."
+    },
+    {
+      "id": "TKT-07",
+      "title": "Avaliar qualidade do vendedor",
+      "blockedBy": [
+        "TKT-03"
+      ],
+      "alternativeRoutes": [],
+      "rdr": [
+        "RDR-024"
+      ],
+      "spec": "SPEC-02",
+      "bodyFile": "issues/07-avaliar-qualidade-do-vendedor.md",
+      "externalGate": "Sem gate externo adicional; usar testes seguros e providers Fake."
+    },
+    {
+      "id": "TKT-08",
+      "title": "Avaliar demanda por categoria",
+      "blockedBy": [
+        "TKT-05"
+      ],
+      "alternativeRoutes": [],
+      "rdr": [
+        "RDR-025"
+      ],
+      "spec": "SPEC-02",
+      "bodyFile": "issues/08-avaliar-demanda-por-categoria.md",
+      "externalGate": "Sem gate externo adicional; usar testes seguros e providers Fake."
+    },
+    {
+      "id": "TKT-09",
+      "title": "Decidir Candidate com scores e Hard Rules",
+      "blockedBy": [
+        "TKT-06",
+        "TKT-07",
+        "TKT-08"
+      ],
+      "alternativeRoutes": [],
+      "rdr": [
+        "RDR-016",
+        "RDR-027",
+        "RDR-028",
+        "RDR-029",
+        "RDR-030"
+      ],
+      "spec": "SPEC-02",
+      "bodyFile": "issues/09-decidir-candidate-com-scores-e-hard-rules.md",
+      "externalGate": "Sem gate externo adicional; usar testes seguros e providers Fake."
+    },
+    {
+      "id": "TKT-10",
+      "title": "Comparar fonte de compra sem favorecer comissão",
+      "blockedBy": [
+        "TKT-09"
+      ],
+      "alternativeRoutes": [],
+      "rdr": [
+        "RDR-031"
+      ],
+      "spec": "SPEC-02",
+      "bodyFile": "issues/10-comparar-fonte-de-compra-sem-favorecer-comissao.md",
+      "externalGate": "Sem gate externo adicional; usar testes seguros e providers Fake."
+    },
+    {
+      "id": "TKT-11",
+      "title": "Produzir claims comerciais verificáveis",
+      "blockedBy": [
+        "TKT-04",
+        "TKT-09"
+      ],
+      "alternativeRoutes": [],
+      "rdr": [
+        "RDR-032"
+      ],
+      "spec": "SPEC-02",
+      "bodyFile": "issues/11-produzir-claims-comerciais-verificaveis.md",
+      "externalGate": "Sem gate externo adicional; usar testes seguros e providers Fake."
+    },
+    {
+      "id": "TKT-12",
+      "title": "Impedir duplicação e autorizar repost elegível",
+      "blockedBy": [
+        "TKT-09"
+      ],
+      "alternativeRoutes": [],
+      "rdr": [
+        "RDR-033"
+      ],
+      "spec": "SPEC-02",
+      "bodyFile": "issues/12-impedir-duplicacao-e-autorizar-repost-elegivel.md",
+      "externalGate": "Sem gate externo adicional; usar testes seguros e providers Fake."
+    },
+    {
+      "id": "TKT-13",
+      "title": "Executar job local com claim e lease",
+      "blockedBy": [
+        "TKT-02"
+      ],
+      "alternativeRoutes": [],
+      "rdr": [
+        "RDR-034",
+        "RDR-035",
+        "RDR-036"
+      ],
+      "spec": "SPEC-03",
+      "bodyFile": "issues/13-executar-job-local-com-claim-e-lease.md",
+      "externalGate": "Sem gate externo adicional; usar testes seguros e providers Fake."
+    },
+    {
+      "id": "TKT-14",
+      "title": "Recuperar retries e encaminhar Dead Jobs",
+      "blockedBy": [
+        "TKT-13"
+      ],
+      "alternativeRoutes": [],
+      "rdr": [
+        "RDR-037",
+        "RDR-038",
+        "RDR-040"
+      ],
+      "spec": "SPEC-03",
+      "bodyFile": "issues/14-recuperar-retries-e-encaminhar-dead-jobs.md",
+      "externalGate": "Sem gate externo adicional; usar testes seguros e providers Fake."
+    },
+    {
+      "id": "TKT-15",
+      "title": "Agendar sem executar ticks perdidos em massa",
+      "blockedBy": [
+        "TKT-13"
+      ],
+      "alternativeRoutes": [],
+      "rdr": [
+        "RDR-039"
+      ],
+      "spec": "SPEC-03",
+      "bodyFile": "issues/15-agendar-sem-executar-ticks-perdidos-em-massa.md",
+      "externalGate": "Sem gate externo adicional; usar testes seguros e providers Fake."
+    },
+    {
+      "id": "TKT-16",
+      "title": "Criar Opportunity pelo Workflow Engine",
+      "blockedBy": [
+        "TKT-09",
+        "TKT-14"
+      ],
+      "alternativeRoutes": [],
+      "rdr": [
+        "RDR-017",
+        "RDR-041"
+      ],
+      "spec": "SPEC-03",
+      "bodyFile": "issues/16-criar-opportunity-pelo-workflow-engine.md",
+      "externalGate": "Sem gate externo adicional; usar testes seguros e providers Fake."
+    },
+    {
+      "id": "TKT-17",
+      "title": "Controlar SHADOW, ASSISTED e interrupção externa",
+      "blockedBy": [
+        "TKT-16"
+      ],
+      "alternativeRoutes": [],
+      "rdr": [
+        "RDR-043",
+        "RDR-044"
+      ],
+      "spec": "SPEC-03",
+      "bodyFile": "issues/17-controlar-shadow-assisted-e-interrupcao-externa.md",
+      "externalGate": "Sem gate externo adicional; usar testes seguros e providers Fake."
+    },
+    {
+      "id": "TKT-18",
+      "title": "Recuperar jobs seguros após crash",
+      "blockedBy": [
+        "TKT-14",
+        "TKT-15",
+        "TKT-17"
+      ],
+      "alternativeRoutes": [],
+      "rdr": [
+        "RDR-042",
+        "RDR-127"
+      ],
+      "spec": "SPEC-03",
+      "bodyFile": "issues/18-recuperar-jobs-seguros-apos-crash.md",
+      "externalGate": "Sem gate externo adicional; usar testes seguros e providers Fake."
+    },
+    {
+      "id": "TKT-19",
+      "title": "Revisar Candidate com IA Fake e Knowledge versionado",
+      "blockedBy": [
+        "TKT-11",
+        "TKT-16"
+      ],
+      "alternativeRoutes": [],
+      "rdr": [
+        "RDR-045",
+        "RDR-046",
+        "RDR-047",
+        "RDR-050"
+      ],
+      "spec": "SPEC-04",
+      "bodyFile": "issues/19-revisar-candidate-com-ia-fake-e-knowledge-versionado.md",
+      "externalGate": "Sem gate externo adicional; usar testes seguros e providers Fake."
+    },
+    {
+      "id": "TKT-20",
+      "title": "Gerar link Fake com TrackingContext auditável",
+      "blockedBy": [
+        "TKT-17"
+      ],
+      "alternativeRoutes": [],
+      "rdr": [
+        "RDR-018",
+        "RDR-070"
+      ],
+      "spec": "SPEC-05",
+      "bodyFile": "issues/20-gerar-link-fake-com-trackingcontext-auditavel.md",
+      "externalGate": "Sem gate externo adicional; usar testes seguros e providers Fake."
+    },
+    {
+      "id": "TKT-21",
+      "title": "Gerar preview validado sem inventar fatos",
+      "blockedBy": [
+        "TKT-19",
+        "TKT-20"
+      ],
+      "alternativeRoutes": [],
+      "rdr": [
+        "RDR-019",
+        "RDR-051",
+        "RDR-052",
+        "RDR-053",
+        "RDR-054",
+        "RDR-069"
+      ],
+      "spec": "SPEC-04",
+      "bodyFile": "issues/21-gerar-preview-validado-sem-inventar-fatos.md",
+      "externalGate": "Sem gate externo adicional; usar testes seguros e providers Fake."
+    },
+    {
+      "id": "TKT-22",
+      "title": "Reutilizar IA somente quando contexto equivale",
+      "blockedBy": [
+        "TKT-21"
+      ],
+      "alternativeRoutes": [],
+      "rdr": [
+        "RDR-055"
+      ],
+      "spec": "SPEC-04",
+      "bodyFile": "issues/22-reutilizar-ia-somente-quando-contexto-equivale.md",
+      "externalGate": "Sem gate externo adicional; usar testes seguros e providers Fake."
+    },
+    {
+      "id": "TKT-23",
+      "title": "Concluir Slice 1 com publicação Fake idempotente",
+      "blockedBy": [
+        "TKT-12",
+        "TKT-17",
+        "TKT-18",
+        "TKT-21"
+      ],
+      "alternativeRoutes": [],
+      "rdr": [
+        "RDR-020",
+        "RDR-072"
+      ],
+      "spec": "SPEC-05",
+      "bodyFile": "issues/23-concluir-slice-1-com-publicacao-fake-idempotente.md",
+      "externalGate": "Sem gate externo adicional; usar testes seguros e providers Fake."
+    },
+    {
+      "id": "TKT-24",
+      "title": "Suspender envio de resultado desconhecido",
+      "blockedBy": [
+        "TKT-23"
+      ],
+      "alternativeRoutes": [],
+      "rdr": [
+        "RDR-128"
+      ],
+      "spec": "SPEC-05",
+      "bodyFile": "issues/24-suspender-envio-de-resultado-desconhecido.md",
+      "externalGate": "Sem gate externo adicional; usar testes seguros e providers Fake."
+    },
+    {
+      "id": "TKT-25",
+      "title": "Consultar saúde pelo Control Center",
+      "blockedBy": [
+        "TKT-02"
+      ],
+      "alternativeRoutes": [],
+      "rdr": [
+        "RDR-056",
+        "RDR-057"
+      ],
+      "spec": "SPEC-07",
+      "bodyFile": "issues/25-consultar-saude-pelo-control-center.md",
+      "externalGate": "Sem gate externo adicional; usar testes seguros e providers Fake."
+    },
+    {
+      "id": "TKT-26",
+      "title": "Revisar oportunidades na UI sem autorizar envio",
+      "blockedBy": [
+        "TKT-19",
+        "TKT-25"
+      ],
+      "alternativeRoutes": [],
+      "rdr": [
+        "RDR-058",
+        "RDR-059",
+        "RDR-060"
+      ],
+      "spec": "SPEC-07",
+      "bodyFile": "issues/26-revisar-oportunidades-na-ui-sem-autorizar-envio.md",
+      "externalGate": "Sem gate externo adicional; usar testes seguros e providers Fake."
+    },
+    {
+      "id": "TKT-27",
+      "title": "Consultar e aprovar publicação na UI",
+      "blockedBy": [
+        "TKT-24",
+        "TKT-25"
+      ],
+      "alternativeRoutes": [],
+      "rdr": [
+        "RDR-061",
+        "RDR-062"
+      ],
+      "spec": "SPEC-07",
+      "bodyFile": "issues/27-consultar-e-aprovar-publicacao-na-ui.md",
+      "externalGate": "Sem gate externo adicional; usar testes seguros e providers Fake."
+    },
+    {
+      "id": "TKT-28",
+      "title": "Operar HumanActions, jobs e configurações na UI",
+      "blockedBy": [
+        "TKT-14",
+        "TKT-17",
+        "TKT-25"
+      ],
+      "alternativeRoutes": [],
+      "rdr": [
+        "RDR-063",
+        "RDR-064",
+        "RDR-065",
+        "RDR-066",
+        "RDR-067"
+      ],
+      "spec": "SPEC-07",
+      "bodyFile": "issues/28-operar-humanactions-jobs-e-configuracoes-na-ui.md",
+      "externalGate": "Sem gate externo adicional; usar testes seguros e providers Fake."
+    },
+    {
+      "id": "TKT-29",
+      "title": "Validar acesso oficial à IA (SPIKE-01)",
+      "blockedBy": [],
+      "alternativeRoutes": [],
+      "rdr": [
+        "RDR-048"
+      ],
+      "spec": "SPEC-04",
+      "bodyFile": "issues/29-validar-acesso-oficial-a-ia-spike-01.md",
+      "externalGate": "Acesso humano à conta/provider e documentação oficial; nenhum secret em chat."
+    },
+    {
+      "id": "TKT-30",
+      "title": "Integrar provider IA real aprovado",
+      "blockedBy": [
+        "TKT-19",
+        "TKT-29"
+      ],
+      "alternativeRoutes": [],
+      "rdr": [
+        "RDR-049"
+      ],
+      "spec": "SPEC-04",
+      "bodyFile": "issues/30-integrar-provider-ia-real-aprovado.md",
+      "externalGate": "SPIKE-01 com resultado viável; testes live explicitamente habilitados."
+    },
+    {
+      "id": "TKT-31",
+      "title": "Validar IA com datasets editorial e adversarial",
+      "blockedBy": [
+        "TKT-21"
+      ],
+      "alternativeRoutes": [],
+      "rdr": [
+        "RDR-122",
+        "RDR-123"
+      ],
+      "spec": "SPEC-04",
+      "bodyFile": "issues/31-validar-ia-com-datasets-editorial-e-adversarial.md",
+      "externalGate": "Sem gate externo adicional; usar testes seguros e providers Fake."
+    },
+    {
+      "id": "TKT-32",
+      "title": "Publicar Telegram pelo contrato com sandbox bloqueado por padrão",
+      "blockedBy": [
+        "TKT-21",
+        "TKT-24"
+      ],
+      "alternativeRoutes": [],
+      "rdr": [
+        "RDR-068",
+        "RDR-071"
+      ],
+      "spec": "SPEC-05",
+      "bodyFile": "issues/32-publicar-telegram-pelo-contrato-com-sandbox-bloqueado-por-padrao.md",
+      "externalGate": "Nenhum envio live nesta implementação por padrão; sandbox deve ser cadastrado e validado."
+    },
+    {
+      "id": "TKT-33",
+      "title": "Editar e expirar publicação Telegram",
+      "blockedBy": [
+        "TKT-32"
+      ],
+      "alternativeRoutes": [],
+      "rdr": [
+        "RDR-073"
+      ],
+      "spec": "SPEC-05",
+      "bodyFile": "issues/33-editar-e-expirar-publicacao-telegram.md",
+      "externalGate": "Sem gate externo adicional; usar testes seguros e providers Fake."
+    },
+    {
+      "id": "TKT-34",
+      "title": "Notificar o operador em destino privado",
+      "blockedBy": [
+        "TKT-28",
+        "TKT-32"
+      ],
+      "alternativeRoutes": [],
+      "rdr": [
+        "RDR-074"
+      ],
+      "spec": "SPEC-07",
+      "bodyFile": "issues/34-notificar-o-operador-em-destino-privado.md",
+      "externalGate": "Sem gate externo adicional; usar testes seguros e providers Fake."
+    },
+    {
+      "id": "TKT-35",
+      "title": "Validar Slice 2 com IA real e Telegram sandbox",
+      "blockedBy": [
+        "TKT-30",
+        "TKT-31",
+        "TKT-32"
+      ],
+      "alternativeRoutes": [],
+      "rdr": [
+        "RDR-075"
+      ],
+      "spec": "SPEC-05",
+      "bodyFile": "issues/35-validar-slice-2-com-ia-real-e-telegram-sandbox.md",
+      "externalGate": "Conta IA validada, bot e sandbox provisionados; flags live explícitas e autorização do destino sandbox registrada antes da execução."
+    },
+    {
+      "id": "TKT-36",
+      "title": "Consolidar recon ML e validar fixtures",
+      "blockedBy": [],
+      "alternativeRoutes": [],
+      "rdr": [
+        "RDR-076",
+        "RDR-124",
+        "RDR-125"
+      ],
+      "spec": "SPEC-06",
+      "bodyFile": "issues/36-investigar-ml-e-validar-fixtures-de-navegador.md",
+      "externalGate": "Perfil autorizado com login humano; publicação off; nenhuma extração de sessão."
+    },
+    {
+      "id": "TKT-37",
+      "title": "Validar Shopee Affiliate API da conta (SPIKE-02)",
+      "blockedBy": [],
+      "alternativeRoutes": [],
+      "rdr": [
+        "RDR-077"
+      ],
+      "spec": "SPEC-06",
+      "bodyFile": "issues/37-validar-shopee-affiliate-api-da-conta-spike-02.md",
+      "externalGate": "Acesso humano à conta/API; credenciais fora de prompts e Git."
+    },
+    {
+      "id": "TKT-38",
+      "title": "Consolidar recon Shopee e validar fixtures",
+      "blockedBy": [],
+      "alternativeRoutes": [],
+      "rdr": [
+        "RDR-076",
+        "RDR-124",
+        "RDR-125"
+      ],
+      "spec": "SPEC-06",
+      "bodyFile": "issues/38-investigar-shopee-e-validar-fixtures-de-navegador.md",
+      "externalGate": "Perfil Shopee autorizado com autenticação humana e BROWSER_RECON_MODE."
+    },
+    {
+      "id": "TKT-39",
+      "title": "Consolidar recon WhatsApp Groups e validar fixtures",
+      "blockedBy": [],
+      "alternativeRoutes": [],
+      "rdr": [
+        "RDR-076",
+        "RDR-124",
+        "RDR-125"
+      ],
+      "spec": "SPEC-06",
+      "bodyFile": "issues/39-investigar-whatsapp-channels-e-validar-fixtures.md",
+      "externalGate": "Canal sandbox/configurado acessível; login humano; side effect de envio não autorizado por este ticket."
+    },
+    {
+      "id": "TKT-40",
+      "title": "Parear Browser Bridge e consultar heartbeat",
+      "blockedBy": [
+        "TKT-02"
+      ],
+      "alternativeRoutes": [],
+      "rdr": [
+        "RDR-078",
+        "RDR-079",
+        "RDR-080",
+        "RDR-086"
+      ],
+      "spec": "SPEC-06",
+      "bodyFile": "issues/40-parear-browser-bridge-e-consultar-heartbeat.md",
+      "externalGate": "Sem gate externo adicional; usar testes seguros e providers Fake."
+    },
+    {
+      "id": "TKT-41",
+      "title": "Executar job Browser seguro e persistente",
+      "blockedBy": [
+        "TKT-13",
+        "TKT-40"
+      ],
+      "alternativeRoutes": [],
+      "rdr": [
+        "RDR-081",
+        "RDR-082",
+        "RDR-084"
+      ],
+      "spec": "SPEC-06",
+      "bodyFile": "issues/41-executar-job-browser-seguro-e-persistente.md",
+      "externalGate": "Sem gate externo adicional; usar testes seguros e providers Fake."
+    },
+    {
+      "id": "TKT-42",
+      "title": "Detectar página e emitir diagnóstico sanitizado",
+      "blockedBy": [
+        "TKT-41"
+      ],
+      "alternativeRoutes": [],
+      "rdr": [
+        "RDR-083",
+        "RDR-085"
+      ],
+      "spec": "SPEC-06",
+      "bodyFile": "issues/42-detectar-pagina-e-emitir-diagnostico-sanitizado.md",
+      "externalGate": "Sem gate externo adicional; usar testes seguros e providers Fake."
+    },
+    {
+      "id": "TKT-43",
+      "title": "Descobrir ML por API oficial e normalizar Candidate",
+      "blockedBy": [
+        "TKT-03",
+        "TKT-16"
+      ],
+      "alternativeRoutes": [],
+      "rdr": [
+        "RDR-087",
+        "RDR-088",
+        "RDR-089"
+      ],
+      "spec": "SPEC-06",
+      "bodyFile": "issues/43-descobrir-ml-por-api-oficial-e-normalizar-candidate.md",
+      "externalGate": "Documentação/acesso oficial ML suficiente; não depende de browser reconnaissance para API documentada."
+    },
+    {
+      "id": "TKT-44",
+      "title": "Capturar ML pelo navegador com contexto correto",
+      "blockedBy": [
+        "TKT-36",
+        "TKT-42"
+      ],
+      "alternativeRoutes": [],
+      "rdr": [
+        "RDR-090",
+        "RDR-091",
+        "RDR-093"
+      ],
+      "spec": "SPEC-06",
+      "bodyFile": "issues/44-capturar-ml-pelo-navegador-com-contexto-correto.md",
+      "externalGate": "Recon ML suficiente com fixture e SAFE_LIVE; login sempre humano."
+    },
+    {
+      "id": "TKT-45",
+      "title": "Gerar link afiliado ML pelo fluxo validado",
+      "blockedBy": [
+        "TKT-20",
+        "TKT-44"
+      ],
+      "alternativeRoutes": [],
+      "rdr": [
+        "RDR-092"
+      ],
+      "spec": "SPEC-06",
+      "bodyFile": "issues/45-gerar-link-afiliado-ml-pelo-fluxo-validado.md",
+      "externalGate": "Geração de link é side effect autenticado; autorização específica deve estar registrada antes de teste real."
+    },
+    {
+      "id": "TKT-46",
+      "title": "Validar Slice 3 ML até Telegram sandbox",
+      "blockedBy": [
+        "TKT-35",
+        "TKT-43",
+        "TKT-45"
+      ],
+      "alternativeRoutes": [],
+      "rdr": [
+        "RDR-094"
+      ],
+      "spec": "SPEC-06",
+      "bodyFile": "issues/46-validar-slice-3-ml-ate-telegram-sandbox.md",
+      "externalGate": "Conta ML e link generation autorizadas; destino sandbox explícito e live opt-in."
+    },
+    {
+      "id": "TKT-47",
+      "title": "Descobrir Shopee por API validada",
+      "blockedBy": [
+        "TKT-03",
+        "TKT-16",
+        "TKT-37"
+      ],
+      "alternativeRoutes": [],
+      "rdr": [
+        "RDR-095",
+        "RDR-096"
+      ],
+      "spec": "SPEC-06",
+      "bodyFile": "issues/47-descobrir-shopee-por-api-validada.md",
+      "externalGate": "SPIKE-02 suficiente; discovery API somente se suportada na conta."
+    },
+    {
+      "id": "TKT-48",
+      "title": "Gerar link Shopee por API e Sub IDs",
+      "blockedBy": [
+        "TKT-20",
+        "TKT-37"
+      ],
+      "alternativeRoutes": [],
+      "rdr": [
+        "RDR-097",
+        "RDR-101"
+      ],
+      "spec": "SPEC-06",
+      "bodyFile": "issues/48-gerar-link-shopee-por-api-e-sub-ids.md",
+      "externalGate": "Contratos/Fake offline permitidos; runtime/API autenticada de link exige entitlement e SPIKE-02, Opportunity/contexto e limites validados. Discovery API #47 não é obrigatório."
+    },
+    {
+      "id": "TKT-49",
+      "title": "Capturar Shopee de forma assistida",
+      "blockedBy": [
+        "TKT-03",
+        "TKT-38",
+        "TKT-42"
+      ],
+      "alternativeRoutes": [],
+      "rdr": [
+        "RDR-098",
+        "RDR-099"
+      ],
+      "spec": "SPEC-06",
+      "bodyFile": "issues/49-capturar-shopee-de-forma-assistida.md",
+      "externalGate": "Recon SP suficiente com fixture e SAFE_LIVE; ação assistida humana."
+    },
+    {
+      "id": "TKT-50",
+      "title": "Validar link Shopee gerado manualmente",
+      "blockedBy": [
+        "TKT-20",
+        "TKT-49"
+      ],
+      "alternativeRoutes": [],
+      "rdr": [
+        "RDR-100"
+      ],
+      "spec": "SPEC-06",
+      "bodyFile": "issues/50-gerar-link-shopee-pelo-fallback-assistido.md",
+      "externalGate": "Operador gera link manual após Opportunity aprovada; Core valida produto/tracking/retorno literal com evidência atual. Sem geração por extensão; sem dependência de entitlement API."
+    },
+    {
+      "id": "TKT-51",
+      "title": "Validar Slice 3 Shopee até Telegram sandbox",
+      "blockedBy": [
+        "TKT-35"
+      ],
+      "alternativeRoutes": [
+        [
+          "TKT-47",
+          "TKT-48"
+        ],
+        [
+          "TKT-49",
+          "TKT-48"
+        ],
+        [
+          "TKT-49",
+          "TKT-50"
+        ]
+      ],
+      "rdr": [
+        "RDR-102"
+      ],
+      "spec": "SPEC-06",
+      "bodyFile": "issues/51-validar-slice-3-shopee-ate-telegram-sandbox.md",
+      "externalGate": "Uma rota completa validada e sandbox autorizado; API exige SPIKE-02 via #47/#48, manual não exige entitlement. Todas exigem revalidação atual/guards/disclosure."
+    },
+    {
+      "id": "TKT-52",
+      "title": "Preparar mensagem WhatsApp no grupo cadastrado",
+      "blockedBy": [
+        "TKT-21",
+        "TKT-39",
+        "TKT-42"
+      ],
+      "alternativeRoutes": [],
+      "rdr": [
+        "RDR-103",
+        "RDR-104",
+        "RDR-105",
+        "RDR-106",
+        "RDR-107",
+        "RDR-109"
+      ],
+      "spec": "SPEC-06",
+      "bodyFile": "issues/52-preparar-mensagem-whatsapp-no-canal-certo.md",
+      "externalGate": "Recon WA suficiente; compositor real apenas em ambiente controlado explicitamente autorizado."
+    },
+    {
+      "id": "TKT-53",
+      "title": "Enviar WhatsApp em ASSISTED com revisão explícita",
+      "blockedBy": [
+        "TKT-24",
+        "TKT-27",
+        "TKT-52"
+      ],
+      "alternativeRoutes": [],
+      "rdr": [
+        "RDR-108"
+      ],
+      "spec": "SPEC-06",
+      "bodyFile": "issues/53-enviar-whatsapp-em-assisted-com-revisao-explicita.md",
+      "externalGate": "Send real permitido somente em sandbox com autorização explícita; não ativa AUTO."
+    },
+    {
+      "id": "TKT-54",
+      "title": "Validar Slice 4 WhatsApp sandbox",
+      "blockedBy": [
+        "TKT-35",
+        "TKT-53"
+      ],
+      "alternativeRoutes": [],
+      "rdr": [
+        "RDR-110"
+      ],
+      "spec": "SPEC-06",
+      "bodyFile": "issues/54-validar-slice-4-whatsapp-sandbox.md",
+      "externalGate": "Canal de teste autorizado, login humano e live/side-effect flag opt-in."
+    },
+    {
+      "id": "TKT-55",
+      "title": "Homologar destinos reais e grupos WhatsApp em ASSISTED",
+      "blockedBy": [
+        "TKT-54"
+      ],
+      "alternativeRoutes": [],
+      "rdr": [
+        "RDR-111"
+      ],
+      "spec": "SPEC-06",
+      "bodyFile": "issues/55-homologar-canais-reais-em-assisted.md",
+      "externalGate": "Autorização explícita do operador para destinos reais; este planejamento não a concede."
+    },
+    {
+      "id": "TKT-56",
+      "title": "Criar backup consistente verificável",
+      "blockedBy": [
+        "TKT-04",
+        "TKT-23"
+      ],
+      "alternativeRoutes": [],
+      "rdr": [
+        "RDR-112"
+      ],
+      "spec": "SPEC-05",
+      "bodyFile": "issues/56-criar-backup-consistente-verificavel.md",
+      "externalGate": "Sem gate externo adicional; usar testes seguros e providers Fake."
+    },
+    {
+      "id": "TKT-57",
+      "title": "Restaurar sem repetir publicações pós-backup",
+      "blockedBy": [
+        "TKT-24",
+        "TKT-56"
+      ],
+      "alternativeRoutes": [],
+      "rdr": [
+        "RDR-113",
+        "RDR-130"
+      ],
+      "spec": "SPEC-05",
+      "bodyFile": "issues/57-restaurar-sem-repetir-publicacoes-pos-backup.md",
+      "externalGate": "Sem gate externo adicional; usar testes seguros e providers Fake."
+    },
+    {
+      "id": "TKT-58",
+      "title": "Aplicar retenção e proteção contra disco crítico",
+      "blockedBy": [
+        "TKT-02",
+        "TKT-56"
+      ],
+      "alternativeRoutes": [],
+      "rdr": [
+        "RDR-114",
+        "RDR-115"
+      ],
+      "spec": "SPEC-07",
+      "bodyFile": "issues/58-aplicar-retencao-e-protecao-contra-disco-critico.md",
+      "externalGate": "Sem gate externo adicional; usar testes seguros e providers Fake."
+    },
+    {
+      "id": "TKT-59",
+      "title": "Diagnosticar instalação com radarctl doctor",
+      "blockedBy": [
+        "TKT-28",
+        "TKT-40",
+        "TKT-56",
+        "TKT-58"
+      ],
+      "alternativeRoutes": [],
+      "rdr": [
+        "RDR-116"
+      ],
+      "spec": "SPEC-07",
+      "bodyFile": "issues/59-diagnosticar-instalacao-com-radarctl-doctor.md",
+      "externalGate": "Sem gate externo adicional; usar testes seguros e providers Fake."
+    },
+    {
+      "id": "TKT-60",
+      "title": "Instalar Execution Node com auto-start seguro",
+      "blockedBy": [
+        "TKT-25",
+        "TKT-40",
+        "TKT-59"
+      ],
+      "alternativeRoutes": [],
+      "rdr": [
+        "RDR-117",
+        "RDR-118",
+        "RDR-119"
+      ],
+      "spec": "SPEC-07",
+      "bodyFile": "issues/60-instalar-execution-node-com-auto-start-seguro.md",
+      "externalGate": "VM Linux LTS desktop disponível e caminho host backup configurado; sem alterar máquina pessoal indiscriminadamente."
+    },
+    {
+      "id": "TKT-61",
+      "title": "Atualizar e reverter release com salvaguardas",
+      "blockedBy": [
+        "TKT-57",
+        "TKT-60"
+      ],
+      "alternativeRoutes": [],
+      "rdr": [
+        "RDR-120",
+        "RDR-121"
+      ],
+      "spec": "SPEC-07",
+      "bodyFile": "issues/61-atualizar-e-reverter-release-com-salvaguardas.md",
+      "externalGate": "Sem gate externo adicional; usar testes seguros e providers Fake."
+    },
+    {
+      "id": "TKT-62",
+      "title": "Validar perda de rede e recuperação isolada",
+      "blockedBy": [
+        "TKT-30",
+        "TKT-32",
+        "TKT-41",
+        "TKT-53"
+      ],
+      "alternativeRoutes": [],
+      "rdr": [
+        "RDR-129"
+      ],
+      "spec": "SPEC-07",
+      "bodyFile": "issues/62-validar-perda-de-rede-e-recuperacao-isolada.md",
+      "externalGate": "Sem gate externo adicional; usar testes seguros e providers Fake."
+    },
+    {
+      "id": "TKT-63",
+      "title": "Homologar reboot e restart na VM alvo",
+      "blockedBy": [
+        "TKT-18",
+        "TKT-57",
+        "TKT-61",
+        "TKT-62"
+      ],
+      "alternativeRoutes": [],
+      "rdr": [
+        "RDR-131"
+      ],
+      "spec": "SPEC-07",
+      "bodyFile": "issues/63-homologar-reboot-e-restart-na-vm-alvo.md",
+      "externalGate": "VM alvo provisionada; experimentos disruptivos somente nela, com backup válido."
+    },
+    {
+      "id": "TKT-64",
+      "title": "Fechar matriz de segurança e compliance",
+      "blockedBy": [
+        "TKT-10",
+        "TKT-22",
+        "TKT-24",
+        "TKT-28",
+        "TKT-45",
+        "TKT-48",
+        "TKT-50",
+        "TKT-53",
+        "TKT-57"
+      ],
+      "alternativeRoutes": [],
+      "rdr": [
+        "RDR-126"
+      ],
+      "spec": "SPEC-07",
+      "bodyFile": "issues/64-fechar-matriz-de-seguranca-e-compliance.md",
+      "externalGate": "Sem gate externo adicional; usar testes seguros e providers Fake."
+    },
+    {
+      "id": "TKT-65",
+      "title": "Executar piloto SHADOW de 24 horas",
+      "blockedBy": [
+        "TKT-31",
+        "TKT-46",
+        "TKT-51",
+        "TKT-54",
+        "TKT-58",
+        "TKT-63",
+        "TKT-64"
+      ],
+      "alternativeRoutes": [],
+      "rdr": [
+        "RDR-132"
+      ],
+      "spec": "SPEC-07",
+      "bodyFile": "issues/65-executar-piloto-shadow-de-24-horas.md",
+      "externalGate": "Gates de integração, QA e VM cumpridos; contas reais autorizadas para coleta/review."
+    },
+    {
+      "id": "TKT-66",
+      "title": "Executar soak estendido e avaliar estabilidade",
+      "blockedBy": [
+        "TKT-65"
+      ],
+      "alternativeRoutes": [],
+      "rdr": [
+        "RDR-133"
+      ],
+      "spec": "SPEC-07",
+      "bodyFile": "issues/66-executar-soak-estendido-e-avaliar-estabilidade.md",
+      "externalGate": "Ambiente de homologação real e janela de soak disponível."
+    },
+    {
+      "id": "TKT-67",
+      "title": "Auditar readiness da V1 e entregar operação controlada",
+      "blockedBy": [
+        "TKT-33",
+        "TKT-34",
+        "TKT-55",
+        "TKT-66"
+      ],
+      "alternativeRoutes": [],
+      "rdr": [
+        "RDR-134"
+      ],
+      "spec": "SPEC-07",
+      "bodyFile": "issues/67-auditar-readiness-da-v1-e-entregar-operacao-controlada.md",
+      "externalGate": "Compliance/destinos reais revisados e autorização específica se gate comercial requerer execução."
+    }
+  ],
+  "approval": {
+    "status": "approved",
+    "date": "2026-10-02",
+    "source": "User approved the 67-ticket breakdown and explicitly requested publication."
+  },
+  "blockedReason": null,
+  "reconRevision": {
+    "date": "2026-10-03",
+    "status": "published-and-verified",
+    "source": "Operator authorized specs and existing issue updates after recon assessment.",
+    "updatedTickets": [
+      20,
+      24,
+      36,
+      37,
+      38,
+      39,
+      40,
+      41,
+      42,
+      44,
+      45,
+      46,
+      47,
+      48,
+      49,
+      50,
+      51,
+      52,
+      53,
+      54,
+      55,
+      58,
+      62,
+      63,
+      64,
+      65,
+      66,
+      67
+    ],
+    "nativeBlockerChanges": {
+      "48": [
+        "TKT-20",
+        "TKT-37"
+      ],
+      "50": [
+        "TKT-20",
+        "TKT-49"
+      ],
+      "51": [
+        "TKT-35"
+      ]
+    }
+  }
+}

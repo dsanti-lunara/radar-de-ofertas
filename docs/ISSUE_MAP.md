@@ -1,4 +1,6 @@
 # Issue Map
+
+Revisão pós-recon autorizada em 2026-10-03: preservar IDs RDR-001..134. Tickets publicados #1–#67 e cobertura no manifesto `.scratch/radar-v1/publication-plan.json`. RDR-100 valida link manual; RDR-103..111 WA usa GROUP/vínculo, sem Channels. RDR-076/124/125 têm cobertura dividida ML/SP/WA, não três IDs novos.
 Este mapa é o backlog canônico inicial. O agente pode fundir issues pequenas quando forem tecnicamente inseparáveis, mas não deve perder seus Acceptance Criteria.
 
 ## Foundation
@@ -149,7 +151,7 @@ Este mapa é o backlog canônico inicial. O agente pode fundir issues pequenas q
 | RDR-097 | Implement Shopee link API if supported |
 | RDR-098 | Implement Shopee browser detector |
 | RDR-099 | Implement Shopee assisted capture |
-| RDR-100 | Implement Shopee browser link fallback |
+| RDR-100 | Validate operator-generated Shopee link (manual portal; no operational browser generation) |
 | RDR-101 | Implement Shopee Sub IDs |
 | RDR-102 | Validate Shopee adapter live |
 
@@ -162,10 +164,10 @@ Este mapa é o backlog canônico inicial. O agente pode fundir issues pequenas q
 | RDR-105 | Implement destination verification |
 | RDR-106 | Implement message injection |
 | RDR-107 | Implement message hash guard |
-| RDR-108 | Implement assisted channel send |
+| RDR-108 | Implement assisted registered group send |
 | RDR-109 | Implement WhatsApp diagnostics |
-| RDR-110 | Validate sandbox channel E2E |
-| RDR-111 | Validate real channels in Assisted mode |
+| RDR-110 | Validate sandbox group E2E |
+| RDR-111 | Validate registered destinations and WhatsApp groups in Assisted mode |
 
 ## Runtime
 

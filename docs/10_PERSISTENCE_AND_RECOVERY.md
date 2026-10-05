@@ -146,10 +146,14 @@ PAUSE
 → migrations se necessárias
 → integrity check
 → recovery
-→ RUNNING
+→ retomar diagnóstico e processamento seguro com envios bloqueados
+→ reconciliar intervalo posterior ao backup
+→ liberar envios sujeitos às políticas vigentes
 ```
 
 Restore nunca é automático.
+
+Um backup pode não conter publicações realizadas após sua criação. A ausência de um registro no banco restaurado não prova que o envio remoto não ocorreu. Até reconciliar esse intervalo, manter os envios bloqueados, inclusive jobs recuperados e novas publicações. Registrar a evidência e a decisão de reconciliação em auditoria; resultados desconhecidos suspendem a publicação afetada e geram HumanAction, sem reenvio automático, conforme `adr/0001-unknown-publication-result.md`.
 
 Após desastre completo, sessões/secrets precisam ser reconfigurados.
 
@@ -183,6 +187,8 @@ DRAINING
 ```
 
 ## Time and money
+
+Dedupe/receipt/vínculo de destino e auditoria persistem independentemente de mensagens temporárias WA, cache ou bubble removido. Retenção não pode apagar proteção necessária contra reenvio/reconciliação; restore segue bloqueio dos envios até reconciliar intervalo pós-backup.
 
 - timestamps persistidos em UTC;
 - timezone operacional configurado, alvo `America/Maceio`;

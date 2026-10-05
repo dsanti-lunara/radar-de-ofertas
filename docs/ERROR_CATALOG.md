@@ -27,6 +27,7 @@ Prefixos sugeridos:
 | RAD-BRW-008 DESTINATION_MISMATCH | destino diferente do job | no |
 | RAD-BRW-009 MESSAGE_CONTEXT_MISMATCH | mensagem inserida não corresponde ao hash | no |
 | RAD-BRW-010 BROWSER_VERSION_INCOMPATIBLE | protocolo/extensão incompatível | no |
+| RAD-BRW-011 CHALLENGE | proteção detectada; suspender parte afetada e ação humana | no |
 
 ## Marketplace
 
@@ -35,7 +36,12 @@ Prefixos sugeridos:
 | RAD-ML-001 ML_UNSUPPORTED_AFFILIATE_URL | URL não elegível para link |
 | RAD-ML-002 AFFILIATE_UI_NOT_FOUND | gerador/barra não encontrada |
 | RAD-SP-001 SHOPEE_CAPABILITY_NOT_SUPPORTED | capability não disponível |
-| RAD-SP-002 SHOPEE_API_AUTH_REQUIRED | API precisa reautenticar |
+| RAD-SP-002 SHOPEE_API_AUTH_REQUIRED | credencial/assinatura/timestamp exige classificação e ação segura; não é sessão browser |
+| RAD-SP-003 SHOPEE_API_ACCESS_REQUIRED | entitlement pendente, não NOT_SUPPORTED global |
+| RAD-SP-004 SHOPEE_API_RESULT_INCOMPLETE | HTTP 200 com errors/data parcial não satisfaz contrato |
+| RAD-SP-005 SHOPEE_LINK_RESULT_UNKNOWN | mutation sem confirmação; reconciliar, sem retry cego |
+| RAD-ML-003 ML_TRACKING_LABEL_INVALID | etiqueta inválida ou mapeamento/associação não verificado |
+| RAD-ML-004 ML_LINK_RESULT_STALE | erro atual ou resultado sem correlação com tentativa atual |
 
 ## AI
 
@@ -66,8 +72,10 @@ Prefixos sugeridos:
 | RAD-TG-001 TELEGRAM_SEND_FAILED | envio falhou |
 | RAD-TG-002 TELEGRAM_DESTINATION_INVALID | destino inválido |
 | RAD-WA-001 WHATSAPP_AUTH_REQUIRED | sessão expirada |
-| RAD-WA-002 WHATSAPP_DESTINATION_MISMATCH | canal errado |
-| RAD-WA-003 WHATSAPP_SEND_FAILED | envio não confirmado |
+| RAD-WA-002 WHATSAPP_DESTINATION_MISMATCH | grupo/vínculo diferente do destino cadastrado; zero clique |
+| RAD-WA-003 WHATSAPP_SEND_FAILED | falha de envio confirmada; não usar para resultado desconhecido |
+| RAD-WA-004 WHATSAPP_SEND_RESULT_UNKNOWN | evidência insuficiente; suspender, HumanAction e zero reenvio automático |
+| RAD-WA-005 WHATSAPP_DESTINATION_IDENTITY_UNVERIFIED | vínculo/identidade não comprovados; bloquear envio |
 
 ## Compliance
 

@@ -1,0 +1,190 @@
+{
+  "schema_version": "recon-candidate-1",
+  "status": "CANDIDATE_NOT_APPROVED",
+  "environment": "Edge Windows; repeat on Chrome VM",
+  "fallback_policy": "Resolve one unique visible enabled element in verified context; zero/multiple matches fail closed. Fallbacks are untested candidates, not approval.",
+  "entries": [
+    {
+      "capability": "GENERATE_ML_AFFILIATE_LINK",
+      "page": "/afiliados/hub",
+      "element": "Ferramenta gerador",
+      "primary_selector": "role=link name='Gerador de links' exact",
+      "why_stable": "Nome e ID observados; href pode estar ausente",
+      "fallback_1": "#AFFILIATES_LINK_BUILDER",
+      "fallback_2": "link scoped to Ferramentas with exact text",
+      "ambiguity_risk": "Cards/menus duplicados; exigir match único",
+      "observed_states": [
+        "READY"
+      ],
+      "evidence": "E-ML-01",
+      "fixture": "semantic_states.ml_hub",
+      "screenshot": null
+    },
+    {
+      "capability": "GENERATE_ML_AFFILIATE_LINK",
+      "page": "/afiliados/linkbuilder",
+      "element": "URL",
+      "primary_selector": "role=textbox name='Insira 1 ou mais URLs separados por 1 linha' exact",
+      "why_stable": "Label/ID observados; fallback estrutural ainda não validado",
+      "fallback_1": "#url-0",
+      "fallback_2": "textarea scoped to confirmed URL article",
+      "ambiguity_risk": "Outros textareas ocultos existem; nunca textarea global",
+      "observed_states": [
+        "EMPTY",
+        "FILLED"
+      ],
+      "evidence": "E-ML-02/03",
+      "fixture": "ml_url",
+      "screenshot": null
+    },
+    {
+      "capability": "GENERATE_ML_AFFILIATE_LINK",
+      "page": "/afiliados/linkbuilder",
+      "element": "Gerar",
+      "primary_selector": "role=button name='Gerar' exact",
+      "why_stable": "Semântica observada; ID React excluído",
+      "fallback_1": "button.links-form__button",
+      "fallback_2": "button scoped to URL form with text Gerar",
+      "ambiguity_risk": "Enabled não prova URL válida; CSS fallback não testado",
+      "observed_states": [
+        "DISABLED",
+        "ENABLED"
+      ],
+      "evidence": "E-ML-02/03",
+      "fixture": "ml_generate_empty",
+      "screenshot": null
+    },
+    {
+      "capability": "GENERATE_ML_AFFILIATE_LINK",
+      "page": "/afiliados/linkbuilder",
+      "element": "Etiqueta",
+      "primary_selector": "role=combobox name='Selecione sua etiqueta' exact",
+      "why_stable": "Semântica observada; fallbacks de estado distintos ainda não testados",
+      "fallback_1": "listbox name='Selecione sua etiqueta' then option exact",
+      "fallback_2": "combobox scoped by text 'Etiqueta em uso:'",
+      "ambiguity_risk": "Option deve existir e ser único; nunca substituir seleção",
+      "observed_states": [
+        "COLLAPSED",
+        "EXPANDED"
+      ],
+      "evidence": "E-ML-04",
+      "fixture": "semantic_states.ml_label_options",
+      "screenshot": null
+    },
+    {
+      "capability": "ML_LABEL_PROVISIONING_MANUAL",
+      "page": "/afiliados/adminlabel",
+      "element": "Criar etiqueta input",
+      "primary_selector": "role=textbox name='Crie uma etiqueta' exact",
+      "why_stable": "Label/testid/ID observados; provisionamento humano",
+      "fallback_1": "testid=input-create-label",
+      "fallback_2": "#textfield-new-tag",
+      "ambiguity_risk": "Escopar modal; erro ou duplicata bloqueia",
+      "observed_states": [
+        "EMPTY",
+        "INVALID",
+        "VALID_LOCAL"
+      ],
+      "evidence": "E-ML-05",
+      "fixture": "ml_label_invalid",
+      "screenshot": null
+    },
+    {
+      "capability": "GENERATE_ML_AFFILIATE_LINK",
+      "page": "ML produto",
+      "element": "Compartilhar barra",
+      "primary_selector": "testid=generate_link_button",
+      "why_stable": "Testid observado, fallback ID possivelmente dinâmico",
+      "fallback_1": "button Compartilhar scoped to Afiliados toolbar",
+      "fallback_2": "#P0-1 only after toolbar/product context proof",
+      "ambiguity_risk": "2 buttons Compartilhar observados; role global proibido",
+      "observed_states": [
+        "READY"
+      ],
+      "evidence": "E-ML-06",
+      "fixture": "ml_toolbar_share",
+      "screenshot": null
+    },
+    {
+      "capability": "GENERATE_SHOPEE_AFFILIATE_LINK",
+      "page": "/offer/product_offer",
+      "element": "Obter link card",
+      "primary_selector": "product link scoped by public offer item ID, then role=button name='Obter link' exact",
+      "why_stable": "Identidade pública observada; recipe candidata sem teste de clique",
+      "fallback_1": "card with exact validated product title + product ID, then button",
+      "fallback_2": "navigate observed detail for same item then unique Obter link",
+      "ambiguity_risk": "Muitos cards/botões; título isolado pode duplicar",
+      "observed_states": [
+        "READY"
+      ],
+      "evidence": "E-SP-02",
+      "fixture": "semantic_states.sp_product_cards",
+      "screenshot": null
+    },
+    {
+      "capability": "GENERATE_SHOPEE_AFFILIATE_LINK",
+      "page": "/offer/product_offer/{item_id}",
+      "element": "Obter link detalhe",
+      "primary_selector": "role=button name='Obter link' exact within verified detail",
+      "why_stable": "Um botão observado e href público vincula contexto",
+      "fallback_1": "button.get-link-btn within verified detail",
+      "fallback_2": "button text exact within detail with Ver produto expected shop/item",
+      "ambiguity_risk": "Não clicar sem contexto/produto/autorizações",
+      "observed_states": [
+        "READY"
+      ],
+      "evidence": "E-SP-03",
+      "fixture": "sp_detail_get_link",
+      "screenshot": null
+    },
+    {
+      "capability": "GENERATE_SHOPEE_AFFILIATE_LINK",
+      "page": "/offer/custom_link",
+      "element": "URLs",
+      "primary_selector": "textarea with exact observed conversion placeholder",
+      "why_stable": "Placeholder/estrutura DOM observados; label não presente",
+      "fallback_1": "unique textarea in main confirmed Link personalizado",
+      "fallback_2": "textarea in same form as #customLink_sub_id1",
+      "ambiguity_risk": "Checar unicidade; placeholder multilinha e tradução podem mudar",
+      "observed_states": [
+        "EMPTY"
+      ],
+      "evidence": "E-SP-04",
+      "fixture": "sp_custom_url",
+      "screenshot": null
+    },
+    {
+      "capability": "GENERATE_SHOPEE_AFFILIATE_LINK",
+      "page": "/offer/custom_link",
+      "element": "Sub ID 1..5",
+      "primary_selector": "role=textbox label='Sub_id {n}' exact",
+      "why_stable": "Associação label/for observada para cinco campos",
+      "fallback_1": "#customLink_sub_id{n}",
+      "fallback_2": "input associated to label[for='customLink_sub_id{n}']",
+      "ambiguity_risk": "Faixa 1..5; não usar índice; n fornecido pelo contrato",
+      "observed_states": [
+        "EMPTY",
+        "INVALID_LOCAL"
+      ],
+      "evidence": "E-SP-05",
+      "fixture": "sp_subid_1",
+      "screenshot": null
+    },
+    {
+      "capability": "GENERATE_SHOPEE_AFFILIATE_LINK",
+      "page": "/offer/custom_link",
+      "element": "Obter link",
+      "primary_selector": "role=button name='Obter link' exact within main",
+      "why_stable": "Button submit observado, validação deve preceder clique",
+      "fallback_1": "form button[type=submit] with text Obter link",
+      "fallback_2": "button text exact in confirmed conversion form",
+      "ambiguity_risk": "Sem prova de resultado; jamais habilitar por ausência de erro apenas",
+      "observed_states": [
+        "READY"
+      ],
+      "evidence": "E-SP-04",
+      "fixture": "semantic_states.sp_custom",
+      "screenshot": null
+    }
+  ]
+}

@@ -58,6 +58,8 @@ Mismatch bloqueia.
 
 ## WhatsApp
 
+WA V1 usa GROUP registrado, com vínculo/reverificação provados; homônimos ou vínculo inválido causam zero clique. Nome/header isolado e message-id não comprovam group-id. Recibo sem confirmação suficiente gera resultado desconhecido, nunca retry automático. Portal Shopee fica manual/diagnóstico: não alternar rotas para contornar CAPTCHA, rate limit ou entitlement.
+
 Somente destinos explicitamente cadastrados.
 
 Não:

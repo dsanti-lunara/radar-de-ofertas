@@ -1,0 +1,59 @@
+{
+  "schema_version": "recon-fixture-1",
+  "provenance": "Minimal outerHTML copied from host-managed visible DOM inspection; semantic projections identified separately. No complete page snapshots.",
+  "fragments": {
+    "ml_url": "<textarea autocomplete=\"off\" id=\"url-0\" class=\"andes-form-control__field andes-form-control__field--multiline\" maxlength=\"1000000\" style=\"overflow: hidden; overflow-wrap: break-word; height: 74px;\" placeholder=\"Ex: https://www.mercadolivre.com.br/_Desde_49_Deal_afiliados-fashion_NoIndex_True\" aria-describedby=\"url-0-message\" rows=\"1\" data-andes-textfield-input=\"true\" data-andes-textfield-input-type=\"textarea\"></textarea>",
+    "ml_generate_empty": "<button disabled=\"\" type=\"button\" class=\"andes-button links-form__button andes-button--large andes-button--loud andes-button--disabled\" id=\"_R_199rpa_\" data-andes-button=\"true\" data-andes-button-hierarchy=\"loud\" data-andes-button-size=\"large\" data-andes-state=\"disabled\"><span class=\"andes-button__content\" data-andes-button-content=\"true\">Gerar</span></button>",
+    "ml_toolbar_share": "<button type=\"button\" id=\"P0-1\" data-testid=\"generate_link_button\" aria-expanded=\"false\" aria-haspopup=\"true\" class=\"andes-button generate_link_button andes-button--medium andes-button--loud\"><span class=\"andes-button__content\"><span class=\"andes-button__text\">Compartilhar</span></span></button>",
+    "ml_label_invalid": "<input data-testid=\"input-create-label\" autocomplete=\"off\" id=\"textfield-new-tag\" class=\"andes-form-control__field\" maxlength=\"30\" placeholder=\"Ex.: blackfriday\" aria-label=\"Crie uma etiqueta\" aria-describedby=\"textfield-new-tag-message textfield-new-tag-count\" rows=\"1\" data-andes-textfield-input=\"true\" data-andes-textfield-input-type=\"input\" value=\"Teste com espaço!\" aria-invalid=\"true\">",
+    "sp_custom_url": "<textarea placeholder=\"Se você quiser converter múltiplos links, insira até 5 links em linhas diferentes\nEx.:\nhttps://shopee.com.br/m/world\nhttps://shopee.com.br/\" rows=\"8\" class=\"ant-input\"></textarea>",
+    "sp_subid_1": "<input placeholder=\"Exemplo: Calçados Esportivos (apenas o ID precisa ser traduzido)\" type=\"text\" id=\"customLink_sub_id1\" data-__meta=\"[object Object]\" data-__field=\"[object Object]\" class=\"ant-input\" value=\"\">",
+    "sp_detail_get_link": "<button type=\"button\" class=\"ant-btn mkt-btn get-link-btn ant-btn-primary\">Obter link</button>",
+    "sp_detail_product": "<a class=\"view-product\" href=\"https://shopee.com.br/product/1487590844/22193956904\" target=\"_blank\">Ver produto</a>"
+  },
+  "semantic_states": {
+    "projection_notice": "Selected semantic observations, not original HTML. Private header/account/tracking omitted.",
+    "ml_hub": {
+      "generator_tool_id": "AFFILIATES_LINK_BUILDER",
+      "label_admin_id": "AFFILIATES_ADMIN"
+    },
+    "ml_label_options": {
+      "combobox": "Selecione sua etiqueta",
+      "listbox": "Selecione sua etiqueta",
+      "existing_options_present": true,
+      "values_omitted": true
+    },
+    "ml_invalid_url": {
+      "typed": "nao-e-url",
+      "generate_enabled": true,
+      "local_error_observed": false,
+      "submitted": false
+    },
+    "sp_product_cards": {
+      "repeated_get_link": true,
+      "batch_max_visible": 100,
+      "batch_selected": 0
+    },
+    "sp_custom": {
+      "title": "Link personalizado",
+      "max_urls_documented": 5,
+      "max_subids_documented": 5,
+      "invalid_subid": "recon-teste",
+      "error": "Número inválido",
+      "submitted": false
+    },
+    "sp_exclusive_empty": {
+      "text": "Sem Dados"
+    },
+    "sp_api_no_access": {
+      "text": "No momento você não possui acesso à Plataforma de Open API dos Afiliados Shopee",
+      "app_id_available": false,
+      "secret_available": false
+    },
+    "sp_verification_expired": {
+      "heading": "Erro de Tempo Esgotado",
+      "text": "Verificação expirou. Tente novamente.",
+      "recovery_button": "Voltar"
+    }
+  }
+}

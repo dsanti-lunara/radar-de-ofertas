@@ -1,0 +1,505 @@
+# Decision Log
+
+## Refinamentos aprovados em 2026-10-02, pequeno grill
+
+- **GRILL-003**: Após restore, diagnóstico e processamento seguro podem retomar, mas os envios permanecem bloqueados até reconciliar o intervalo posterior ao backup. Registros de envio ausentes no banco restaurado não provam ausência de envio remoto; resultados desconhecidos seguem GRILL-002. Ver `adr/0001-unknown-publication-result.md`.
+
+- **GRILL-001**: SHADOW registra avaliações, decisões humanas e previews, sem envio comercial. ASSISTED exige aprovação humana explícita da publicação para envio. Aprovar um Candidate não autoriza publicar; revalidação, compliance e demais guardrails continuam obrigatórios.
+- **GRILL-002**: Resultado de envio desconhecido suspende a publicação afetada, bloqueia reenvio automático e gera HumanAction. Conclusão ou autorização de nova tentativa exigem evidência suficiente, mesmo que a oferta expire durante a revisão. Ver `adr/0001-unknown-publication-result.md`.
+
+Registro consolidado das decisões aprovadas nas rodadas SDD-01 a SDD-13. A redação foi compactada para uso operacional, preservando a intenção aprovada.
+
+
+## SDD-01, Discovery, Boundaries e AI access
+
+- **AUT-001**: Browser Extension faz parte da arquitetura.
+- **AUT-002**: APIs oficiais são preferidas quando resolverem o caso.
+- **AUT-003**: A extensão opera funcionalidades autenticadas não expostas adequadamente por API.
+- **AUT-004**: O backend concentra regras e inteligência.
+- **AUT-005**: Deal Score e Monetization Score são determinísticos.
+- **AUT-006**: IA entra depois da pré-qualificação.
+- **AUT-007**: Link afiliado é gerado após aprovação da oportunidade.
+- **AUT-008**: Telegram é o primeiro canal totalmente automatizado.
+- **AUT-009**: WhatsApp entra no domínio, mas não bloqueia a V1.
+- **AUT-010**: Toda decisão precisa ser auditável.
+- **AUT-011**: A automação começa em Shadow Mode.
+- **AUT-012**: Login e 2FA permanecem humanos.
+- **AUT-013**: Mercado Livre e Shopee usam adapters independentes.
+- **AUT-014**: A extensão funciona como Browser Worker controlado pelo backend.
+- **AUT-015**: O sistema coleta histórico próprio de preços.
+- **AUT-016**: Kill switches existem por módulo.
+- **AUT-017**: A automação não usa a interface web do ChatGPT como integração de IA.
+- **AUT-018**: A integração primária de IA será via provider oficial elegível autenticado com a conta ChatGPT, condicionado à validação real.
+- **AUT-019**: A autenticação do provider de IA será via fluxo oficial suportado, sem exigir API key convencional quando a capability estiver disponível.
+- **AUT-020**: O sistema não depende de acesso ao histórico, memória ou chats do ChatGPT.
+- **AUT-021**: As regras operacionais ficam em Knowledge Pack local e versionado.
+- **AUT-022**: O projeto ChatGPT continua fonte humana de planejamento; Knowledge Pack é fonte de runtime.
+- **AUT-023**: IA só é chamada depois de filtros e scores determinísticos para preservar uso.
+- **AUT-024**: A arquitetura suporta API key convencional como provider opcional futuro, sem ser requisito V1.
+
+## SDD-02, Domain Model e Data Contracts
+
+- **AUT-025**: Product, Offer, Candidate, Opportunity e Publication são entidades diferentes.
+- **AUT-026**: MarketplaceProduct representa a identidade do produto dentro de cada marketplace.
+- **AUT-027**: Toda captura externa é preservada como RawCapture antes da normalização.
+- **AUT-028**: PriceObservation é append-only.
+- **AUT-029**: Evidence sustenta afirmações comerciais e decisões.
+- **AUT-030**: Evaluation é versionada e imutável.
+- **AUT-031**: A IA não calcula Deal Score nem Monetization Score.
+- **AUT-032**: Opportunity só é criada após aprovação do Candidate.
+- **AUT-033**: AffiliateLink é entidade independente e auditável.
+- **AUT-034**: ContentGeneration é separado de Publication.
+- **AUT-035**: AIReview e HumanReview são armazenadas separadamente.
+- **AUT-036**: Shadow Mode registra decisão da IA e decisão humana.
+- **AUT-037**: ExtensionJob usa fila explícita de estados.
+- **AUT-038**: Extensão e backend usam contratos versionados.
+- **AUT-039**: Operações críticas são idempotentes.
+- **AUT-040**: Todo pipeline usa Correlation ID.
+- **AUT-041**: Discovery Source e Purchase Source são independentes.
+- **AUT-042**: Estados explícitos substituem flags genéricas de processamento.
+- **AUT-043**: Erros usam códigos estruturados e indicam se permitem retry.
+- **AUT-044**: Knowledge Pack é versionado junto às avaliações de IA.
+- **AUT-045**: Regras comerciais alteráveis ficam em configuração, não hardcoded.
+
+## SDD-03, Scoring e Decision Engine
+
+- **AUT-046**: Deal Score usa escala 0-100 e pesos macro 40/25/20/15.
+- **AUT-047**: Price Opportunity usa prioritariamente histórico próprio, comparação entre marketplaces, queda recente, cupom e frete.
+- **AUT-048**: Preço riscado do marketplace não é prova isolada de oportunidade.
+- **AUT-049**: Pouco histórico produz valor neutro e reduz Confidence.
+- **AUT-050**: Seller Quality, Demand e Brand Fit são normalizados independentemente.
+- **AUT-051**: Sinais de comissão nunca entram no Deal Score.
+- **AUT-052**: Monetization Score mantém componentes aprovados e nunca transforma oferta ruim em aprovada.
+- **AUT-053**: Conversion Evidence começa neutro até haver histórico próprio suficiente.
+- **AUT-054**: Confidence é calculada independentemente do Deal Score.
+- **AUT-055**: Confidence considera origem, atualidade, completude, histórico e validação cruzada.
+- **AUT-056**: Hard Rules têm precedência sobre qualquer score.
+- **AUT-057**: Soft Rules geram warnings e podem reduzir Confidence.
+- **AUT-058**: Threshold inicial permanece <60 rejeitar, 60-79 revisar e >=80 candidato forte.
+- **AUT-059**: AUTO_PUBLISH é decisão de AutomationPolicy, não propriedade do Deal Score.
+- **AUT-060**: Opportunity Priority serve apenas para ordenar oportunidades aceitáveis.
+- **AUT-061**: O motor suporta comparação entre marketplaces para o mesmo Product.
+- **AUT-062**: Uma opção afiliada materialmente mais cara por causa de comissão deve ser bloqueada ou enviada para review.
+- **AUT-063**: Claims comerciais de preço são produzidos pelo backend como allowed_claims.
+- **AUT-064**: Reposts dependem de mudança significativa de preço, cupom ou cooldown configurável.
+- **AUT-065**: Todo cálculo armazena score breakdown, feature snapshot e scoring_version.
+- **AUT-066**: Shadow Mode constrói dataset de calibração para ajustes futuros.
+- **AUT-067**: Machine learning preditivo continua fora da V1.
+
+## SDD-04, AI Engine e Knowledge Pack
+
+- **AUT-068**: IA é componente editorial/contextual, não motor matemático de scoring.
+- **AUT-069**: O acesso primário de IA usa provider oficial autenticado com conta ChatGPT quando elegível no ambiente real.
+- **AUT-070**: A arquitetura suporta múltiplos AIProviders.
+- **AUT-071**: Automação da interface web do ChatGPT não faz parte da arquitetura.
+- **AUT-072**: ChatGPT Project é ambiente de planejamento; Knowledge Pack é contexto operacional.
+- **AUT-073**: Knowledge Pack é pequeno, estruturado e versionado.
+- **AUT-074**: Contexto enviado à IA é selecionado por marca, canal e tarefa.
+- **AUT-075**: A IA recebe fatos normalizados em vez de HTML bruto.
+- **AUT-076**: Allowed Claims determinam quais afirmações comerciais podem aparecer.
+- **AUT-077**: Claims mantêm Evidence e provenance.
+- **AUT-078**: URLs são inseridas deterministicamente pelo backend, nunca geradas pela IA.
+- **AUT-079**: Disclosure é determinado pelo sistema, não pela IA.
+- **AUT-080**: Structured Outputs são usados quando suportados pelo provider.
+- **AUT-081**: AIReview e ContentGeneration são tarefas distintas.
+- **AUT-082**: Content Validator determinístico executa após geração.
+- **AUT-083**: Valores numéricos não sustentados provocam bloqueio.
+- **AUT-084**: Compliance Engine tem precedência sobre decisão da IA.
+- **AUT-085**: Falha da IA nunca resulta em publicação automática.
+- **AUT-086**: Circuit Breaker pode suspender AUTO_PUBLISH após comportamento anormal do provider.
+- **AUT-087**: Chamadas de IA têm orçamento e priorização.
+- **AUT-088**: Resultados podem ser cacheados por ai_input_hash.
+- **AUT-089**: Edições humanas são armazenadas para calibração, sem mudar regras automaticamente.
+- **AUT-090**: Alterações do Knowledge Pack exigem promoção versionada.
+- **AUT-091**: OpenAI API paga pode ser provider opcional futuro, não requisito V1.
+
+## SDD-05, Browser Extension e Marketplace Adapters
+
+- **AUT-092**: Capacidades e superfícies do navegador são definidas no SDD; seletores concretos vêm do Browser Reconnaissance.
+- **AUT-093**: A extensão passa a se chamar conceitualmente Radar Browser Bridge.
+- **AUT-094**: A extensão não é crawler genérico.
+- **AUT-095**: APIs oficiais continuam primeira opção para discovery automatizado.
+- **AUT-096**: Mercado Livre usa prioritariamente o Gerador de Links da Central para geração automatizável.
+- **AUT-097**: A Barra de Afiliados do ML é fallback e modo manual.
+- **AUT-098**: URLs do ML são validadas como páginas elegíveis de produto antes da geração do link.
+- **AUT-099**: Etiquetas do ML entram no tracking.
+- **AUT-100**: Shopee automatizada em massa depende de API oficial.
+- **AUT-101**: Leitura do portal Shopee pela extensão começa assistida, não como crawling autônomo.
+- **AUT-102**: Link de Conversão é fallback browser da Shopee quando adequado.
+- **AUT-103**: Operações da extensão são classificadas como MANUAL, ASSISTED ou WORKER.
+- **AUT-104**: Login, senha, 2FA e CAPTCHA nunca são automatizados.
+- **AUT-105**: Endpoints privados não são reproduzidos por engenharia reversa.
+- **AUT-106**: A extensão usa Manifest V3.
+- **AUT-107**: Host permissions ficam restritas aos marketplaces necessários e ao Radar Core local.
+- **AUT-108**: Estado de jobs é persistido e não depende da vida do service worker.
+- **AUT-109**: Comunicação inicial com o Core usa HTTP local, polling simples e sincronização manual.
+- **AUT-110**: A extensão aceita apenas comandos em allowlist.
+- **AUT-111**: Jobs de navegador começam com concorrência 1 por marketplace.
+- **AUT-112**: Mudança inesperada de DOM produz DOM_CHANGED e fail-closed.
+- **AUT-113**: Seletores são versionados por marketplace.
+- **AUT-114**: Browser Bridge tem interface mínima e não é segundo dashboard.
+- **AUT-115**: Existe etapa formal de Browser Reconnaissance antes das issues de implementação.
+
+## SDD-06, Workflow, Scheduler, State Machine e Execution Node
+
+- **AUT-116**: Radar Core tem Workflow Engine central.
+- **AUT-117**: Scheduler cria Jobs, não executa lógica de negócio.
+- **AUT-118**: Jobs e estados de domínio são conceitos independentes.
+- **AUT-119**: Workers não chamam diretamente outros Workers.
+- **AUT-120**: Transições são determinadas pelo Workflow Engine.
+- **AUT-121**: Jobs têm prioridade, attempts, disponibilidade, lease e correlation_id.
+- **AUT-122**: Filas lógicas iniciais são GENERAL, AI, BROWSER e PUBLISHING.
+- **AUT-123**: Concorrência é conservadora e configurável.
+- **AUT-124**: Operações de navegador usam jobs assíncronos sem bloquear Workers do Core.
+- **AUT-125**: AUTH_REQUIRED pausa a integração em vez de gerar retries contínuos.
+- **AUT-126**: Ações humanas são representadas formalmente por HumanAction.
+- **AUT-127**: MANUAL, SHADOW, ASSISTED e AUTO são níveis independentes de automação.
+- **AUT-128**: AutomationPolicy pode variar por marca, marketplace, canal e capability.
+- **AUT-129**: Retries são classificados como transient, permanent ou human-required.
+- **AUT-130**: Retry transient utiliza backoff.
+- **AUT-131**: Jobs que excedem tentativas entram em Dead Job Queue.
+- **AUT-132**: Jobs com side effects são idempotentes.
+- **AUT-133**: Recovery Manager executa na inicialização.
+- **AUT-134**: Schedules perdidos são coalescidos quando apropriado.
+- **AUT-135**: Jobs e Opportunities têm políticas de expiração.
+- **AUT-136**: Toda oferta é revalidada antes da publicação.
+- **AUT-137**: Mudanças materiais de preço provocam novo cálculo.
+- **AUT-138**: Conteúdo fica stale se fatos usados na geração mudarem.
+- **AUT-139**: Dependências externas têm health status.
+- **AUT-140**: Locks e job leases têm expiração.
+- **AUT-141**: Eventos de domínio são registrados para auditoria sem broker externo.
+- **AUT-142**: O Core local não tem obrigação de operar 24/7 na arquitetura base, embora o Execution Node seja planejado para ficar persistente.
+- **AUT-143**: Janela operacional e quiet hours são configuráveis.
+- **AUT-144**: Candidates envelhecem e podem exigir revalidação antes de consumir IA.
+- **AUT-145**: Discovery, Opportunity, Publication e Post Publication são workflows separados.
+- **AUT-146**: Workflow é implementado em código na V1, sem DSL própria.
+- **AUT-147**: Entidades podem ser reprocessadas de etapas específicas sem apagar avaliações anteriores.
+- **AUT-148**: Kill Switches atuam tanto na criação quanto na execução de Jobs.
+- **AUT-149**: Radar Core tem modos RUNNING, PAUSED e DRAINING.
+- **AUT-150**: A V1 é projetada para execução persistente em notebook dedicado, preferencialmente dentro de VM.
+- **AUT-151**: O ambiente de execução é tratado como Radar Execution Node.
+- **AUT-152**: Core e Browser Bridge podem ficar disponíveis independentemente.
+- **AUT-153**: O navegador usa perfil exclusivo para o Radar.
+- **AUT-154**: Reinicialização do notebook ou VM não pode causar perda de estado nem publicação duplicada.
+- **AUT-155**: Core possui startup automático e Recovery Manager.
+- **AUT-156**: Existe mecanismo simples de start, stop, restart, status e diagnóstico.
+- **AUT-157**: Integrações AUTH_REQUIRED não impedem o restante do Radar de funcionar.
+- **AUT-158**: Estado e configuração críticos têm política simples de backup e restauração.
+- **AUT-159**: Instalação final prioriza recuperação simples após reboot sem sequência manual complexa.
+
+## SDD-07, Publishing, Tracking e WhatsApp
+
+- **AUT-160**: Telegram é o primeiro publisher totalmente automatizado.
+- **AUT-161**: Telegram e WhatsApp têm Publishers independentes.
+- **AUT-162**: PublishingDestination permite destinos diferentes para cada marca.
+- **AUT-163**: Mensagem final é montada por renderer determinístico, não diretamente pela IA.
+- **AUT-164**: Links afiliados nunca são escritos ou alterados pela IA.
+- **AUT-165**: Telegram pode utilizar botão de oferta associado ao link afiliado.
+- **AUT-166**: Toda publicação tem TrackingContext.
+- **AUT-167**: Shopee utiliza Sub IDs conforme capacidades validadas.
+- **AUT-168**: Mercado Livre utiliza etiquetas conforme capacidades validadas.
+- **AUT-169**: Nenhuma informação pessoal entra em tracking IDs.
+- **AUT-170**: Não existe redirect/shortener próprio na V1.
+- **AUT-171**: Toda publicação tem identificador interno rastreável.
+- **AUT-172**: Publicações têm lifecycle e revisions.
+- **AUT-173**: Oferta encerrada é preferencialmente marcada/atualizada, não apagada automaticamente.
+- **AUT-174**: Reposts estão sujeitos a cooldown e mudança material.
+- **AUT-175**: Publishing Policy controla frequência, burst, repetição e diversidade.
+- **AUT-176**: Limites de publicação são caps, nunca metas.
+- **AUT-177**: WhatsApp tem seleção mais restrita que Telegram.
+- **AUT-178**: Automação do WhatsApp não é requisito para concluir V1 em AUTO.
+- **AUT-179**: Automação improvisada do WhatsApp Web não é solução padrão fora do Browser Bridge formal.
+- **AUT-180**: Compliance é avaliado por combinação marketplace × channel.
+- **AUT-181**: Mercado Livre em Telegram/WhatsApp começa bloqueado para automação até revalidação da política vigente.
+- **AUT-182**: Disclosure comercial é inserido deterministicamente.
+- **AUT-183**: Link, oferta e conteúdo são revalidados antes do envio.
+- **AUT-184**: Publicações são idempotentes.
+- **AUT-185**: IDs externos de mensagem são armazenados para edição e reconciliação.
+- **AUT-186**: Post-publication checks são limitados e configuráveis.
+- **AUT-187**: Tempo sozinho não é evidência de que uma oferta terminou.
+- **AUT-188**: Tracking de marketplace é conectado posteriormente a clicks, conversions e commission.
+- **AUT-189**: Dados de conversão alimentam ConversionEvidence quando houver volume suficiente.
+- **AUT-190**: Destinos podem ser pausados individualmente.
+- **AUT-191**: Quiet hours são suportadas com revalidação obrigatória antes de publicação atrasada.
+- **AUT-192**: WhatsApp Web faz parte do Radar Browser Bridge.
+- **AUT-193**: ML, Shopee e WhatsApp usam o mesmo perfil dedicado do navegador no Execution Node.
+- **AUT-194**: Cada marca tem destino WhatsApp explicitamente configurado e identificado.
+- **AUT-195**: Telegram continua usando Bot API e não depende do navegador.
+- **AUT-196**: Publicação em Canal do WhatsApp é capability formal do Browser Bridge.
+- **AUT-197**: WhatsApp começa em ASSISTED e só é promovido a WORKER/AUTO após Browser Reconnaissance, QA e compliance.
+- **AUT-198**: Nenhum envio é feito para conversas privadas, listas ou grupos por descoberta automática; somente destinos explicitamente cadastrados.
+
+## SDD-08, Persistence, Secrets, Backup e Recovery
+
+- **AUT-199**: SQLite é o banco canônico da V1.
+- **AUT-200**: SQLite usa WAL, foreign keys, transactions, indexes e migrations desde o início.
+- **AUT-201**: A persistência permite migração futura para PostgreSQL sem alterar o domínio.
+- **AUT-202**: Dados históricos importantes são append-only.
+- **AUT-203**: HTML bruto não é armazenado por padrão.
+- **AUT-204**: Diagnósticos de browser têm retenção curta e armazenamento separado.
+- **AUT-205**: Configuração operacional e Knowledge Pack permanecem conceitos distintos.
+- **AUT-206**: Toda configuração é validada por schema.
+- **AUT-207**: Configuração efetiva é versionada e possui hash.
+- **AUT-208**: Mudanças relevantes de configuração têm snapshot auditável.
+- **AUT-209**: Configurações operacionais elegíveis podem suportar hot reload.
+- **AUT-210**: Nenhum segredo fica em YAML, banco comum, Git ou logs.
+- **AUT-211**: Secrets são acessados por SecretsProvider baseado em armazenamento seguro do sistema operacional.
+- **AUT-212**: Cookies e sessões ML/Shopee/WhatsApp permanecem exclusivamente no perfil do navegador.
+- **AUT-213**: Browser profile não é dado canônico nem requisito de backup.
+- **AUT-214**: Browser Bridge usa pareamento local com credencial revogável.
+- **AUT-215**: Logs da aplicação são estruturados.
+- **AUT-216**: Application Logs e Audit Events são separados.
+- **AUT-217**: Backups SQLite usam mecanismo consistente, não simples cópia de arquivo ativo.
+- **AUT-218**: Backup inclui banco, config, Knowledge Pack, manifest e checksums.
+- **AUT-219**: Secrets, cookies e browser profile são excluídos dos backups normais.
+- **AUT-220**: Retenção inicial é 7 diários, 4 semanais e 3 mensais.
+- **AUT-221**: Ao menos uma cópia do backup fica fora da VM.
+- **AUT-222**: Backup tem health status e alerta de atraso.
+- **AUT-223**: Restore é operação suportada pelo Radar, não procedimento improvisado.
+- **AUT-224**: Startup valida banco, configuração, Knowledge Pack e migrations.
+- **AUT-225**: Migration failure impede início dos workers.
+- **AUT-226**: Upgrade faz backup pré-migration.
+- **AUT-227**: App, DB schema, config, knowledge e scoring têm versões independentes registradas.
+- **AUT-228**: Clean shutdown usa DRAINING antes de encerrar.
+- **AUT-229**: Unclean shutdown aciona recuperação reforçada.
+- **AUT-230**: Low disk pode pausar Discovery preventivamente.
+- **AUT-231**: Timestamps são persistidos em UTC e apresentados no timezone configurado.
+- **AUT-232**: Valores monetários não usam floating point binário como representação de domínio.
+- **AUT-233**: Constraints e foreign keys são usadas no banco, não só validação da aplicação.
+- **AUT-234**: Histórico comercial não é apagado fisicamente por operações normais.
+- **AUT-235**: Redis e message brokers externos ficam fora da V1.
+- **AUT-236**: Code, Knowledge Pack e templates de config são versionáveis em Git; banco e secrets não.
+- **AUT-237**: RECOVERY_RUNBOOK.md e INSTALLATION.md fazem parte da documentação final.
+- **AUT-238**: Backups têm teste periódico de integridade/restauração.
+
+## SDD-09, Observability, Operations e UI
+
+- **AUT-239**: Radar tem Control Center web local mínimo.
+- **AUT-240**: A UI é cliente do Core e não é necessária para a automação continuar.
+- **AUT-241**: Navegação inicial: Visão Geral, Oportunidades, Publicações, Ações, Sistema e Configurações.
+- **AUT-242**: Home prioriza status, oportunidades, ações humanas e saúde das integrações.
+- **AUT-243**: Integrações usam estados padronizados de health.
+- **AUT-244**: HumanAction é o ponto central de toda intervenção necessária.
+- **AUT-245**: Ações humanas têm severidade e impacto operacional explicado.
+- **AUT-246**: Opportunity Inbox é orientada à decisão, não a visualização analítica excessiva.
+- **AUT-247**: Score breakdown e Evidence ficam disponíveis para explicar avaliações.
+- **AUT-248**: Shadow Mode permite aprovação, rejeição e edição de conteúdo pela UI.
+- **AUT-249**: Conteúdo gerado e final são preservados separadamente.
+- **AUT-250**: Publicações têm preview específico por canal.
+- **AUT-251**: Publication Detail mostra timeline completa e estado atual.
+- **AUT-252**: Jobs, Dead Jobs, Workers e integrações são observáveis sem SQL direto.
+- **AUT-253**: DOM_CHANGED gera diagnóstico operacional explícito.
+- **AUT-254**: Backups e testes de restore têm health visível.
+- **AUT-255**: Configurações operacionais frequentes podem ser alteradas pela UI.
+- **AUT-256**: Mudanças perigosas exigem confirmação.
+- **AUT-257**: Promoção para AUTO sempre exige decisão humana.
+- **AUT-258**: O sistema pode calcular elegibilidade para AUTO, sem ativá-lo sozinho.
+- **AUT-259**: O bot Telegram pode ser usado para notificações operacionais privadas.
+- **AUT-260**: Notificações operacionais nunca são enviadas aos canais públicos das marcas.
+- **AUT-261**: Alertas são deduplicados e têm cooldown.
+- **AUT-262**: Um resumo operacional diário pode ser enviado ao operador.
+- **AUT-263**: Toda ação humana relevante é auditada.
+- **AUT-264**: Ações automáticas relevantes também são auditadas.
+- **AUT-265**: UI e Core não são expostos publicamente à internet na V1.
+- **AUT-266**: radar doctor é verificação read-only.
+- **AUT-267**: Maintenance Mode suspende efeitos externos mantendo diagnóstico disponível.
+- **AUT-268**: Browser Recon Mode permite manutenção segura dos marketplace adapters.
+- **AUT-269**: Erros devem ser acionáveis e possuir códigos estruturados.
+- **AUT-270**: ERROR_CATALOG.md faz parte da documentação final.
+- **AUT-271**: Logs são nível profundo de diagnóstico, não UX operacional principal.
+- **AUT-272**: Métricas comerciais só aparecem quando houver dados reais de atribuição.
+- **AUT-273**: Radar mede progressivamente Human Intervention, Automation Rate, Override Rate e Browser Intervention Rate.
+- **AUT-274**: A interface permanece deliberadamente pequena até existir necessidade comprovada.
+
+## SDD-10, Security, Compliance e Threat Model
+
+- **AUT-275**: Browser, IA e marketplaces são tratados como fontes não confiáveis.
+- **AUT-276**: Conteúdo de marketplace é sempre dado, nunca instrução operacional.
+- **AUT-277**: HTML bruto não é enviado à IA.
+- **AUT-278**: Dados externos entram no contexto da IA como conteúdo não confiável e estruturado.
+- **AUT-279**: Browser Bridge aceita somente comandos em allowlist com schemas estritos.
+- **AUT-280**: Não existe execução remota de JavaScript arbitrário.
+- **AUT-281**: Hosts, URLs e redirects são validados antes de operações de browser.
+- **AUT-282**: Core e Browser Bridge usam autenticação local, nonce e proteção contra replay.
+- **AUT-283**: Core não é exposto publicamente à internet.
+- **AUT-284**: CORS e endpoints de side effect são restritos.
+- **AUT-285**: Página web não tem acesso direto aos privilégios do Browser Bridge.
+- **AUT-286**: Browser Bridge não extrai senhas, cookies ou tokens de sessão.
+- **AUT-287**: WhatsApp fica restrito a destinos explicitamente cadastrados das marcas.
+- **AUT-288**: Destino WhatsApp é verificado imediatamente antes da publicação.
+- **AUT-289**: Marketplace e produto são verificados contra o Job antes de gerar link.
+- **AUT-290**: Affiliate Links são validados antes de persistência e publicação.
+- **AUT-291**: AI output é tratado como não confiável até passar pelos validators.
+- **AUT-292**: Claims comerciais não evidenciados bloqueiam conteúdo.
+- **AUT-293**: Compliance Engine tem precedência sobre Workflow, IA e Publishing Policy.
+- **AUT-294**: Policies têm versão, revisão e estado explícitos.
+- **AUT-295**: Policy desconhecida ou vencida pode bloquear automação externa.
+- **AUT-296**: Mídia de listings não é reutilizada automaticamente.
+- **AUT-297**: Segredos obedecem least privilege por componente.
+- **AUT-298**: A IA nunca tem acesso a secrets desnecessários.
+- **AUT-299**: Dados pessoais acidentais são removidos de captures, logs e fixtures quando não necessários.
+- **AUT-300**: Browser diagnostics são material potencialmente sensível.
+- **AUT-301**: Browser Recon Mode suspende efeitos externos durante investigação.
+- **AUT-302**: Codex não executa ações comerciais irreversíveis durante reconnaissance sem autorização explícita.
+- **AUT-303**: Fixtures de navegador são sanitizadas antes de Git.
+- **AUT-304**: Dependências são reduzidas, maduras e versionadas.
+- **AUT-305**: Core e Browser Bridge têm controle explícito de compatibilidade de versão.
+- **AUT-306**: VM e browser são dedicados à operação do Radar.
+- **AUT-307**: Permissões de extensão seguem menor privilégio.
+- **AUT-308**: chrome.debugger e interceptação ampla de tráfego ficam fora da V1.
+- **AUT-309**: Challenges de segurança dos marketplaces provocam SECURITY_REVIEW_REQUIRED.
+- **AUT-310**: Cada integração tem circuit breaker independente.
+- **AUT-311**: Destination mismatch é erro bloqueante.
+- **AUT-312**: Security Events são auditáveis e podem gerar alertas relevantes.
+- **AUT-313**: Restore nunca acontece automaticamente.
+- **AUT-314**: Compliance tem trilha de auditoria e referências das políticas revisadas.
+- **AUT-315**: Falhas são isoladas por domínio sempre que possível.
+- **AUT-316**: Banco comprometido ou inválido bloqueia efeitos externos.
+- **AUT-317**: O Radar possui STOP_EXTERNAL_ACTIONS.
+- **AUT-318**: Testes de segurança funcionais fazem parte dos Acceptance Criteria da V1.
+
+## SDD-11, Testing e Quality Gates
+
+- **AUT-319**: A estratégia de testes segue Unit, Contract, Integration e E2E.
+- **AUT-320**: Regras determinísticas críticas têm cobertura direta e boundary tests.
+- **AUT-321**: Invariantes de negócio usam property tests quando agregarem valor.
+- **AUT-322**: Hard Rules têm testes garantindo precedência sobre scores e IA.
+- **AUT-323**: Monetization Score nunca eleva Deal rejeitado.
+- **AUT-324**: Valores monetários têm testes específicos de precisão.
+- **AUT-325**: Todos os contratos externos são validados por schema.
+- **AUT-326**: AI Provider tem Golden Dataset e casos adversariais.
+- **AUT-327**: Testes de IA avaliam propriedades e claims, não texto exato.
+- **AUT-328**: Numeric Guard e Claim Guard têm suites próprias.
+- **AUT-329**: SQLite é testado com banco real temporário, não somente mocks.
+- **AUT-330**: Migrations são testadas desde banco vazio e entre versões.
+- **AUT-331**: Backup e restore têm testes automatizados.
+- **AUT-332**: Secrets falsos são usados para detectar leakage em logs e backups.
+- **AUT-333**: Recovery após crash é requisito testado.
+- **AUT-334**: Idempotência de publicação tem teste crítico próprio.
+- **AUT-335**: Browser adapters usam fixtures coletadas durante Browser Reconnaissance.
+- **AUT-336**: Adapters falham fechados quando seletores estão ausentes ou ambíguos.
+- **AUT-337**: Browser tests são classificados como FIXTURE, SAFE_LIVE e SIDE_EFFECT.
+- **AUT-338**: Side-effect browser tests exigem autorização explícita e sandbox quando aplicável.
+- **AUT-339**: Telegram e WhatsApp têm destinos específicos para teste.
+- **AUT-340**: Test Mode bloqueia destinos de produção.
+- **AUT-341**: Workflow Engine é testado com failure injection.
+- **AUT-342**: Retry, Dead Jobs, locks e leases têm testes próprios.
+- **AUT-343**: Missed schedules são testados para coalescing.
+- **AUT-344**: TTL, candidate aging, price changes e content staleness usam relógio controlável em testes.
+- **AUT-345**: Compliance tem matriz automatizada de testes.
+- **AUT-346**: A suite mínima de segurança do SDD-10 é obrigatória.
+- **AUT-347**: Existe baseline leve de performance e recursos.
+- **AUT-348**: A V1 passa por soak test antes da produção definitiva.
+- **AUT-349**: Shadow Mode é usado com dados reais antes de promoção relevante para AUTO.
+- **AUT-350**: Concordância humana é analisada junto com severidade dos erros.
+- **AUT-351**: P0 e P1 impedem ou rebaixam automação conforme gravidade.
+- **AUT-352**: Toda feature tem Definition of Done com testes, acceptance criteria e docs.
+- **AUT-353**: Live tests são opt-in e nunca rodam acidentalmente.
+- **AUT-354**: Browser capability não é implementada antes de Browser Reconnaissance suficiente.
+- **AUT-355**: Telegram e WhatsApp têm gates distintos de promoção para AUTO, WhatsApp mais rigoroso.
+- **AUT-356**: AUTO não é estado permanente; capabilities podem ser rebaixadas.
+- **AUT-357**: Todo bug crítico corrigido gera regression test.
+- **AUT-358**: Releases produtivas exigem suite adequada, backup e versionamento.
+- **AUT-359**: Adapters Fake de Marketplace, AI, Browser e Publisher existem para testes sem side effects.
+- **AUT-360**: CI executa apenas testes seguros e sem credenciais reais por padrão.
+- **AUT-361**: Coverage percentual não substitui cobertura dos caminhos críticos.
+- **AUT-362**: O ambiente real notebook/VM faz parte da homologação.
+- **AUT-363**: Reboot, browser restart e network outage são cenários obrigatórios de recuperação.
+- **AUT-364**: Publishing caps, bursts, repost e tracking têm testes funcionais.
+- **AUT-365**: Observability é testável como comportamento, não somente logs.
+- **AUT-366**: QA_ACCEPTANCE_MATRIX.md faz parte do pacote final.
+- **AUT-367**: Produção só é liberada após gates técnicos, operacionais e de compliance.
+- **AUT-368**: Primeira operação real permanece SHADOW/ASSISTED mesmo após aprovação técnica.
+
+## SDD-12, Stack, Repository e Deployment
+
+- **AUT-369**: A V1 roda em VM Linux LTS com ambiente gráfico leve dentro do notebook.
+- **AUT-370**: A VM é o Radar Execution Node oficial.
+- **AUT-371**: Google Chrome com perfil dedicado é o browser operacional.
+- **AUT-372**: Backend é implementado em Python 3.13+.
+- **AUT-373**: FastAPI é usado para API local e Control Center.
+- **AUT-374**: Pydantic é usado para contratos e validação.
+- **AUT-375**: SQLAlchemy 2 é usado diretamente como ORM.
+- **AUT-376**: Alembic é usado para migrations.
+- **AUT-377**: SQLite WAL continua banco canônico da V1.
+- **AUT-378**: Dependências Python são gerenciadas por uv.
+- **AUT-379**: httpx é o cliente HTTP padrão.
+- **AUT-380**: Telegram usa Bot API diretamente, sem framework de bot obrigatório.
+- **AUT-381**: AI Provider permanece abstrato e isola autenticação.
+- **AUT-382**: radar-core e radar-api são processos independentes.
+- **AUT-383**: radar-core executa Scheduler, Workflow Engine e Workers.
+- **AUT-384**: radar-api atende Control Center, Browser Bridge e ações do operador.
+- **AUT-385**: Scheduler e Job Queue usam persistência própria sem Celery/broker.
+- **AUT-386**: Workers usam asyncio na V1.
+- **AUT-387**: Browser Bridge é TypeScript + Manifest V3.
+- **AUT-388**: Browser Bridge tem UI mínima sem framework frontend.
+- **AUT-389**: Adapters ML, Shopee e WhatsApp permanecem separados.
+- **AUT-390**: Playwright é ferramenta de teste/reconnaissance, não runtime de produção.
+- **AUT-391**: Control Center é React + TypeScript + Vite.
+- **AUT-392**: Control Center usa styling próprio e não dashboard template genérico.
+- **AUT-393**: REST é protocolo principal do Control Center.
+- **AUT-394**: Atualização da UI usa polling na V1.
+- **AUT-395**: Pydantic/OpenAPI é fonte principal para contratos HTTP compartilhados com TypeScript.
+- **AUT-396**: Todo Radar é mantido inicialmente em monorepo.
+- **AUT-397**: Python domain code fica separado de FastAPI, SQLAlchemy e integrações externas.
+- **AUT-398**: Knowledge Pack e runtime configuration ficam fora do código de domínio.
+- **AUT-399**: pnpm é o package manager TypeScript.
+- **AUT-400**: Node usa versão LTS fixada.
+- **AUT-401**: UI compilada é servida pelo radar-api.
+- **AUT-402**: A extensão é carregada localmente no perfil dedicado na V1.
+- **AUT-403**: systemd gerencia radar-core e radar-api.
+- **AUT-404**: Chrome é iniciado pela sessão gráfica do usuário dedicado da VM.
+- **AUT-405**: Instalação suporta auto-start da VM e recuperação automática do Radar.
+- **AUT-406**: Auto-login da VM pode ser usado para autonomia, com risco documentado.
+- **AUT-407**: Existe radarctl para operação local simples.
+- **AUT-408**: Instalação e deployment têm scripts reproduzíveis.
+- **AUT-409**: Git main é linha estável e releases usam tags.
+- **AUT-410**: CI executa apenas testes seguros e sem credenciais reais.
+- **AUT-411**: Ruff, Pyright, Pytest e Hypothesis formam a base de qualidade Python.
+- **AUT-412**: TypeScript strict, ESLint e Vitest formam a base de qualidade TypeScript.
+- **AUT-413**: Testes de browser usam Playwright.
+- **AUT-414**: Nenhum container é necessário em produção na V1.
+- **AUT-415**: n8n não faz parte do runtime principal.
+- **AUT-416**: Redis, Kafka, RabbitMQ e brokers ficam fora da V1.
+- **AUT-417**: Nginx/reverse proxy e domínio público ficam fora da V1.
+- **AUT-418**: Produção é acessível apenas localmente/rede privada.
+- **AUT-419**: Marketplace capabilities são descobertas por Capability Registry em vez de condicionais espalhadas.
+- **AUT-420**: Browser Bridge é executor de capabilities, não marketplace provider completo.
+- **AUT-421**: Ambiente de desenvolvimento opera integralmente com providers Fake.
+- **AUT-422**: Production impede Fake providers por padrão.
+- **AUT-423**: Código e dados persistentes permanecem fisicamente separados.
+- **AUT-424**: Snapshots de VM complementam, nunca substituem, backup de dados.
+- **AUT-425**: App, Knowledge, Scoring e Marketplace Adapters evoluem com versionamentos independentes.
+- **AUT-426**: BROWSER_RECONNAISSANCE é gate para adapters reais sem bloquear outras camadas.
+
+## SDD-13, Scope Freeze e Delivery
+
+- **AUT-427**: O escopo funcional e arquitetural da V1 está congelado ao término do SDD-13.
+- **AUT-428**: Novas features após o freeze exigem decisão explícita de escopo.
+- **AUT-429**: V1 suporta ML e Shopee, Radar Beauty e Casa em Ordem, Telegram e Canal do WhatsApp.
+- **AUT-430**: WhatsApp faz parte tecnicamente da V1, inicialmente em ASSISTED.
+- **AUT-431**: Telegram tem capability AUTO implementada, mas produção começa SHADOW/ASSISTED.
+- **AUT-432**: Ativação de AUTO é decisão operacional posterior, não critério para conclusão técnica da V1.
+- **AUT-433**: Bloqueios de compliance não impedem conclusão técnica de capabilities, mas impedem execução comercial.
+- **AUT-434**: AI authentication, Shopee API e browser surfaces têm spikes formais antes das implementações dependentes.
+- **AUT-435**: BROWSER_RECONNAISSANCE.md é gate obrigatório para adapters reais.
+- **AUT-436**: Desenvolvimento é dividido em milestones com Acceptance Criteria claros.
+- **AUT-437**: Issues são pequenas, verificáveis e orientadas por contracts.
+- **AUT-438**: Primeiro vertical slice usa providers Fake para validar pipeline completo.
+- **AUT-439**: Segundo vertical slice usa AI real e Telegram sandbox antes do Browser Bridge real.
+- **AUT-440**: Integrações reais de marketplace substituem progressivamente providers Fake.
+- **AUT-441**: WhatsApp é a última integração de publicação principal a ser validada.
+- **AUT-442**: Control Center não bloqueia vertical slices iniciais.
+- **AUT-443**: Codex segue SDD, Decision Log e Contracts como fontes de verdade.
+- **AUT-444**: Conflitos arquiteturais encontrados na implementação são reportados, não corrigidos silenciosamente.
+- **AUT-445**: AGENTS.md faz parte obrigatória do repositório.
+- **AUT-446**: Desenvolvimento prioriza correctness, safety, recoverability e observability antes de polish.
+- **AUT-447**: Entrando em Hardening, a V1 entra em Feature Freeze.
+- **AUT-448**: P0 aberto impede release.
+- **AUT-449**: V1 é homologada no notebook/VM real onde funcionará continuamente.
+- **AUT-450**: V1 técnica está pronta mesmo com capabilities operacionalmente em Shadow/Assisted.
+- **AUT-451**: Auto promotion ocorre somente após gates do SDD-11.
+- **AUT-452**: Radar é avaliado pelo ganho operacional e comercial, não pela quantidade de software.
+- **AUT-453**: V1.1 é reservada para analytics, conversões, calibração e automações amadurecidas.
+- **AUT-454**: Amazon, publishers sociais adicionais, ML preditivo, cloud e arquitetura distribuída permanecem backlog.
+- **AUT-455**: Pacote final contém arquitetura, operação, browser reconnaissance, QA, recovery e instruções para agentes de codificação.

@@ -1,5 +1,22 @@
 # Decision Log
 
+## Revisão autorizada em 2026-10-03 — resultados do browser recon
+
+- **RECON-001**: WhatsApp V1 usa GROUP cadastrado e PUBLISH_WHATSAPP_GROUP, em ASSISTED, mantendo allowlist/marca/sandbox. Identidade e reverificação do vínculo são gates; nome/message-id não são identidade de grupo. Envio não é habilitado sem prova segura.
+- **RECON-002**: Shopee separa API recorrente, portal manual/diagnóstico e captura pública assistida candidata. Retirar geração recorrente de links por extensão do portal. Link obtido manualmente pode ser validado pelo Core conforme RDR-100; não automatizar o portal ou contornar proteção.
+- **RECON-003**: Etiqueta ML externa usa minúsculas/números até 30, com mapeamento explícito, unicidade e auditoria; TrackingContext interno não sofre normalização silenciosa. Geração é side effect também em Minhas recomendações.
+- **RECON-004**: Documentação API Brasil permite contratos/Fake offline; entitlement e API autenticada são gates separados. Resultado desconhecido de mutation/envio não recebe retry cego. Recon finalizado não promove API_SUPPORTED, adapter ou AUTO.
+- **RECON-005**: Slice Shopee aceita uma rota comprovada: captura API + link API; captura pública assistida + link API; ou captura assistida + link manual validado. Revalidação atual, guards, disclosure e autorização continuam obrigatórios em todas.
+
+Fonte: `recon/2026-10-02/BROWSER_RECON_COMPLETION.md` e `SPEC_ISSUE_REVIEW.md`; operador autorizou atualização dos specs e issues, sem implementação ou novos side effects.
+
+## Refinamentos aprovados em 2026-10-02, pequeno grill
+
+- **GRILL-003**: Após restore, diagnóstico e processamento seguro podem retomar, mas os envios permanecem bloqueados até reconciliar o intervalo posterior ao backup. Registros de envio ausentes no banco restaurado não provam ausência de envio remoto; resultados desconhecidos seguem GRILL-002. Ver `adr/0001-unknown-publication-result.md`.
+
+- **GRILL-001**: SHADOW registra avaliações, decisões humanas e previews, sem envio comercial. ASSISTED exige aprovação humana explícita da publicação para envio. Aprovar um Candidate não autoriza publicar; revalidação, compliance e demais guardrails continuam obrigatórios.
+- **GRILL-002**: Resultado de envio desconhecido suspende a publicação afetada, bloqueia reenvio automático e gera HumanAction. Conclusão ou autorização de nova tentativa exigem evidência suficiente, mesmo que a oferta expire durante a revisão. Ver `adr/0001-unknown-publication-result.md`.
+
 Registro consolidado das decisões aprovadas nas rodadas SDD-01 a SDD-13. A redação foi compactada para uso operacional, preservando a intenção aprovada.
 
 
@@ -117,8 +134,8 @@ Registro consolidado das decisões aprovadas nas rodadas SDD-01 a SDD-13. A reda
 - **AUT-098**: URLs do ML são validadas como páginas elegíveis de produto antes da geração do link.
 - **AUT-099**: Etiquetas do ML entram no tracking.
 - **AUT-100**: Shopee automatizada em massa depende de API oficial.
-- **AUT-101**: Leitura do portal Shopee pela extensão começa assistida, não como crawling autônomo.
-- **AUT-102**: Link de Conversão é fallback browser da Shopee quando adequado.
+- **AUT-101**: Leitura do portal Shopee pela extensão começa assistida, não como crawling autônomo. Refinada por RECON-002 em 2026-10-03: portal manual/diagnóstico; captura operacional assistida candidata pertence ao site público com gates próprios.
+- **AUT-102**: Link de Conversão é fallback browser da Shopee quando adequado. Substituída por RECON-002 em 2026-10-03: não gerar links recorrentes por extensão no portal; RDR-100 valida retorno de geração manual do operador.
 - **AUT-103**: Operações da extensão são classificadas como MANUAL, ASSISTED ou WORKER.
 - **AUT-104**: Login, senha, 2FA e CAPTCHA nunca são automatizados.
 - **AUT-105**: Endpoints privados não são reproduzidos por engenharia reversa.

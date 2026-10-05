@@ -123,9 +123,11 @@ A capability técnica de AUTO pode existir sem estar ativada.
 
 ## Spikes obrigatórios
 
+Recon funcional de 2026-10-02 finalizado e consumido na revisão de 2026-10-03. Isso não fecha automaticamente spikes/aceites. API Shopee da conta, fixtures completas, adapters, SAFE_LIVE Chrome/VM e recovery continuam gates próprios. Ver `docs/recon/2026-10-02/PRODUCTION_READINESS.md`.
+
 - SPIKE-01, validar provider/autenticação ChatGPT no ambiente real.
 - SPIKE-02, descobrir capabilities reais da Shopee Affiliate API da conta.
 - SPIKE-03, Browser Reconnaissance ML + Shopee.
-- SPIKE-04, Browser Reconnaissance WhatsApp Channels.
+- SPIKE-04, Browser Reconnaissance WhatsApp Groups cadastrados.
 
 Nenhum adapter de navegador real deve ser implementado antes do reconnaissance correspondente.

@@ -1,0 +1,4 @@
+# OpenCode GitHub Issue runner
+.env.opencode
+.scratch/opencode-auto-logs/
+.scratch/opencode-issue-context/

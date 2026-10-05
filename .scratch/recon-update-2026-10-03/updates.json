@@ -1,0 +1,398 @@
+[
+  {
+    "number": 20,
+    "title": "[TKT-20] Gerar link Fake com TrackingContext auditável",
+    "bodyFile": ".scratch/radar-v1/issues/20-gerar-link-fake-com-trackingcontext-auditavel.md",
+    "label": "ready-for-agent",
+    "blockedBy": [
+      "TKT-17"
+    ],
+    "beforeUpdatedAt": "2026-10-03T00:32:42Z",
+    "beforeBodySha256": "a8efe3e88b09ce2aacf41fefe78a30e9717c6e78f6ba8d7725b7e36158694d24",
+    "remoteUpdatedAt": "2026-10-03T05:08:52Z",
+    "bodySha256": "edac16b17ab1dcc59368a24eab01cfeb94f882fc669ffea431477ce7dd4fb41c"
+  },
+  {
+    "number": 24,
+    "title": "[TKT-24] Suspender envio de resultado desconhecido",
+    "bodyFile": ".scratch/radar-v1/issues/24-suspender-envio-de-resultado-desconhecido.md",
+    "label": "ready-for-agent",
+    "blockedBy": [
+      "TKT-23"
+    ],
+    "beforeUpdatedAt": "2026-10-03T00:33:01Z",
+    "beforeBodySha256": "1d446c5fcee6ee62fcc4f7d4c5c49c6f3a5a11aaeb2ff7cd2e9c966bc25891a6",
+    "remoteUpdatedAt": "2026-10-03T05:08:54Z",
+    "bodySha256": "e6e5841a99570f0fdf643e532cefffa171355581a222d7e922d483d814f63b36"
+  },
+  {
+    "number": 36,
+    "title": "[TKT-36] Consolidar recon ML e validar fixtures",
+    "bodyFile": ".scratch/radar-v1/issues/36-investigar-ml-e-validar-fixtures-de-navegador.md",
+    "label": "ready-for-agent",
+    "blockedBy": [],
+    "beforeUpdatedAt": "2026-10-03T00:33:51Z",
+    "beforeBodySha256": "18c7b3ad63b17fe09a38f0cc79f74f20214aa11f1661c9a70b7abf7f69e9acca",
+    "remoteUpdatedAt": "2026-10-03T05:08:56Z",
+    "bodySha256": "9b186c03af38d8250a4d8d69b88c827901f69b6c24ba514db4cdeca428491318"
+  },
+  {
+    "number": 37,
+    "title": "[TKT-37] Validar Shopee Affiliate API da conta (SPIKE-02)",
+    "bodyFile": ".scratch/radar-v1/issues/37-validar-shopee-affiliate-api-da-conta-spike-02.md",
+    "label": "ready-for-human",
+    "blockedBy": [],
+    "beforeUpdatedAt": "2026-10-03T00:33:53Z",
+    "beforeBodySha256": "383aa96b352d3bf8d2f1b08e0551e4950e1f319ec0a5fa98b27f0c2744cf7e44",
+    "remoteUpdatedAt": "2026-10-03T05:09:19Z",
+    "bodySha256": "463f8ac8f57b76793c4483d6ef260edb1d97453c461a456396e8abefc3274834"
+  },
+  {
+    "number": 38,
+    "title": "[TKT-38] Consolidar recon Shopee e validar fixtures",
+    "bodyFile": ".scratch/radar-v1/issues/38-investigar-shopee-e-validar-fixtures-de-navegador.md",
+    "label": "ready-for-agent",
+    "blockedBy": [],
+    "beforeUpdatedAt": "2026-10-03T00:33:55Z",
+    "beforeBodySha256": "86b25f227e0e2286ccfc62beb38b9cd5bb9702035e50930f7af01aa283f27ac0",
+    "remoteUpdatedAt": "2026-10-03T05:09:22Z",
+    "bodySha256": "62cf12b85c8996ebc24eea7c658ed9d5bf7b89f6a299f2ba0697ee99d9583d6c"
+  },
+  {
+    "number": 39,
+    "title": "[TKT-39] Consolidar recon WhatsApp Groups e validar fixtures",
+    "bodyFile": ".scratch/radar-v1/issues/39-investigar-whatsapp-channels-e-validar-fixtures.md",
+    "label": "ready-for-agent",
+    "blockedBy": [],
+    "beforeUpdatedAt": "2026-10-03T00:33:57Z",
+    "beforeBodySha256": "5d7484561e8984b77d20e165ebe09cd7c9fae36e516f8e229050c84f42bea6ae",
+    "remoteUpdatedAt": "2026-10-03T05:09:23Z",
+    "bodySha256": "23898fd364097acf52bf73a397698e72064e215d5af2ffb57e98c09b4d23bfc3"
+  },
+  {
+    "number": 40,
+    "title": "[TKT-40] Parear Browser Bridge e consultar heartbeat",
+    "bodyFile": ".scratch/radar-v1/issues/40-parear-browser-bridge-e-consultar-heartbeat.md",
+    "label": "ready-for-agent",
+    "blockedBy": [
+      "TKT-02"
+    ],
+    "beforeUpdatedAt": "2026-10-03T00:33:59Z",
+    "beforeBodySha256": "fe777be7f03f8e1b95e949aea94efa44c55621a8c1a7e3898154b1ad7052d12b",
+    "remoteUpdatedAt": "2026-10-03T05:09:25Z",
+    "bodySha256": "6db7c83bc8f1379eb69d96bd67bf103b964d067f57c4f9c9eaa07867f2a72108"
+  },
+  {
+    "number": 41,
+    "title": "[TKT-41] Executar job Browser seguro e persistente",
+    "bodyFile": ".scratch/radar-v1/issues/41-executar-job-browser-seguro-e-persistente.md",
+    "label": "ready-for-agent",
+    "blockedBy": [
+      "TKT-13",
+      "TKT-40"
+    ],
+    "beforeUpdatedAt": "2026-10-03T00:34:03Z",
+    "beforeBodySha256": "a12844a959b2a5b2cf67c51841e2c8a53e29fb9aedae74d0e6fc1484dbc2df72",
+    "remoteUpdatedAt": "2026-10-03T05:09:27Z",
+    "bodySha256": "8786790f21717880232b4101a987bd6d9be412f8dd8dd3700c1eaa9cdea28007"
+  },
+  {
+    "number": 42,
+    "title": "[TKT-42] Detectar página e emitir diagnóstico sanitizado",
+    "bodyFile": ".scratch/radar-v1/issues/42-detectar-pagina-e-emitir-diagnostico-sanitizado.md",
+    "label": "ready-for-agent",
+    "blockedBy": [
+      "TKT-41"
+    ],
+    "beforeUpdatedAt": "2026-10-03T00:34:07Z",
+    "beforeBodySha256": "1aabbeed9c77c29996fd049f117668f373804e58be165295dbaae59c0a8c6104",
+    "remoteUpdatedAt": "2026-10-03T05:09:29Z",
+    "bodySha256": "388f308ee772e6872911bb3cdf620486a93d3fdb749329d87eb6d26fcd8edb23"
+  },
+  {
+    "number": 44,
+    "title": "[TKT-44] Capturar ML pelo navegador com contexto correto",
+    "bodyFile": ".scratch/radar-v1/issues/44-capturar-ml-pelo-navegador-com-contexto-correto.md",
+    "label": "ready-for-agent",
+    "blockedBy": [
+      "TKT-36",
+      "TKT-42"
+    ],
+    "beforeUpdatedAt": "2026-10-03T00:34:16Z",
+    "beforeBodySha256": "1e995fc6b4d69bd5d8b47aa40299e79fc5e92e584891581bc139b404078268ce",
+    "remoteUpdatedAt": "2026-10-03T05:09:31Z",
+    "bodySha256": "3e1139c0d1c5f375be204aad867cda6a10c8c6d131c4b0dee39c668427d493e2"
+  },
+  {
+    "number": 45,
+    "title": "[TKT-45] Gerar link afiliado ML pelo fluxo validado",
+    "bodyFile": ".scratch/radar-v1/issues/45-gerar-link-afiliado-ml-pelo-fluxo-validado.md",
+    "label": "ready-for-agent",
+    "blockedBy": [
+      "TKT-20",
+      "TKT-44"
+    ],
+    "beforeUpdatedAt": "2026-10-03T00:34:21Z",
+    "beforeBodySha256": "e47b96fafe6eaff417728fc091c92a41727ccdd9420f84336f6e223f2c6eace3",
+    "remoteUpdatedAt": "2026-10-03T05:09:33Z",
+    "bodySha256": "9e6ba08f965ce0f4a7272cc74999b9f67e88cb904e2a103eebdd692f25b0737a"
+  },
+  {
+    "number": 46,
+    "title": "[TKT-46] Validar Slice 3 ML até Telegram sandbox",
+    "bodyFile": ".scratch/radar-v1/issues/46-validar-slice-3-ml-ate-telegram-sandbox.md",
+    "label": "ready-for-agent",
+    "blockedBy": [
+      "TKT-35",
+      "TKT-43",
+      "TKT-45"
+    ],
+    "beforeUpdatedAt": "2026-10-03T00:34:25Z",
+    "beforeBodySha256": "68833d4a553504d33ca7953369b306ea585127ed4874ee6958162afb9d92d440",
+    "remoteUpdatedAt": "2026-10-03T05:09:35Z",
+    "bodySha256": "a151706a675b4a96c0e2e0bf77acc18fb566c8a9e397359a2f8646de8d128467"
+  },
+  {
+    "number": 47,
+    "title": "[TKT-47] Descobrir Shopee por API validada",
+    "bodyFile": ".scratch/radar-v1/issues/47-descobrir-shopee-por-api-validada.md",
+    "label": "ready-for-agent",
+    "blockedBy": [
+      "TKT-03",
+      "TKT-16",
+      "TKT-37"
+    ],
+    "beforeUpdatedAt": "2026-10-03T00:34:32Z",
+    "beforeBodySha256": "ff847d3a0c58263baa49ce4a4e01ba64d6e82958e045e6cf7c2e84aef84fc065",
+    "remoteUpdatedAt": "2026-10-03T05:09:37Z",
+    "bodySha256": "d4349f6d2eee0c0088cd25da89d125ffedb959086b0f8eecc5573ac50dabc193"
+  },
+  {
+    "number": 48,
+    "title": "[TKT-48] Gerar link Shopee por API e Sub IDs",
+    "bodyFile": ".scratch/radar-v1/issues/48-gerar-link-shopee-por-api-e-sub-ids.md",
+    "label": "ready-for-agent",
+    "blockedBy": [
+      "TKT-20",
+      "TKT-37"
+    ],
+    "beforeUpdatedAt": "2026-10-03T00:34:38Z",
+    "beforeBodySha256": "34f582bd8922566bca42eca4eaead9cbe82f5fb61c99f17af48a0a2b5d788200",
+    "remoteUpdatedAt": "2026-10-03T05:09:38Z",
+    "bodySha256": "8707fa5ee0b02d00518da60a29f71d24bab8cea9c83eddb8a520fc0d30d6a702"
+  },
+  {
+    "number": 49,
+    "title": "[TKT-49] Capturar Shopee de forma assistida",
+    "bodyFile": ".scratch/radar-v1/issues/49-capturar-shopee-de-forma-assistida.md",
+    "label": "ready-for-agent",
+    "blockedBy": [
+      "TKT-03",
+      "TKT-38",
+      "TKT-42"
+    ],
+    "beforeUpdatedAt": "2026-10-03T00:34:45Z",
+    "beforeBodySha256": "84305084743395df2f62e4a70e23c5229d532e4b8ab79b53d5e25369c5ab8943",
+    "remoteUpdatedAt": "2026-10-03T05:09:40Z",
+    "bodySha256": "30bb9c031ece03e8afec60934b3326cd0f6d46f29013e23937aa3645559b6a50"
+  },
+  {
+    "number": 50,
+    "title": "[TKT-50] Validar link Shopee gerado manualmente",
+    "bodyFile": ".scratch/radar-v1/issues/50-gerar-link-shopee-pelo-fallback-assistido.md",
+    "label": "ready-for-agent",
+    "blockedBy": [
+      "TKT-20",
+      "TKT-49"
+    ],
+    "beforeUpdatedAt": "2026-10-03T00:34:52Z",
+    "beforeBodySha256": "eea3340b55bccd5062b885804d0bdf21ad113bbe7e409adf80ae2134df438c85",
+    "remoteUpdatedAt": "2026-10-03T05:09:42Z",
+    "bodySha256": "74e9038abc0f271772a569ee8d632ff54b388b5587df4df32942db8db4443db1"
+  },
+  {
+    "number": 51,
+    "title": "[TKT-51] Validar Slice 3 Shopee até Telegram sandbox",
+    "bodyFile": ".scratch/radar-v1/issues/51-validar-slice-3-shopee-ate-telegram-sandbox.md",
+    "label": "ready-for-agent",
+    "blockedBy": [
+      "TKT-35"
+    ],
+    "beforeUpdatedAt": "2026-10-03T00:34:58Z",
+    "beforeBodySha256": "95ab0dfd06609ae893728c462e7356e9ab0c73ea42d8bffb8cec673fb7c65c0c",
+    "remoteUpdatedAt": "2026-10-03T05:09:44Z",
+    "bodySha256": "3cf2603e49f3801f5625d82e69f6c478bf41fc87da3b880490bf01217020d2c8"
+  },
+  {
+    "number": 52,
+    "title": "[TKT-52] Preparar mensagem WhatsApp no grupo cadastrado",
+    "bodyFile": ".scratch/radar-v1/issues/52-preparar-mensagem-whatsapp-no-canal-certo.md",
+    "label": "ready-for-agent",
+    "blockedBy": [
+      "TKT-21",
+      "TKT-39",
+      "TKT-42"
+    ],
+    "beforeUpdatedAt": "2026-10-03T00:35:04Z",
+    "beforeBodySha256": "7e491eaab4bca45267ed8c9ea4aa519b3440eec7151ce5e484a5f9ab72abd31d",
+    "remoteUpdatedAt": "2026-10-03T05:09:46Z",
+    "bodySha256": "3224d14ab52a0826b7d9851615614ca6e85d4086cc6ebaf36aca8e2a6d454492"
+  },
+  {
+    "number": 53,
+    "title": "[TKT-53] Enviar WhatsApp em ASSISTED com revisão explícita",
+    "bodyFile": ".scratch/radar-v1/issues/53-enviar-whatsapp-em-assisted-com-revisao-explicita.md",
+    "label": "ready-for-agent",
+    "blockedBy": [
+      "TKT-24",
+      "TKT-27",
+      "TKT-52"
+    ],
+    "beforeUpdatedAt": "2026-10-03T00:35:09Z",
+    "beforeBodySha256": "68563a1f634ffbd1a13889f884a86491e5d01b31489c3f3c575209f023b24322",
+    "remoteUpdatedAt": "2026-10-03T05:09:48Z",
+    "bodySha256": "99f5e42eef678d391a80f4f2b36834203330cd9845540facd176ee0a2e961996"
+  },
+  {
+    "number": 54,
+    "title": "[TKT-54] Validar Slice 4 WhatsApp sandbox",
+    "bodyFile": ".scratch/radar-v1/issues/54-validar-slice-4-whatsapp-sandbox.md",
+    "label": "ready-for-agent",
+    "blockedBy": [
+      "TKT-35",
+      "TKT-53"
+    ],
+    "beforeUpdatedAt": "2026-10-03T00:35:15Z",
+    "beforeBodySha256": "a7a7ec8f7fa59df98aa1660e25de40a7e8ff7afd47f66f6b39af8d6fb65db363",
+    "remoteUpdatedAt": "2026-10-03T05:09:50Z",
+    "bodySha256": "ce851aeac83c34ebbe5dbfa10aca991d01ce17fd2cc2d3094e0425c86bb9134c"
+  },
+  {
+    "number": 55,
+    "title": "[TKT-55] Homologar destinos reais e grupos WhatsApp em ASSISTED",
+    "bodyFile": ".scratch/radar-v1/issues/55-homologar-canais-reais-em-assisted.md",
+    "label": "ready-for-agent",
+    "blockedBy": [
+      "TKT-54"
+    ],
+    "beforeUpdatedAt": "2026-10-03T00:35:20Z",
+    "beforeBodySha256": "cda886abcfcf7e34a5c03e49451560719d8603a8538a05e9c13ea106fbfecc50",
+    "remoteUpdatedAt": "2026-10-03T05:09:52Z",
+    "bodySha256": "9c22bd45890fedc22d9332c0becaa3c2f7878078ef81315bcb748134b70d80c1"
+  },
+  {
+    "number": 58,
+    "title": "[TKT-58] Aplicar retenção e proteção contra disco crítico",
+    "bodyFile": ".scratch/radar-v1/issues/58-aplicar-retencao-e-protecao-contra-disco-critico.md",
+    "label": "ready-for-agent",
+    "blockedBy": [
+      "TKT-02",
+      "TKT-56"
+    ],
+    "beforeUpdatedAt": "2026-10-03T00:35:33Z",
+    "beforeBodySha256": "5ce08bfd5e9789df3fcda57d17f2a2423a61fc25770b177510ec891deb27f724",
+    "remoteUpdatedAt": "2026-10-03T05:09:54Z",
+    "bodySha256": "e793a58fa9a7d522455b042d92cad314e5c7ae8307387bef4348466e67ee8054"
+  },
+  {
+    "number": 62,
+    "title": "[TKT-62] Validar perda de rede e recuperação isolada",
+    "bodyFile": ".scratch/radar-v1/issues/62-validar-perda-de-rede-e-recuperacao-isolada.md",
+    "label": "ready-for-agent",
+    "blockedBy": [
+      "TKT-30",
+      "TKT-32",
+      "TKT-41",
+      "TKT-53"
+    ],
+    "beforeUpdatedAt": "2026-10-03T00:35:56Z",
+    "beforeBodySha256": "c76e406be6bb6f4d3fad82c7fe07774df6e56bbe93d4ec12efd37885c4b51e6c",
+    "remoteUpdatedAt": "2026-10-03T05:09:56Z",
+    "bodySha256": "67b234e84611b9b63dd3a6b540945e040b1fba137719825a30013e7fc234c038"
+  },
+  {
+    "number": 63,
+    "title": "[TKT-63] Homologar reboot e restart na VM alvo",
+    "bodyFile": ".scratch/radar-v1/issues/63-homologar-reboot-e-restart-na-vm-alvo.md",
+    "label": "ready-for-agent",
+    "blockedBy": [
+      "TKT-18",
+      "TKT-57",
+      "TKT-61",
+      "TKT-62"
+    ],
+    "beforeUpdatedAt": "2026-10-03T00:36:02Z",
+    "beforeBodySha256": "774b8fa516e22392ddecb9da808af482a980ca9f931849a098c79f1df0aa9571",
+    "remoteUpdatedAt": "2026-10-03T05:09:58Z",
+    "bodySha256": "083224d156fca17b31ae469dc8b83186969c72371c57439e1b3fdbc113d7349a"
+  },
+  {
+    "number": 64,
+    "title": "[TKT-64] Fechar matriz de segurança e compliance",
+    "bodyFile": ".scratch/radar-v1/issues/64-fechar-matriz-de-seguranca-e-compliance.md",
+    "label": "ready-for-agent",
+    "blockedBy": [
+      "TKT-10",
+      "TKT-22",
+      "TKT-24",
+      "TKT-28",
+      "TKT-45",
+      "TKT-48",
+      "TKT-50",
+      "TKT-53",
+      "TKT-57"
+    ],
+    "beforeUpdatedAt": "2026-10-03T00:36:08Z",
+    "beforeBodySha256": "c07f2d86891759aa19a8d43341a2af5d4b9e1107e6174152cc8b1d819a17a29b",
+    "remoteUpdatedAt": "2026-10-03T05:09:59Z",
+    "bodySha256": "e5613cdd05b017e732da4ad3b28316bcb09a1ad888a342d7b881f12245220ee3"
+  },
+  {
+    "number": 65,
+    "title": "[TKT-65] Executar piloto SHADOW de 24 horas",
+    "bodyFile": ".scratch/radar-v1/issues/65-executar-piloto-shadow-de-24-horas.md",
+    "label": "ready-for-agent",
+    "blockedBy": [
+      "TKT-31",
+      "TKT-46",
+      "TKT-51",
+      "TKT-54",
+      "TKT-58",
+      "TKT-63",
+      "TKT-64"
+    ],
+    "beforeUpdatedAt": "2026-10-03T00:36:20Z",
+    "beforeBodySha256": "9655b94acdcdfadf3d121e444249b9d7a562daddd0773bc5b9520293ac0de6c9",
+    "remoteUpdatedAt": "2026-10-03T05:10:02Z",
+    "bodySha256": "204d75561be17b9ce1c25de39b57fcb9d4f70d10c7a9a21197045cef64d4f898"
+  },
+  {
+    "number": 66,
+    "title": "[TKT-66] Executar soak estendido e avaliar estabilidade",
+    "bodyFile": ".scratch/radar-v1/issues/66-executar-soak-estendido-e-avaliar-estabilidade.md",
+    "label": "ready-for-agent",
+    "blockedBy": [
+      "TKT-65"
+    ],
+    "beforeUpdatedAt": "2026-10-03T00:36:29Z",
+    "beforeBodySha256": "a7b294cf96b0ff1022500fe290ac74a87096b38f7cdaf477ec040bf14c8ad64c",
+    "remoteUpdatedAt": "2026-10-03T05:10:04Z",
+    "bodySha256": "be215122c7b4f514ebce7892f149ef930d80ab903a137257cf06e344ac4a158e"
+  },
+  {
+    "number": 67,
+    "title": "[TKT-67] Auditar readiness da V1 e entregar operação controlada",
+    "bodyFile": ".scratch/radar-v1/issues/67-auditar-readiness-da-v1-e-entregar-operacao-controlada.md",
+    "label": "ready-for-agent",
+    "blockedBy": [
+      "TKT-33",
+      "TKT-34",
+      "TKT-55",
+      "TKT-66"
+    ],
+    "beforeUpdatedAt": "2026-10-03T00:36:33Z",
+    "beforeBodySha256": "bfae5d13900db76bb6fa82721318f768872092a59ad540533cba3acaca479f84",
+    "remoteUpdatedAt": "2026-10-03T05:10:05Z",
+    "bodySha256": "badea29cdc34198439f1e330b991c774c8c35bba0e72fe48b0a569c993d2c845"
+  }
+]

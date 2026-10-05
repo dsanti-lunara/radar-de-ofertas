@@ -54,6 +54,8 @@ Reautenticar provider e retomar.
 
 Publicações ficam em RETRY_WAIT.
 
+Isso se aplica a falhas confirmadas e retryable. Se um envio pode ter ocorrido sem confirmação persistida, suspender a publicação, bloquear reenvio automático e abrir HumanAction; não tratar resultado desconhecido como falha confirmada.
+
 Não recriar Opportunity.
 
 ## Caso 6, unclean shutdown
@@ -90,8 +92,12 @@ pause
 → configure secrets
 → reauthenticate services
 → doctor
-→ resume
+→ resume safe processing with sends blocked
+→ reconcile post-backup interval
+→ release sends under current policies
 ```
+
+Não reenviar jobs restaurados com base apenas na ausência de registro de publicação. Reconciliar os possíveis envios posteriores ao backup com evidência suficiente e registrar a decisão em auditoria. Se o resultado continuar desconhecido, manter a publicação suspensa e abrir HumanAction, mesmo que a oferta expire. Diagnóstico e processamento seguro podem continuar durante a reconciliação.
 
 ## Caso 9, recriar VM do zero
 
@@ -112,6 +118,8 @@ clone repo
 ```
 
 Browser profile não é requisito de restore.
+
+A recriação da VM segue o mesmo bloqueio de envios e reconciliação do Caso 8; `start` não autoriza publicar antes dessa verificação.
 
 ## Caso 10, DOM_CHANGED
 

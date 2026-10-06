@@ -249,3 +249,39 @@ class PurchaseSourceDecisionRow(Base):
     )
     correlation_id: Mapped[str] = mapped_column(String(64), nullable=False)
     created_at: Mapped[str] = mapped_column(String(40), nullable=False)
+
+
+class RepostDecisionRow(Base):
+    """Append-only repost/dedupe decision (RDR-033, AUT-029, AUT-064).
+
+    SQLite triggers installed by migration ``0006_repost_decision`` reject any
+    UPDATE or DELETE, so a recorded decision is never overwritten. The publication
+    history used as the baseline, the material changes and the warnings are stored
+    as JSON and money as decimal strings, so the guardrail stays reproducible and
+    auditable (AUT-231, AUT-232).
+    """
+
+    __tablename__ = "repost_decision"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    candidate_id: Mapped[str] = mapped_column(
+        String(64), ForeignKey("candidate.id"), nullable=False
+    )
+    decision: Mapped[str] = mapped_column(String(16), nullable=False)
+    reason: Mapped[str] = mapped_column(String(48), nullable=False)
+    allowed: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    material_changes: Mapped[str] = mapped_column(Text, nullable=False)
+    publication: Mapped[str | None] = mapped_column(Text)
+    current_price: Mapped[str] = mapped_column(String(40), nullable=False)
+    observed_price_drop_percent: Mapped[str | None] = mapped_column(String(40))
+    cooldown_expires_at: Mapped[str | None] = mapped_column(String(40))
+    cooldown_expired: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    deal_score: Mapped[str | None] = mapped_column(String(40))
+    policy: Mapped[str] = mapped_column(Text, nullable=False)
+    warnings: Mapped[str] = mapped_column(Text, nullable=False)
+    as_of: Mapped[str] = mapped_column(String(40), nullable=False)
+    audit_event_id: Mapped[str] = mapped_column(
+        String(64), ForeignKey("audit_event.id"), nullable=False
+    )
+    correlation_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    created_at: Mapped[str] = mapped_column(String(40), nullable=False)

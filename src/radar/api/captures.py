@@ -38,6 +38,7 @@ from radar.domain.errors import RadarError, RadarException
 from radar.domain.evaluation import EVALUATION_INPUT_INVALID
 from radar.domain.price_opportunity import PRICE_OPPORTUNITY_INPUT_INVALID
 from radar.domain.purchase_source import PURCHASE_SOURCE_INPUT_INVALID
+from radar.domain.repost import REPOST_INPUT_INVALID
 from radar.domain.seller_quality import SELLER_QUALITY_INPUT_INVALID
 from radar.domain.taxonomy import (
     CLASSIFICATION_INPUT_INVALID,
@@ -66,6 +67,7 @@ def _error_status(error_code: str) -> int:
         EVALUATION_INPUT_INVALID,
         PRICE_OPPORTUNITY_INPUT_INVALID,
         PURCHASE_SOURCE_INPUT_INVALID,
+        REPOST_INPUT_INVALID,
         SELLER_QUALITY_INPUT_INVALID,
         TAXONOMY_VERSION_MISMATCH,
     ):

@@ -22,6 +22,7 @@ from radar.application.allowed_claims_service import CandidateClaimsContext
 from radar.application.demand_service import CandidateDemandContext
 from radar.application.price_opportunity_service import CandidatePriceContext
 from radar.application.purchase_source_service import CandidatePurchaseContext
+from radar.application.repost_service import CandidateRepostContext
 from radar.application.seller_quality_service import CandidateSellerContext
 from radar.domain.allowed_claims import ClaimPriceFact
 from radar.domain.audit import AuditEvent
@@ -374,6 +375,34 @@ class SqlAlchemyCaptureRepository:
                     )
                     for row in rows
                 ),
+            )
+
+    def get_candidate_repost_context(self, candidate_id: str) -> CandidateRepostContext | None:
+        """Read the Offer facts used by the repost guardrail (RDR-033).
+
+        Only the current price and the raw coupon code are persisted by the manual
+        capture; comparable conditions and the confirmed coupon state are supplied
+        (validated) at decision time and reported as explicit gaps when absent.
+        """
+
+        with Session(self.engine) as session:
+            candidate = session.get(CandidateRow, candidate_id)
+            if candidate is None:
+                return None
+            offer = session.get(OfferRow, candidate.offer_id)
+            if offer is None:
+                return None
+            marketplace_product = session.get(MarketplaceProductRow, offer.marketplace_product_id)
+            if marketplace_product is None:
+                return None
+            coupon = None if offer.coupon is None else Coupon(code=offer.coupon)
+            return CandidateRepostContext(
+                candidate_id=candidate.id,
+                current_price=Decimal(offer.current_price),
+                captured_at=_parse(offer.captured_at),
+                correlation_id=candidate.correlation_id,
+                raw_capture_id=candidate.raw_capture_id,
+                coupon=coupon,
             )
 
     def _insert(self, session: Session, aggregate: CaptureAggregate) -> None:

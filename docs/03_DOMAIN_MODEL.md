@@ -398,3 +398,22 @@ O preço riscado não é prova. O resultado é read-only e determinístico, sem 
 próprio: é função da `Evaluation` (RDR-016) e das evidências append-only
 (RDR-013). A IA não cria nem altera claim (AUT-063, AUT-076, AUT-077, AUT-292).
 Ver `docs/05_SCORING_ENGINE.md` e `docs/04_DATA_CONTRACTS.md`.
+
+## Implementação (TKT-12, RDR-033)
+
+O guardrail de dedupe/repost avalia se um Candidate pode voltar ao fluxo conforme
+mudança material e histórico de publicação, sem IA. A entrada é o `Offer`
+persistido do Candidate, a `Evaluation` imutável mais recente (Deal) e um
+histórico de publicação **fornecido pelo chamador** — um histórico *fake* enquanto
+o publisher real não existe (ticket de publicação). A policy versionada e
+hasheada (`config/repost.json`, opcional) traz o cooldown de referência (72h), a
+queda de preço (>=10%) e o piso de Deal forte (>=80). Mudança irrelevante com
+cooldown ativo é bloqueada (`DUPLICATE_WITHOUT_SIGNIFICANT_CHANGE`); queda >=10%,
+novo cupom material ou nova condição material com `Evidence` liberam o repost; e
+cooldown vencido sem mudança material ainda exige Deal forte, senão bloqueia com
+`DEAL_NOT_STRONG`. Cupom/condição material sem `Evidence` é warning explícito e
+não vira mudança material. Cada decisão é persistida append-only com `Evidence`,
+um `AuditEvent` `REPOST_DECIDED` na mesma transação e é consultável por
+`POST`/`GET /candidates/{candidate_id}/repost`. Ver
+`docs/05_SCORING_ENGINE.md`, `docs/04_DATA_CONTRACTS.md` e
+`docs/10_PERSISTENCE_AND_RECOVERY.md`.

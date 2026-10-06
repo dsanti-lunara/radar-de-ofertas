@@ -187,4 +187,21 @@ desconhecido é omitido). Preço riscado isolado nunca é prova. Claims sem supo
 aparecem em `omitted_claims` e os `forbidden_claims` do SDD-06 são explícitos.
 Erros usam `RAD-CAP-004/013/014`. Contrato em `docs/04_DATA_CONTRACTS.md`.
 
+Dedupe e repost (TKT-12): `POST /candidates/{candidate_id}/repost` aplica o
+guardrail determinístico de dedupe/repost ao `Offer` persistido, à Evaluation mais
+recente (Deal) e a um **histórico de publicação fornecido pelo chamador** — um
+histórico *fake* enquanto o publisher real não existe; `GET
+/candidates/{candidate_id}/repost` consulta as decisões append-only. A policy
+versionada/hasheada (`config/repost.json`, opcional; use
+`config/repost.example.json`; `RADAR_REPOST_FILE` força um arquivo) congela o
+cooldown de referência (72h), a queda de preço (`>=10%`) e o piso de Deal forte
+(`>=80`). Mudança irrelevante com cooldown ativo bloqueia com
+`DUPLICATE_WITHOUT_SIGNIFICANT_CHANGE`; queda `>=10%`, novo cupom material ou nova
+condição material **com** `Evidence` liberam o repost; cooldown vencido sem
+mudança material ainda exige Deal forte, senão bloqueia com `DEAL_NOT_STRONG`.
+Cupom/condição material sem `Evidence` é warning explícito e não vira material.
+Cada decisão persiste `Evidence` e um `AuditEvent` `REPOST_DECIDED` na mesma
+transação. Erros usam `RAD-CAP-004/015` e policy inválida bloqueia a API com
+`RAD-CFG-009`. Contrato em `docs/04_DATA_CONTRACTS.md`.
+
 Testes live (browser/IA/Telegram/WhatsApp) são opt-in e ficam fora da suíte padrão.

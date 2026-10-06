@@ -23,6 +23,9 @@ EVALUATION_RECORDED = "EVALUATION_RECORDED"
 #: Event type recorded when a purchase source decision is persisted (RDR-031).
 PURCHASE_SOURCE_DECIDED = "PURCHASE_SOURCE_DECIDED"
 
+#: Event type recorded when a repost decision is persisted (RDR-033).
+REPOST_DECIDED = "REPOST_DECIDED"
+
 
 @dataclass(frozen=True, slots=True)
 class AuditEvent:

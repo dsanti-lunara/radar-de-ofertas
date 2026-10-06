@@ -117,6 +117,7 @@ Prefixos sugeridos:
 | RAD-CFG-006 SELLER_QUALITY_INVALID | normalização de Seller Quality ausente de schema/semântica válidos (versão, score 0..100, bandas sobrepostas, label/chave inválida) | no |
 | RAD-CFG-007 DEMAND_INVALID | normalização de Demand ausente de schema/semântica válidos (versão, categoria canônica, sinal, peso/score 0..100, bandas sobrepostas, label/chave inválida) | no |
 | RAD-CFG-008 PURCHASE_SOURCE_POLICY_INVALID | policy de Purchase Source ausente de schema/semântica válidos (versão, threshold finito `>=0`, ação `REVIEW`/`SUBSTITUTE`) | no |
+| RAD-CFG-009 REPOST_POLICY_INVALID | policy de repost ausente de schema/semântica válidos (versão, cooldown inteiro `>0`, queda finita `>=0`, piso de Deal `0..100`) | no |
 
 ## Capture / Domain
 
@@ -161,6 +162,12 @@ possui Evaluation (ou a `evaluation_id` informada não existe) e `RAD-CAP-014`
 quando uma condição de cupom informada é inválida; histórico insuficiente para
 `LOWEST_OBSERVED_30D`, cupom não confirmado e preço riscado não são erros, são
 `omitted_claims`/warnings explícitos no contrato.
+Implementação TKT-12 (RDR-033): o guardrail de dedupe/repost retorna
+`RAD-CAP-004` quando o Candidate não existe e `RAD-CAP-015` quando o preço atual
+ou uma publicação informada é inválida; mudança irrelevante com cooldown ativo,
+cupom/condição material sem `Evidence` e cooldown vencido sem Deal forte não são
+erros de transporte, são `decision=BLOCKED`/warnings explícitos no contrato;
+policy inválida bloqueia a criação da API com `RAD-CFG-009`.
 Erros são
 retornados no contrato `{schema_version, status, correlation_id, error}`.
 
@@ -180,6 +187,7 @@ retornados no contrato `{schema_version, status, correlation_id, error}`.
 | RAD-CAP-012 PURCHASE_SOURCE_INPUT_INVALID | oferta/fonte de Purchase Source inválida (source_id vazio/duplicado, preço não positivo, condição malformada) | no |
 | RAD-CAP-013 EVALUATION_NOT_FOUND | Evaluation consultada não existe para o Candidate (ou `evaluation_id` informada não existe) | no |
 | RAD-CAP-014 ALLOWED_CLAIMS_INPUT_INVALID | condição de Allowed Claims inválida (coupon_state/coupon_amount/coupon_code) | no |
+| RAD-CAP-015 REPOST_INPUT_INVALID | entrada de repost inválida (preço atual/publicação não positivo, valor monetário/condição malformados) | no |
 
 
 Config inválida bloqueia a inicialização de CLI/API antes de qualquer comando

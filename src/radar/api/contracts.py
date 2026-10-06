@@ -24,6 +24,7 @@ from radar.domain.capture import (
 )
 from radar.domain.evaluation import EVALUATION_SCHEMA_VERSION
 from radar.domain.purchase_source import PURCHASE_SOURCE_SCHEMA_VERSION
+from radar.domain.repost import REPOST_SCHEMA_VERSION, RepostEvidenceType
 from radar.domain.taxonomy import Brand
 
 #: Request/response header carrying the pipeline Correlation ID (AUT-040).
@@ -229,6 +230,74 @@ class PurchaseSourceRequestContract(_StrictContract):
                 raise PydanticCustomError(
                     SENSITIVE_FIELD_ERROR_TYPE,
                     "Campos sensíveis não são aceitos na comparação",
+                    {"fields": list(hits)},
+                )
+        return data
+
+
+class RepostPublicationContract(_StrictContract):
+    """One prior publication supplied as (fake) publication history (RDR-033)."""
+
+    publication_id: str | None = Field(default=None, max_length=128)
+    published_at: datetime
+    price: str | int
+    coupon_state: str | None = None
+    coupon_amount: str | int | None = None
+    coupon_code: str | None = Field(default=None, max_length=128)
+    conditions: dict[str, str] = Field(default_factory=dict)
+
+    @field_validator("price", "coupon_amount", mode="before")
+    @classmethod
+    def _reject_boolean_money(cls, value: object) -> object:
+        if isinstance(value, bool):
+            raise ValueError("Valores monetários devem ser strings decimais")
+        return value
+
+
+class RepostEvidenceContract(_StrictContract):
+    """Evidence that sustains a material coupon/condition (AUT-029)."""
+
+    evidence_type: RepostEvidenceType
+    reference_id: str = Field(min_length=1, max_length=128)
+    field: str = Field(min_length=1, max_length=64)
+    value: str = Field(min_length=1, max_length=512)
+    source: str = Field(default="repost_input", min_length=1, max_length=32)
+
+
+class RepostRequestContract(_StrictContract):
+    """Versioned input received by the repost boundary (RDR-033)."""
+
+    schema_version: str = REPOST_SCHEMA_VERSION
+    coupon_state: str | None = None
+    coupon_amount: str | int | None = None
+    coupon_code: str | None = Field(default=None, max_length=128)
+    conditions: dict[str, str] = Field(default_factory=dict)
+    publications: list[RepostPublicationContract] = Field(default_factory=list)
+    evidence: list[RepostEvidenceContract] = Field(default_factory=list)
+
+    @field_validator("coupon_amount", mode="before")
+    @classmethod
+    def _reject_boolean_money(cls, value: object) -> object:
+        if isinstance(value, bool):
+            raise ValueError("Valores monetários devem ser strings decimais")
+        return value
+
+    @field_validator("schema_version")
+    @classmethod
+    def _validate_schema_version(cls, value: str) -> str:
+        if value != REPOST_SCHEMA_VERSION:
+            raise ValueError("schema_version de repost não suportada")
+        return value
+
+    @model_validator(mode="before")
+    @classmethod
+    def _reject_sensitive_fields(cls, data: Any) -> Any:
+        if isinstance(data, Mapping):
+            hits = find_sensitive_fields(data)
+            if hits:
+                raise PydanticCustomError(
+                    SENSITIVE_FIELD_ERROR_TYPE,
+                    "Campos sensíveis não são aceitos no guardrail de repost",
                     {"fields": list(hits)},
                 )
         return data

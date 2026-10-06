@@ -319,6 +319,21 @@ Padrão:
 - não repostar mudança irrelevante;
 - liberar quando queda desde publicação >=10%, novo cupom material, condição material nova ou cooldown vencido e Deal continuar forte.
 
+Implementação (TKT-12, RDR-033): o guardrail é determinístico e sem IA
+(`radar.domain.repost`). A entrada é o `Offer` persistido, a Evaluation mais
+recente (Deal) e um histórico de publicação fornecido pelo chamador (histórico
+*fake* antes do publisher real). A policy versionada/hasheada
+(`config/repost.json`, opcional; use `config/repost.example.json`) congela o
+cooldown (`72h`), a queda (`>=10%`) e o piso de Deal forte (`>=80`). Mudança
+irrelevante com cooldown ativo bloqueia com `DUPLICATE_WITHOUT_SIGNIFICANT_CHANGE`
+(Hard Rule `DUPLICATE_WITHOUT_SIGNIFICANT_CHANGE`); queda `>=10%`, novo cupom
+material ou nova condição material **com** `Evidence` liberam; cooldown vencido
+sem mudança material exige Deal forte, senão bloqueia com `DEAL_NOT_STRONG`.
+Cupom/condição material sem `Evidence` é warning explícito e não vira material.
+A decisão é persistida append-only com `Evidence` e `AuditEvent` `REPOST_DECIDED`
+e exposta por `POST`/`GET /candidates/{candidate_id}/repost`
+(`schema_version=1.0`). Ver `docs/04_DATA_CONTRACTS.md`.
+
 ## Allowed Claims
 
 Claims comerciais são produzidos pelo backend.

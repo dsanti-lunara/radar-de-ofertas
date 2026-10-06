@@ -667,6 +667,79 @@ NOT_APPLICABLE são omitidos com `COUPON_NOT_CONFIRMED`). O preço riscado
 (condição de cupom inválida). O resultado não tem store próprio: é função da
 Evaluation imutável (RDR-016) e das evidências append-only (RDR-013).
 
+## Repost/dedupe, implementação (TKT-12, RDR-033)
+
+`POST /candidates/{candidate_id}/repost` (`schema_version=1.0`) aplica o guardrail
+determinístico de dedupe/repost (`radar.domain.repost`, sem IA) ao `Offer`
+persistido do Candidate, à Evaluation mais recente (Deal) e ao **histórico de
+publicação fornecido pelo chamador** — um histórico *fake* enquanto o publisher
+real não existe. `GET /candidates/{candidate_id}/repost` consulta as decisões
+append-only. A policy versionada/hasheada (`config/repost.json`, opcional; use
+`config/repost.example.json`; `RADAR_REPOST_FILE` força um arquivo) congela o
+cooldown de referência (`72h`), a queda de preço (`>=10%`) e o piso de Deal forte
+(`>=80`). O cupom/condição atual que a captura manual ainda não persiste pode ser
+informado como condição validada; uma mudança material de cupom/condição só é
+aceita com `Evidence`.
+
+```json
+{
+  "schema_version": "1.0",
+  "status": "DECIDED",
+  "engine_version": "repost-1.0",
+  "candidate_id": "cand_...",
+  "decision": "BLOCKED",
+  "reason": "DUPLICATE_WITHOUT_SIGNIFICANT_CHANGE",
+  "allowed": false,
+  "current_price": "100.00",
+  "material_changes": [],
+  "publication": {
+    "publication_id": "pub-1",
+    "published_at": "2026-09-20T12:00:00+00:00",
+    "price": "100.00",
+    "coupon_state": "NOT_APPLICABLE",
+    "coupon_amount": null,
+    "coupon_code": null,
+    "conditions": {}
+  },
+  "observed_price_drop_percent": "0.00",
+  "cooldown_hours": 72,
+  "cooldown_expires_at": "2026-09-23T12:00:00+00:00",
+  "cooldown_expired": false,
+  "deal_score": "91.00",
+  "strong_deal_threshold": "80",
+  "price_drop_threshold_percent": "10",
+  "policy": {
+    "policy_version": "repost-policy-1.0",
+    "policy_hash": "...",
+    "cooldown_hours": 72,
+    "price_drop_percent": "10",
+    "strong_deal_threshold": "80"
+  },
+  "warnings": [
+    {"code": "REPOST_COOLDOWN_ACTIVE", "message": "...", "context": {}},
+    {"code": "DUPLICATE_WITHOUT_SIGNIFICANT_CHANGE", "message": "...", "context": {}}
+  ],
+  "as_of": "2026-09-21T12:00:00+00:00",
+  "decision_id": "rpd_...",
+  "correlation_id": "cid-1",
+  "audit_event_id": "aud_...",
+  "created_at": "2026-09-21T12:00:00+00:00",
+  "evidence": [
+    {"evidence_id": "evd_...", "field": "decision", "value": "BLOCKED", "source_type": "repost_review"}
+  ]
+}
+```
+
+Mudança irrelevante com cooldown ativo é bloqueada
+(`DUPLICATE_WITHOUT_SIGNIFICANT_CHANGE`); queda `>=10%`, novo cupom material ou
+nova condição material **com** `Evidence` liberam o repost; cooldown vencido sem
+mudança material ainda exige Deal forte, senão bloqueia com `DEAL_NOT_STRONG`.
+Cupom/condição material sem `Evidence` gera `REPOST_COUPON_WITHOUT_EVIDENCE`/
+`REPOST_CONDITION_WITHOUT_EVIDENCE` e não é tratado como material. Cada decisão
+persiste `Evidence` e um `AuditEvent` `REPOST_DECIDED` na mesma transação. Erros
+usam `RAD-CAP-004` (Candidate inexistente) e `RAD-CAP-015` (preço/publicação
+inválidos); policy inválida bloqueia a API com `RAD-CFG-009`.
+
 ## AI Editorial Review input
 
 ```json

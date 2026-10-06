@@ -1,0 +1,7 @@
+{
+  "schema_version": "1.0",
+  "policy_version": "repost-policy-operator",
+  "cooldown_hours": 72,
+  "price_drop_percent": "10",
+  "strong_deal_threshold": "80"
+}

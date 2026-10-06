@@ -49,12 +49,24 @@ versionada/hasheada, as fontes avaliadas e warnings como JSON. Triggers
 rejeitam `UPDATE`/`DELETE` no banco; o `AuditEvent` `PURCHASE_SOURCE_DECIDED` e as
 linhas de `Evidence` são gravados na mesma transação da decisão.
 
+Implementação (TKT-12): a migration `0006_repost_decision` acrescenta a tabela
+append-only `repost_decision` (FK para `candidate` e `audit_event`, índice
+`candidate_id + created_at`) e atualiza `schema_version`. A tabela guarda a
+decisão de dedupe/repost, o motivo, as mudanças materiais e warnings como JSON, o
+baseline de publicação, a queda observada, a janela de cooldown e a policy
+versionada/hasheada. Triggers `trg_repost_decision_no_update`/
+`trg_repost_decision_no_delete` rejeitam `UPDATE`/`DELETE` no banco; o
+`AuditEvent` `REPOST_DECIDED` e as linhas de `Evidence` são gravados na mesma
+transação da decisão. O histórico de publicação usado na comparação é uma entrada
+do guardrail (histórico *fake* até o publisher real), não uma tabela deste ticket.
+
 ## Append-only
 
 Não sobrescrever:
 - PriceObservation;
 - Evaluation;
 - PurchaseSourceDecision;
+- RepostDecision;
 - AIReview;
 - HumanReview;
 - PublicationEvent;

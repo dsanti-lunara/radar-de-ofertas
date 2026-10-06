@@ -1314,6 +1314,69 @@ relevante (fato/preço/versão) invalida a reutilização, e uma saída inválid
 cacheada nem transformada em válida. A migration `0016_ai_input_cache` acrescenta a
 coluna e o índice `ix_content_generation_ai_input`.
 
+## Publication, implementação (TKT-23, RDR-020/RDR-072)
+
+`POST /opportunities/{opportunity_id}/publications` (`schema_version=1.0`) publica
+uma `ContentGeneration` validada e não-`STALE` de uma Opportunity em
+`READY_TO_PUBLISH` por um publisher Fake offline/determinístico. O caller informa
+`content_generation_id`, `destination_id`, `idempotency_key` e
+`publication_approved`; o canal, a marca, o preço e a URL afiliada são lidos da
+persistência. A `Publication` é uma entidade própria (AUT-025/AUT-034), separada
+de `ContentGeneration` e `Opportunity`, com seu histórico append-only de
+`PublicationEvent`.
+
+```json
+{
+  "schema_version": "1.0",
+  "status": "PUBLISHED",
+  "idempotent_replay": false,
+  "publication_id": "pub_...",
+  "opportunity_id": "opp_...",
+  "content_generation_id": "ctg_...",
+  "affiliate_link_id": "lnk_...",
+  "brand": "RADAR_BEAUTY",
+  "channel": "TELEGRAM",
+  "destination_id": "dest-tg-sandbox",
+  "external_message_id": "fake-telegram-dest-tg-sandbox-pub_...",
+  "published_price": "80.00",
+  "revision": 1,
+  "idempotency_key": "publish:radar_beauty:telegram:opp:1",
+  "correlation_id": "cid-1",
+  "audit_event_id": "aud_...",
+  "created_at": "2026-10-06T12:00:00+00:00",
+  "published_at": "2026-10-06T12:00:00+00:00",
+  "events": [
+    {"event_type": "CREATED", "occurred_at": "2026-10-06T12:00:00+00:00"},
+    {"event_type": "PUBLISHED", "occurred_at": "2026-10-06T12:00:00+00:00"}
+  ]
+}
+```
+
+Antes de qualquer envio, a revalidação (`REVALIDATION_REQUIRED` quando o conteúdo
+ficou `STALE`), o gate de autorização TKT-17 (`PUBLISH`) e a Publication Policy
+(hard cap/burst/cooldown/quiet hours) são avaliados; um bloqueio retorna 409
+`RAD-PUB-003` com `error.context.reason_code` acionável e **zero** side effect
+(`SHADOW_NO_COMMERCIAL_SEND`, `PUBLICATION_APPROVAL_REQUIRED`,
+`STOP_EXTERNAL_ACTIONS`, `POLICY_*`, `REVALIDATION_REQUIRED`, `QUIET_HOURS`,
+`COOLDOWN_ACTIVE`, `BURST_LIMIT`, `HARD_CAP_REACHED`). Repetir `idempotency_key`
+devolve a Publication confirmada com `idempotent_replay=true` (200) sem novo
+envio; uma nova publicação responde 201. `GET
+/opportunities/{opportunity_id}/publications` e `GET /publications/{id}` consultam
+a timeline. A policy é versionada/hasheada
+(`config/publication-policy.json`, opcional; use
+`config/publication-policy.example.json`; `RADAR_PUBLICATION_POLICY_FILE` força um
+arquivo): o baseline congela `hard cap 12/dia/marca` e `burst 2/15min` do SDD-09 e
+deixa cooldown/quiet hours explícitos (sem valor inventado); um override de canal
+que afrouxe o threshold falha fechado. A linha e seus eventos são gravados na
+mesma transação do `AuditEvent` `PUBLICATION_RECORDED`; a migration
+`0017_publication` cria as tabelas, a constraint
+`uq_publication_idempotency_key`, os índices e os triggers append-only. Erros usam
+`{schema_version, status:"INVALID", correlation_id, error}` com `RAD-PUB-001`
+(input/estado), `RAD-PUB-002` (inexistente), `RAD-PUB-003` (bloqueio),
+`RAD-PUB-004` (publisher indisponível, retryable), `RAD-PUB-005` (resposta
+inválida) e `RAD-CFG-016` (policy inválida). O resultado desconhecido
+(crash após aceitação remota) pertence a TKT-24/ADR 0001.
+
 ## AI Editorial Review input
 
 ```json

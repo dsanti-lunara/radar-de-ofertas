@@ -83,6 +83,14 @@ from radar.domain.opportunity import (
     OPPORTUNITY_TRANSITION_INVALID,
 )
 from radar.domain.price_opportunity import PRICE_OPPORTUNITY_INPUT_INVALID
+from radar.domain.publication import (
+    PUBLICATION_BLOCKED,
+    PUBLICATION_INPUT_INVALID,
+    PUBLICATION_NOT_FOUND,
+    PUBLICATION_POLICY_INVALID,
+    PUBLICATION_PUBLISHER_INVALID,
+    PUBLICATION_PUBLISHER_UNAVAILABLE,
+)
 from radar.domain.purchase_source import PURCHASE_SOURCE_INPUT_INVALID
 from radar.domain.recovery import RECOVERY_INPUT_INVALID
 from radar.domain.repost import REPOST_INPUT_INVALID
@@ -122,6 +130,7 @@ def _error_status(error_code: str) -> int:
         AI_REVIEW_NOT_FOUND,
         AFFILIATE_LINK_NOT_FOUND,
         CONTENT_GENERATION_NOT_FOUND,
+        PUBLICATION_NOT_FOUND,
     ):
         return 404
     if error_code in (
@@ -129,12 +138,14 @@ def _error_status(error_code: str) -> int:
         AI_PROVIDER_UNAVAILABLE,
         AI_USAGE_UNAVAILABLE,
         AFFILIATE_LINK_PROVIDER_UNAVAILABLE,
+        PUBLICATION_PUBLISHER_UNAVAILABLE,
     ):
         return 503
     if error_code in (
         AI_INVALID_RESPONSE,
         AI_POLICY_VIOLATION,
         AI_REFUSAL,
+        PUBLICATION_PUBLISHER_INVALID,
     ):
         return 502
     if error_code in (
@@ -148,6 +159,7 @@ def _error_status(error_code: str) -> int:
         AFFILIATE_LINK_NOT_PRODUCTIVE,
         AFFILIATE_LINK_OPPORTUNITY_NOT_LINKABLE,
         TRACKING_MAPPING_NOT_CONFIGURED,
+        PUBLICATION_BLOCKED,
     ):
         return 409
     if error_code in (
@@ -181,6 +193,8 @@ def _error_status(error_code: str) -> int:
         AFFILIATE_LINK_URL_INVALID,
         TRACKING_LABEL_INVALID,
         TRACKING_LABELS_INVALID,
+        PUBLICATION_INPUT_INVALID,
+        PUBLICATION_POLICY_INVALID,
     ):
         return 422
     return 500
@@ -227,6 +241,10 @@ _AFFILIATE_LINK_PATH_SUFFIXES = ("/affiliate-link", "/affiliate-links")
 _CONTENT_PATH_PREFIXES = ("/content-generations",)
 _CONTENT_PATH_SUFFIXES = ("/content-generations",)
 
+#: Publication paths (``/opportunities/{id}/publications`` and ``/publications``).
+_PUBLICATION_PATH_PREFIXES = ("/publications",)
+_PUBLICATION_PATH_SUFFIXES = ("/publications",)
+
 
 def _is_job_path(request: Request) -> bool:
     return request.url.path.startswith(_JOB_PATH_PREFIXES)
@@ -266,6 +284,11 @@ def _is_content_path(request: Request) -> bool:
     return path.startswith(_CONTENT_PATH_PREFIXES) or path.endswith(_CONTENT_PATH_SUFFIXES)
 
 
+def _is_publication_path(request: Request) -> bool:
+    path = request.url.path
+    return path.startswith(_PUBLICATION_PATH_PREFIXES) or path.endswith(_PUBLICATION_PATH_SUFFIXES)
+
+
 def _validation_error(request: Request, exc: RequestValidationError) -> JSONResponse:
     errors = exc.errors()
     sensitive = [item for item in errors if item.get("type") == SENSITIVE_FIELD_ERROR_TYPE]
@@ -277,6 +300,7 @@ def _validation_error(request: Request, exc: RequestValidationError) -> JSONResp
     ai_review_path = _is_ai_review_path(request)
     affiliate_link_path = _is_affiliate_link_path(request)
     content_path = _is_content_path(request)
+    publication_path = _is_publication_path(request)
     workflow_path = (
         schedule_path
         or job_path
@@ -286,8 +310,12 @@ def _validation_error(request: Request, exc: RequestValidationError) -> JSONResp
         or ai_review_path
         or affiliate_link_path
         or content_path
+        or publication_path
     )
-    if content_path:
+    if publication_path:
+        workflow_code = PUBLICATION_INPUT_INVALID
+        workflow_label = "publication"
+    elif content_path:
         workflow_code = CONTENT_INPUT_INVALID
         workflow_label = "content generation"
     elif affiliate_link_path:

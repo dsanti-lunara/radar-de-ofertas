@@ -210,6 +210,20 @@ inexistente `RAD-AI-011`. `RAD-WF-014` cobre Opportunity inexistente e
 não introduz código de erro novo: um `cache_hit` reusa um resultado já validado e
 nunca transforma uma saída inválida em válida.
 
+Implementação TKT-23 (RDR-020/RDR-072): `POST
+/opportunities/{opportunity_id}/publications` publica uma `ContentGeneration`
+validada e não-`STALE` de uma Opportunity em `READY_TO_PUBLISH` por um publisher
+Fake determinístico. O gate de autorização TKT-17 (`PUBLISH`) e a publication
+policy (cap/burst/cooldown/quiet hours) precedem o publisher; um bloqueio retorna
+`RAD-PUB-003` (409) com `error.context.reason_code` e **zero** side effect.
+`RAD-PUB-001` cobre input/estado inválido, `RAD-PUB-002` uma Publication
+inexistente, `RAD-PUB-004` (retryable) um publisher indisponível e `RAD-PUB-005`
+uma resposta inválida. `GET /opportunities/{id}/publications` e `GET
+/publications/{id}` consultam a timeline. Repetir `idempotency_key` devolve a
+Publication persistida (`idempotent_replay=true`) sem novo envio; policy inválida
+bloqueia a API com `RAD-CFG-016`. Erros usam o contrato
+`{schema_version, status:"INVALID", correlation_id, error}`.
+
 ## Publishing
 
 | Code | Meaning |
@@ -221,6 +235,20 @@ nunca transforma uma saída inválida em válida.
 | RAD-WA-003 WHATSAPP_SEND_FAILED | falha de envio confirmada; não usar para resultado desconhecido |
 | RAD-WA-004 WHATSAPP_SEND_RESULT_UNKNOWN | evidência insuficiente; suspender, HumanAction e zero reenvio automático |
 | RAD-WA-005 WHATSAPP_DESTINATION_IDENTITY_UNVERIFIED | vínculo/identidade não comprovados; bloquear envio |
+
+### Publication (TKT-23, RDR-020/RDR-072)
+
+O contrato genérico de publicação do Slice 1 Fake usa `RAD-PUB-*`; os publishers
+reais (RDR-071/RDR-108) mantêm `RAD-TG-*`/`RAD-WA-*` para falhas específicas de
+canal.
+
+| Code | Meaning | Retry |
+|---|---|---|
+| RAD-PUB-001 PUBLICATION_INPUT_INVALID | input de publicação inválido (schema_version, content_generation_id/destination_id/idempotency_key vazios, Opportunity fora de READY_TO_PUBLISH, ContentGeneration de outra Opportunity ou AffiliateLink divergente) | no |
+| RAD-PUB-002 PUBLICATION_NOT_FOUND | Publication consultada não existe | no |
+| RAD-PUB-003 PUBLICATION_BLOCKED | bloqueio determinístico **antes** do publisher; `error.context.reason_code` é acionável (`SHADOW_NO_COMMERCIAL_SEND`, `PUBLICATION_APPROVAL_REQUIRED`, `STOP_EXTERNAL_ACTIONS`, `POLICY_*`, `REVALIDATION_REQUIRED`, `QUIET_HOURS`, `COOLDOWN_ACTIVE`, `BURST_LIMIT`, `HARD_CAP_REACHED`) | no |
+| RAD-PUB-004 PUBLICATION_PUBLISHER_UNAVAILABLE | publisher indisponível; nada é persistido | yes |
+| RAD-PUB-005 PUBLICATION_PUBLISHER_INVALID | resposta do publisher inválida (não-mapping, campo sensível/desconhecido, `external_message_id` ausente) | no |
 
 ## Compliance
 
@@ -267,6 +295,7 @@ nunca transforma uma saída inválida em válida.
 | RAD-CFG-013 COMPLIANCE_POLICY_INVALID | compliance policy ausente de schema/semântica válidos (versão, status, timestamps ISO-8601) | no |
 | RAD-CFG-014 KNOWLEDGE_INVALID | Knowledge Pack ausente de schema/semântica válidos (versão, prompt, brand/channel, guidance, campo sensível/desconhecido) | no |
 | RAD-CFG-015 TRACKING_LABELS_INVALID | mapeamento de etiquetas de tracking ausente de schema/semântica válidos (versão, referência interna, marketplace, label `[a-z0-9]{1,30}`, unicidade) | no |
+| RAD-CFG-016 PUBLICATION_POLICY_INVALID | publication policy ausente de schema/semântica válidos (versão, limites inteiros `>0`, timezone IANA, quiet window HH:MM, canal conhecido, override de canal que não afrouxa o threshold) | no |
 
 ## Capture / Domain
 

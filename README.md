@@ -336,4 +336,22 @@ chamada ao provider; uma mudança relevante ou um resultado inválido nunca é
 reusado. Erros: `RAD-AI-004/005/006/007/011/012/013/014/015`; contrato em
 `docs/04_DATA_CONTRACTS.md`.
 
+Publicação Fake idempotente (TKT-23): `POST
+/opportunities/{id}/publications` publica uma `ContentGeneration` validada e
+não-`STALE` de uma Opportunity em `READY_TO_PUBLISH` por um publisher Fake
+offline/determinístico; a `Publication` é entidade própria (AUT-025/AUT-034),
+separada de ContentGeneration/Opportunity, e `GET /opportunities/{id}/publications`
++ `GET /publications/{id}` consultam a timeline. Revalidação, o gate de
+autorização TKT-17 (`SHADOW`/`ASSISTED`/compliance/kill switch) e a Publication
+Policy (hard cap/burst/cooldown/quiet hours) bloqueiam **antes** do publisher e
+retornam 409 `RAD-PUB-003` com `reason_code` acionável e zero side effect. Repetir
+`idempotency_key` devolve a Publication confirmada (`idempotent_replay=true`) sem
+novo envio. A policy é versionada/hasheada
+(`config/publication-policy.json`, opcional; use
+`config/publication-policy.example.json`; `RADAR_PUBLICATION_POLICY_FILE` força um
+arquivo): o baseline usa os limites de referência do SDD-09 e deixa
+cooldown/quiet hours explícitos. Erros: `RAD-PUB-001/002/003/004/005` e
+`RAD-CFG-016`; contrato em `docs/04_DATA_CONTRACTS.md`. O resultado desconhecido
+(crash após aceitação remota) e a suspensão/HumanAction pertencem a TKT-24.
+
 Testes live (browser/IA/Telegram/WhatsApp) são opt-in e ficam fora da suíte padrão.

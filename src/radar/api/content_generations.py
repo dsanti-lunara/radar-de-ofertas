@@ -38,18 +38,17 @@ from radar.infrastructure.evaluation_repository import SqlAlchemyEvaluationRepos
 from radar.infrastructure.opportunity_repository import SqlAlchemyWorkflowRepository
 
 
-def build_content_generation_router(
+def build_content_generation_service(
     engine: Engine,
     knowledge_pack: KnowledgePack,
     provider: ContentProvider,
     compliance_policy: ChannelCompliancePolicy,
-) -> APIRouter:
-    """Build the content generation router wired to SQLite, knowledge and provider."""
+) -> ContentGenerationService:
+    """Wire the ContentGeneration service once for the content/publication routers."""
 
-    router = APIRouter(tags=["content-generations"])
     capture = SqlAlchemyCaptureRepository(engine=engine)
     evaluations = SqlAlchemyEvaluationRepository(engine=engine)
-    service = ContentGenerationService(
+    return ContentGenerationService(
         repository=SqlAlchemyContentGenerationRepository(engine=engine),
         opportunities=SqlAlchemyWorkflowRepository(engine=engine),
         capture=capture,
@@ -61,6 +60,18 @@ def build_content_generation_router(
         provider=provider,
         compliance=compliance_policy,
     )
+
+
+def build_content_generation_router(
+    engine: Engine,
+    knowledge_pack: KnowledgePack,
+    provider: ContentProvider,
+    compliance_policy: ChannelCompliancePolicy,
+) -> APIRouter:
+    """Build the content generation router wired to SQLite, knowledge and provider."""
+
+    router = APIRouter(tags=["content-generations"])
+    service = build_content_generation_service(engine, knowledge_pack, provider, compliance_policy)
 
     @router.post("/opportunities/{opportunity_id}/content-generations")
     def generate_content_generation(
@@ -119,4 +130,5 @@ def build_content_generation_router(
 
 __all__ = [
     "build_content_generation_router",
+    "build_content_generation_service",
 ]

@@ -222,6 +222,14 @@ Representa side effect de envio.
 - status;
 - published_at.
 
+Implementação (TKT-23, RDR-020/RDR-072): `radar.domain.publication` implementa a
+entidade, o `Publisher` (Fake offline) e a `PublicationPolicy` versionada/hasheada.
+A `Publication` é separada de `ContentGeneration`/`Opportunity` (AUT-025/AUT-034),
+idempotente por `idempotency_key` e persistida com eventos append-only; a fronteira
+pública é `POST`/`GET /opportunities/{id}/publications` e `GET /publications/{id}`.
+A revalidação, o gate TKT-17 e a policy bloqueiam antes do publisher; o resultado
+desconhecido pertence a TKT-24. Ver `docs/04_DATA_CONTRACTS.md`.
+
 ### PublicationEvent
 
 Append-only:

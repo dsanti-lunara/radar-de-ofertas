@@ -180,6 +180,22 @@ versionado do provider) e o índice `ix_content_generation_ai_input`, usados par
 reusar um resultado persistido equivalente sem nova chamada ao provider; linhas
 anteriores ficam com hash vazio e nunca casam. Ver `docs/04_DATA_CONTRACTS.md`.
 
+Implementação (TKT-23): a migration `0017_publication` acrescenta a tabela
+`publication` (FK para `opportunity`/`content_generation`/`affiliate_link`/
+`audit_event`, constraint única `uq_publication_idempotency_key` e índices
+`ix_publication_opportunity`/`ix_publication_published`) e a tabela append-only
+`publication_event` (triggers `trg_publication_event_no_update`/`_no_delete`, FK
+para `publication` e índice `ix_publication_event_publication`), atualizando
+`schema_version`. Cada `publication` é o side effect confirmado de uma
+`ContentGeneration` validada: destino, `external_message_id`, `published_price`,
+`idempotency_key` e a referência às entidades próprias. A linha, seu histórico de
+eventos e o `AuditEvent` `PUBLICATION_RECORDED` são gravados na **mesma
+transação**; repetir o `idempotency_key` é rejeitado pela constraint (e a
+fronteira devolve a Publication existente sem novo envio). `publication` não é
+append-only porque a entidade tem `status`/lifecycle; a trilha imutável é
+`publication_event`. O resultado desconhecido pós-crash e a reconciliação
+pertencem a TKT-24/ADR 0001. Ver `docs/04_DATA_CONTRACTS.md`.
+
 ## Append-only
 
 Não sobrescrever:

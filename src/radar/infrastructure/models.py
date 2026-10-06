@@ -638,3 +638,72 @@ class ContentGenerationRow(Base):
     )
     schema_version: Mapped[str] = mapped_column(String(16), nullable=False)
     created_at: Mapped[str] = mapped_column(String(40), nullable=False)
+
+
+class PublicationRow(Base):
+    """Confirmed send of one validated ContentGeneration (RDR-020).
+
+    The row is its own entity (AUT-025, AUT-034): it references the Opportunity,
+    the ContentGeneration and the AffiliateLink, and adds the destination, the
+    ``external_message_id``, the ``published_price`` and the ``idempotency_key``
+    that makes a repeated confirmed send a no-op (AUT-039, AUT-184). The unique
+    ``uq_publication_idempotency_key`` constraint enforces that idempotency at the
+    database level; foreign keys tie the row to the existing entities (AUT-233).
+    Money is a decimal string and timestamps ISO-8601 UTC (AUT-231, AUT-232).
+    """
+
+    __tablename__ = "publication"
+    __table_args__ = (
+        UniqueConstraint("idempotency_key", name="uq_publication_idempotency_key"),
+        Index("ix_publication_opportunity", "opportunity_id", "created_at"),
+        Index("ix_publication_published", "status", "published_at"),
+    )
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    opportunity_id: Mapped[str] = mapped_column(
+        String(64), ForeignKey("opportunity.id"), nullable=False
+    )
+    content_generation_id: Mapped[str] = mapped_column(
+        String(64), ForeignKey("content_generation.id"), nullable=False
+    )
+    affiliate_link_id: Mapped[str] = mapped_column(
+        String(64), ForeignKey("affiliate_link.id"), nullable=False
+    )
+    brand: Mapped[str] = mapped_column(String(32), nullable=False)
+    channel: Mapped[str] = mapped_column(String(16), nullable=False)
+    destination_id: Mapped[str] = mapped_column(String(128), nullable=False)
+    idempotency_key: Mapped[str] = mapped_column(String(256), nullable=False)
+    revision: Mapped[int] = mapped_column(Integer, nullable=False)
+    status: Mapped[str] = mapped_column(String(16), nullable=False)
+    external_message_id: Mapped[str | None] = mapped_column(String(256), nullable=True)
+    published_price: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    correlation_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    audit_event_id: Mapped[str] = mapped_column(
+        String(64), ForeignKey("audit_event.id"), nullable=False
+    )
+    schema_version: Mapped[str] = mapped_column(String(16), nullable=False)
+    created_at: Mapped[str] = mapped_column(String(40), nullable=False)
+    published_at: Mapped[str | None] = mapped_column(String(40), nullable=True)
+
+
+class PublicationEventRow(Base):
+    """Append-only event of a Publication lifecycle (RDR-020, AUT-141).
+
+    SQLite triggers installed by migration ``0017_publication`` reject
+    UPDATE/DELETE, so the lifecycle history is never rewritten; ``publication_id``
+    is a real foreign key (AUT-233).
+    """
+
+    __tablename__ = "publication_event"
+    __table_args__ = (Index("ix_publication_event_publication", "publication_id", "occurred_at"),)
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    publication_id: Mapped[str] = mapped_column(
+        String(64), ForeignKey("publication.id"), nullable=False
+    )
+    sequence: Mapped[int] = mapped_column(Integer, nullable=False)
+    event_type: Mapped[str] = mapped_column(String(24), nullable=False)
+    correlation_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    payload: Mapped[str] = mapped_column(Text, nullable=False)
+    schema_version: Mapped[str] = mapped_column(String(16), nullable=False)
+    occurred_at: Mapped[str] = mapped_column(String(40), nullable=False)

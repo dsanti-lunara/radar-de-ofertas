@@ -31,6 +31,7 @@ from radar.api.jobs import build_job_router
 from radar.api.operations import build_operations_router
 from radar.api.opportunities import build_opportunity_router
 from radar.api.price_opportunity import build_price_opportunity_router
+from radar.api.publications import build_publication_router
 from radar.api.purchase_source import build_purchase_source_router
 from radar.api.recovery import build_recovery_router
 from radar.api.repost import build_repost_router
@@ -45,6 +46,7 @@ from radar.domain.content import ContentProvider
 from radar.domain.demand import DemandNormalization
 from radar.domain.knowledge import KnowledgePack
 from radar.domain.operations import AutomationPolicy, ChannelCompliancePolicy
+from radar.domain.publication import PublicationPolicy, Publisher
 from radar.domain.purchase_source import PurchaseSourcePolicy
 from radar.domain.repost import RepostPolicy
 from radar.domain.retry import RetryPolicy
@@ -60,6 +62,8 @@ from radar.infrastructure.config import ConfigLoader
 from radar.infrastructure.database import create_database_engine
 from radar.infrastructure.demand import DemandLoader
 from radar.infrastructure.knowledge import KnowledgePackLoader
+from radar.infrastructure.publication_policy import PublicationPolicyLoader
+from radar.infrastructure.publication_publisher import FakePublisher
 from radar.infrastructure.purchase_source import PurchaseSourcePolicyLoader
 from radar.infrastructure.repost import RepostPolicyLoader
 from radar.infrastructure.retry import RetryPolicyLoader
@@ -88,6 +92,8 @@ def create_app(
     content_provider: ContentProvider | None = None,
     tracking_labels: TrackingLabelMapping | None = None,
     affiliate_link_provider: AffiliateLinkProvider | None = None,
+    publication_policy: PublicationPolicy | None = None,
+    publisher: Publisher | None = None,
 ) -> FastAPI:
     # Invalid configuration raises ConfigInvalidError, so the API never serves
     # with a config that failed schema validation (RDR-004). The taxonomy is
@@ -117,6 +123,8 @@ def create_app(
     resolved_content_provider = content_provider or FakeAIProvider()
     resolved_tracking = tracking_labels or TrackingLabelMappingLoader.from_env().load()
     resolved_link_provider = affiliate_link_provider or FakeAffiliateLinkProvider()
+    resolved_publication_policy = publication_policy or PublicationPolicyLoader.from_env().load()
+    resolved_publisher = publisher or FakePublisher()
     health_service = build_health_service(resolved_settings, resolved_engine)
 
     app = FastAPI(title="Radar Engine API", version=__version__)
@@ -137,6 +145,8 @@ def create_app(
     app.state.content_provider = resolved_content_provider
     app.state.tracking_labels = resolved_tracking
     app.state.affiliate_link_provider = resolved_link_provider
+    app.state.publication_policy = resolved_publication_policy
+    app.state.publisher = resolved_publisher
 
     register_capture_error_handlers(app)
     app.include_router(build_capture_router(resolved_engine))
@@ -165,6 +175,17 @@ def create_app(
     app.include_router(
         build_content_generation_router(
             resolved_engine, resolved_knowledge, resolved_content_provider, resolved_compliance
+        )
+    )
+    app.include_router(
+        build_publication_router(
+            resolved_engine,
+            resolved_knowledge,
+            resolved_content_provider,
+            resolved_compliance,
+            resolved_publication_policy,
+            resolved_publisher,
+            resolved_automation,
         )
     )
 

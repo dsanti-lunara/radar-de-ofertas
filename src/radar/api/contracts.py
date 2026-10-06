@@ -34,6 +34,7 @@ from radar.domain.operations import (
     GlobalMode,
     IntegrationState,
 )
+from radar.domain.publication import PUBLICATION_SCHEMA_VERSION
 from radar.domain.purchase_source import PURCHASE_SOURCE_SCHEMA_VERSION
 from radar.domain.recovery import RECOVERY_SCHEMA_VERSION
 from radar.domain.repost import REPOST_SCHEMA_VERSION, RepostEvidenceType
@@ -655,6 +656,42 @@ class ContentGenerationRequestContract(_StrictContract):
                 raise PydanticCustomError(
                     SENSITIVE_FIELD_ERROR_TYPE,
                     "Campos sensíveis não são aceitos na geração de conteúdo",
+                    {"fields": list(hits)},
+                )
+        return data
+
+
+class PublicationRequestContract(_StrictContract):
+    """Versioned input to publish a ready preview (RDR-020, RDR-072).
+
+    The caller selects the validated ``ContentGeneration`` and the registered
+    destination and supplies the ``idempotency_key`` and the explicit ASSISTED
+    approval flag. The channel, brand, price and affiliate URL are read from
+    persistence, so a caller can never inject content or steer the side effect.
+    """
+
+    schema_version: str = PUBLICATION_SCHEMA_VERSION
+    content_generation_id: str = Field(min_length=1, max_length=64)
+    destination_id: str = Field(min_length=1, max_length=128)
+    idempotency_key: str = Field(min_length=1, max_length=256)
+    publication_approved: bool = False
+
+    @field_validator("schema_version")
+    @classmethod
+    def _validate_schema_version(cls, value: str) -> str:
+        if value != PUBLICATION_SCHEMA_VERSION:
+            raise ValueError("schema_version de Publication não suportada")
+        return value
+
+    @model_validator(mode="before")
+    @classmethod
+    def _reject_sensitive_fields(cls, data: Any) -> Any:
+        if isinstance(data, Mapping):
+            hits = find_sensitive_fields(data)
+            if hits:
+                raise PydanticCustomError(
+                    SENSITIVE_FIELD_ERROR_TYPE,
+                    "Campos sensíveis não são aceitos na publicação",
                     {"fields": list(hits)},
                 )
         return data

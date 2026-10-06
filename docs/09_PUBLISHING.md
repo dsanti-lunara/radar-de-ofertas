@@ -156,6 +156,27 @@ effect; o link Fake é offline, não produtivo e não consulta o gate. Ver
 - FAILED
 - DELETED
 
+Implementação (TKT-23, RDR-020/RDR-072): a `Publication` é entidade própria,
+separada de `ContentGeneration` e `Opportunity` (AUT-025/AUT-034), e vive em
+`radar.domain.publication`. O caminho público é `POST
+/opportunities/{opportunity_id}/publications` + `GET
+/opportunities/{opportunity_id}/publications` + `GET /publications/{id}`. A
+publicação só ocorre para uma Opportunity em `READY_TO_PUBLISH` com
+`ContentGeneration` validada e **não-`STALE`** e `AffiliateLink` literal
+correspondente; a revalidação (`REVALIDATION_REQUIRED`), o gate de autorização
+TKT-17 (`SHADOW`/`ASSISTED`/compliance/kill switch) e a Publication Policy
+(cap/burst/cooldown/quiet hours) bloqueiam **antes** do publisher. O publisher
+Fake é offline e determinístico; `external_message_id` é evidência de envio
+observado, não promessa de entrega/leitura. Repetir `idempotency_key` devolve a
+Publication confirmada sem novo envio. O resultado desconhecido (crash após
+aceitação remota) e a suspensão/HumanAction pertencem a TKT-24/ADR 0001. A
+policy baseline usa apenas os limites de referência do SDD (`hard cap 12/dia/
+marca`, `burst 2/15min`); cooldown e quiet hours são configuração versionada
+(`config/publication-policy.json`, opcional; use
+`config/publication-policy.example.json`; `RADAR_PUBLICATION_POLICY_FILE` força
+um arquivo) e o baseline não inventa valores. Ver
+`docs/04_DATA_CONTRACTS.md`.
+
 ## Revisions
 
 Cada edição preserva revision history.

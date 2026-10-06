@@ -1,0 +1,20 @@
+{
+  "schema_version": "1.0",
+  "policy_version": "publication-policy-operator",
+  "timezone": "America/Maceio",
+  "hard_cap_per_day": 12,
+  "burst_limit": 2,
+  "burst_window_minutes": 15,
+  "cooldown_minutes": 30,
+  "quiet_windows": [
+    {"start": "22:00", "end": "07:00"}
+  ],
+  "channels": {
+    "WHATSAPP": {
+      "hard_cap_per_day": 8,
+      "burst_limit": 1,
+      "burst_window_minutes": 30,
+      "cooldown_minutes": 60
+    }
+  }
+}

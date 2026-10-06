@@ -77,6 +77,9 @@ AFFILIATE_LINK_GENERATED = "AFFILIATE_LINK_GENERATED"
 #: Event type recorded when a validated ContentGeneration is persisted (RDR-019).
 CONTENT_GENERATION_RECORDED = "CONTENT_GENERATION_RECORDED"
 
+#: Event type recorded when a confirmed Publication is persisted (RDR-020).
+PUBLICATION_RECORDED = "PUBLICATION_RECORDED"
+
 
 @dataclass(frozen=True, slots=True)
 class AuditEvent:

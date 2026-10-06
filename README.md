@@ -242,4 +242,20 @@ sem avançar o cursor, e quiet windows são avaliados no `timezone` do schedule
 grava `JOB_ENQUEUED` na mesma transação. Erros usam `RAD-WF-012/013`; contrato em
 `docs/04_DATA_CONTRACTS.md`.
 
+Opportunity pelo Workflow Engine (TKT-16): `POST /candidates/{id}/opportunities`
+avança um Candidate avaliado e cria a Opportunity **apenas** com uma Evaluation
+`APPROVE` (AUT-032); `REJECT` retorna `REJECTED` sem Opportunity, `REVIEW` cria uma
+`HumanAction` `REVIEW_CANDIDATE` sem alterar a Evaluation antiga e um Candidate sem
+Evaluation retorna `RAD-CAP-013`. O engine — nunca um worker chamando outro worker
+(AUT-119) — cria a próxima etapa (`GENERATE_AFFILIATE_LINK`) e transiciona a
+Opportunity para `LINK_PENDING` na mesma transação. `GET /opportunities/{id}` expõe
+a Opportunity e o `history` auditável; `POST /opportunities/{id}/transitions`
+aplica transições explícitas e rejeita uma inválida com `RAD-WF-015` (409) depois
+de auditá-la (`RAD-WF-016` para estado desconhecido, `RAD-WF-014` para
+inexistente). Candidate envelhecido além do TTL configurado exige revalidação
+(`RAD-WF-005`, AUT-135/AUT-144); o TTL é policy versionada/hasheada
+(`config/opportunity-workflow.json`, opcional) e o baseline não inventa valor —
+policy inválida bloqueia a API com `RAD-CFG-011`. Contrato em
+`docs/04_DATA_CONTRACTS.md`.
+
 Testes live (browser/IA/Telegram/WhatsApp) são opt-in e ficam fora da suíte padrão.

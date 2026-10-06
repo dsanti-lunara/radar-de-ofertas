@@ -955,6 +955,69 @@ retornam `RAD-WF-013` quando o schedule não existe;
 `POST /schedules/{id}/enable|disable` alternam `enabled` e gravam
 `SCHEDULE_UPDATED`.
 
+## Opportunity e Workflow Engine, implementação (TKT-16, RDR-017/041)
+
+`POST /candidates/{candidate_id}/opportunities` (`schema_version=1.0`) avança um
+Candidate avaliado pelo Workflow Engine. A Opportunity **só** é criada quando a
+Evaluation imutável mais recente decidiu `APPROVE` (AUT-032); `REJECT` retorna
+`status=REJECTED` sem Opportunity e `REVIEW` cria uma `HumanAction`
+`REVIEW_CANDIDATE` sem alterar a Evaluation antiga. Um Candidate sem Evaluation
+retorna `RAD-CAP-013`. O engine cria a próxima etapa na mesma transação: a
+Opportunity vai a `LINK_PENDING` e um Job `GENERATE_AFFILIATE_LINK` `PENDING` é
+enfileirado (nunca um worker chamando outro worker, AUT-119).
+
+```json
+{
+  "schema_version": "1.0",
+  "status": "OPPORTUNITY_CREATED",
+  "candidate_id": "cand_...",
+  "evaluation_id": "eval_...",
+  "decision": "APPROVE",
+  "brand": "RADAR_BEAUTY",
+  "priority": 5,
+  "plan": {
+    "outcome": "CREATE_OPPORTUNITY",
+    "reason": "EVALUATION_APPROVED",
+    "next_job_type": "GENERATE_AFFILIATE_LINK",
+    "next_state": "LINK_PENDING",
+    "ttl_configured": false
+  },
+  "opportunity": {
+    "schema_version": "1.0",
+    "status": "LINK_PENDING",
+    "opportunity_id": "opp_...",
+    "candidate_id": "cand_...",
+    "evaluation_id": "eval_...",
+    "brand": "RADAR_BEAUTY",
+    "priority": 5,
+    "state": "LINK_PENDING",
+    "allowed_transitions": ["CANCELLED", "EXPIRED", "LINK_READY"],
+    "correlation_id": "cid-1",
+    "audit_event_id": "aud_...",
+    "created_at": "2026-10-05T12:00:00+00:00",
+    "updated_at": "2026-10-05T12:00:00+00:00"
+  },
+  "next_job": {"schema_version": "1.0", "job_id": "job_...", "type": "GENERATE_AFFILIATE_LINK", "status": "PENDING", "entity_type": "opportunity", "entity_id": "opp_...", "locked_by": null},
+  "human_action": null,
+  "warnings": [{"code": "WORKFLOW_TTL_NOT_CONFIGURED", "message": "..."}],
+  "correlation_id": "cid-1"
+}
+```
+
+`GET /candidates/{candidate_id}/opportunities` lista as Opportunities do Candidate
+e `GET /opportunities/{opportunity_id}` retorna a Opportunity e a trilha
+append-only (`history`) com `OPPORTUNITY_CREATED`/`OPPORTUNITY_TRANSITIONED`/
+`OPPORTUNITY_TRANSITION_REJECTED`/`WORKFLOW_NEXT_JOB_ENQUEUED`. A transição
+explícita é `POST /opportunities/{opportunity_id}/transitions`
+(`target_state`); uma transição inválida retorna `RAD-WF-015` (409) depois de ser
+auditada, um `target_state` desconhecido retorna `RAD-WF-016` (422) e uma
+Opportunity inexistente retorna `RAD-WF-014` (404). Candidate envelhecido além do
+TTL configurado retorna `RAD-WF-005` (409) antes da etapa dependente; o TTL é
+policy versionada e hasheada (`config/opportunity-workflow.json`, opcional; use
+`config/opportunity-workflow.example.json`; `RADAR_WORKFLOW_FILE` força um
+arquivo) e o baseline aprovado deixa o TTL ausente porque os SDDs não aprovam um
+valor numérico. Policy inválida bloqueia a API com `RAD-CFG-011`.
+
 ## AI Editorial Review input
 
 ```json
@@ -1052,6 +1115,16 @@ Decision:
 - REJECT
 - REVIEW
 - APPROVE
+
+OpportunityState (TKT-16, RDR-017):
+- READY
+- LINK_PENDING
+- LINK_READY
+- CONTENT_PENDING
+- READY_TO_PUBLISH
+- PUBLISHED
+- EXPIRED
+- CANCELLED
 
 AutomationMode:
 - MANUAL

@@ -97,6 +97,19 @@ cursor na **mesma transação**, então um crash não deixa Job sem cursor nem
 cursor sem Job; um tick adiado por lock/quiet window grava
 `SCHEDULE_TICK_SKIPPED` e não avança o cursor (AUT-134).
 
+Implementação (TKT-16): a migration `0010_opportunity` acrescenta a tabela durável
+`opportunity` (RDR-017), a constraint `uq_opportunity_evaluation` (uma Opportunity
+por Evaluation imutável, tornando o advance idempotente) e o índice
+`ix_opportunity_candidate` (`candidate_id`, `created_at`). A Opportunity
+referencia `candidate` e `evaluation` por foreign key e guarda o `state` atual mais
+o `audit_event_id` do evento `OPPORTUNITY_CREATED`. O engine grava a Opportunity, o
+próximo Job (`GENERATE_AFFILIATE_LINK`) e os `AuditEvent`
+(`OPPORTUNITY_CREATED`/`OPPORTUNITY_TRANSITIONED`/`JOB_ENQUEUED`/
+`WORKFLOW_NEXT_JOB_ENQUEUED`) na **mesma transação**, então um crash não deixa
+Opportunity sem próximo Job; uma transição válida atualiza a linha com um `UPDATE`
+condicional otimista e uma transição inválida grava
+`OPPORTUNITY_TRANSITION_REJECTED` antes de retornar o erro (AUT-010, AUT-141).
+
 ## Append-only
 
 Não sobrescrever:

@@ -378,6 +378,41 @@ class ScheduleRow(Base):
     updated_at: Mapped[str] = mapped_column(String(40), nullable=False)
 
 
+class OpportunityRow(Base):
+    """Opportunity created only after an approved Candidate (RDR-017, AUT-032).
+
+    The state machine and its allowed transitions live in the domain; this row
+    stores the current state and the ``audit_event_id`` of the creation event. The
+    ``evaluation_id`` is unique so the same immutable Evaluation can never produce
+    two Opportunities (idempotent advance), and ``candidate_id``/``evaluation_id``
+    are real foreign keys so an orphan Opportunity is impossible (AUT-233).
+    """
+
+    __tablename__ = "opportunity"
+    __table_args__ = (
+        UniqueConstraint("evaluation_id", name="uq_opportunity_evaluation"),
+        Index("ix_opportunity_candidate", "candidate_id", "created_at"),
+    )
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    candidate_id: Mapped[str] = mapped_column(
+        String(64), ForeignKey("candidate.id"), nullable=False
+    )
+    evaluation_id: Mapped[str] = mapped_column(
+        String(64), ForeignKey("evaluation.id"), nullable=False
+    )
+    brand: Mapped[str] = mapped_column(String(32), nullable=False)
+    priority: Mapped[int] = mapped_column(Integer, nullable=False)
+    state: Mapped[str] = mapped_column(String(24), nullable=False)
+    correlation_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    audit_event_id: Mapped[str] = mapped_column(
+        String(64), ForeignKey("audit_event.id"), nullable=False
+    )
+    schema_version: Mapped[str] = mapped_column(String(16), nullable=False)
+    created_at: Mapped[str] = mapped_column(String(40), nullable=False)
+    updated_at: Mapped[str] = mapped_column(String(40), nullable=False)
+
+
 class HumanActionRow(Base):
     """Formal human-intervention record (RDR-040, AUT-126, AUT-244).
 

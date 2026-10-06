@@ -1,0 +1,6 @@
+{
+  "schema_version": "1.0",
+  "policy_version": "workflow-policy-operator",
+  "candidate_ttl_seconds": 86400,
+  "opportunity_ttl_seconds": 43200
+}

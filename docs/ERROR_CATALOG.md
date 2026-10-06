@@ -74,6 +74,10 @@ Prefixos sugeridos:
 | RAD-WF-011 HUMAN_ACTION_NOT_FOUND | HumanAction consultada não existe |
 | RAD-WF-012 SCHEDULE_INPUT_INVALID | input de schedule inválido (schema_version, type, cadência mutuamente exclusiva, cron, timezone, payload, quiet window) |
 | RAD-WF-013 SCHEDULE_NOT_FOUND | schedule consultado não existe |
+| RAD-WF-014 OPPORTUNITY_NOT_FOUND | Opportunity consultada não existe |
+| RAD-WF-015 OPPORTUNITY_TRANSITION_INVALID | transição de estado de Opportunity inválida (rejeitada e auditada) |
+| RAD-WF-016 OPPORTUNITY_INPUT_INVALID | input de Opportunity inválido (schema_version, target_state desconhecido, brand/priority) |
+| RAD-WF-017 CANDIDATE_REVIEW_REQUIRED | Candidate com decisão REVIEW exige resolução humana antes de virar Opportunity |
 
 Implementação TKT-13 (RDR-034..036): `POST /jobs` persiste o job (`PENDING`),
 `POST /jobs/claim` concede um único lease e retorna `RAD-WF-008` quando não há
@@ -103,6 +107,17 @@ tick nunca executa lógica de negócio; um lock equivalente ativo não gera erro
 gera `SKIP_LOCKED` (retryável por natureza no próximo tick) e os ticks perdidos
 coalescem. Erros usam o mesmo contrato
 `{schema_version, status:"INVALID", correlation_id, error}`.
+
+Implementação TKT-16 (RDR-017/RDR-041): `POST
+/candidates/{id}/opportunities` retorna `RAD-CAP-013` quando o Candidate não tem
+Evaluation (não é avançado só por estar em processamento), `RAD-WF-005` (409)
+quando a Evaluation excede o TTL configurado e `REJECTED`/`REVIEW_REQUIRED` como
+decisões válidas (sem Opportunity); `GET /opportunities/{id}` retorna `RAD-WF-014`
+quando a Opportunity não existe; `POST /opportunities/{id}/transitions` retorna
+`RAD-WF-015` (409) para uma transição inválida — auditada em
+`OPPORTUNITY_TRANSITION_REJECTED` antes da resposta — e `RAD-WF-016` (422) para um
+`target_state` desconhecido. Policy do workflow inválida bloqueia a API com
+`RAD-CFG-011`.
 
 ## Publishing
 
@@ -156,6 +171,7 @@ coalescem. Erros usam o mesmo contrato
 | RAD-CFG-008 PURCHASE_SOURCE_POLICY_INVALID | policy de Purchase Source ausente de schema/semântica válidos (versão, threshold finito `>=0`, ação `REVIEW`/`SUBSTITUTE`) | no |
 | RAD-CFG-009 REPOST_POLICY_INVALID | policy de repost ausente de schema/semântica válidos (versão, cooldown inteiro `>0`, queda finita `>=0`, piso de Deal `0..100`) | no |
 | RAD-CFG-010 RETRY_POLICY_INVALID | policy de retry ausente de schema/semântica válidos (versão, schedule de backoff em segundos inteiros `>0`) | no |
+| RAD-CFG-011 WORKFLOW_POLICY_INVALID | policy do workflow ausente de schema/semântica válidos (versão, TTL inteiro `>0` ou nulo) | no |
 
 ## Capture / Domain
 

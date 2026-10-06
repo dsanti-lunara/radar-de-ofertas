@@ -45,6 +45,11 @@ from radar.domain.job import (
     JOB_STATE_INVALID,
     LOCK_UNAVAILABLE,
 )
+from radar.domain.opportunity import (
+    OPPORTUNITY_INPUT_INVALID,
+    OPPORTUNITY_NOT_FOUND,
+    OPPORTUNITY_TRANSITION_INVALID,
+)
 from radar.domain.price_opportunity import PRICE_OPPORTUNITY_INPUT_INVALID
 from radar.domain.purchase_source import PURCHASE_SOURCE_INPUT_INVALID
 from radar.domain.repost import REPOST_INPUT_INVALID
@@ -53,6 +58,10 @@ from radar.domain.seller_quality import SELLER_QUALITY_INPUT_INVALID
 from radar.domain.taxonomy import (
     CLASSIFICATION_INPUT_INVALID,
     TAXONOMY_VERSION_MISMATCH,
+)
+from radar.domain.workflow import (
+    REVALIDATION_REQUIRED,
+    WORKFLOW_POLICY_INVALID,
 )
 from radar.infrastructure.capture_repository import SqlAlchemyCaptureRepository
 
@@ -71,6 +80,7 @@ def _error_status(error_code: str) -> int:
         HUMAN_ACTION_NOT_FOUND,
         JOB_NOT_FOUND,
         SCHEDULE_NOT_FOUND,
+        OPPORTUNITY_NOT_FOUND,
     ):
         return 404
     if error_code in (
@@ -79,6 +89,8 @@ def _error_status(error_code: str) -> int:
         JOB_NOT_CLAIMABLE,
         JOB_STATE_INVALID,
         LOCK_UNAVAILABLE,
+        OPPORTUNITY_TRANSITION_INVALID,
+        REVALIDATION_REQUIRED,
     ):
         return 409
     if error_code in (
@@ -89,12 +101,14 @@ def _error_status(error_code: str) -> int:
         DEMAND_INPUT_INVALID,
         EVALUATION_INPUT_INVALID,
         JOB_INPUT_INVALID,
+        OPPORTUNITY_INPUT_INVALID,
         PRICE_OPPORTUNITY_INPUT_INVALID,
         PURCHASE_SOURCE_INPUT_INVALID,
         REPOST_INPUT_INVALID,
         SCHEDULE_INPUT_INVALID,
         SELLER_QUALITY_INPUT_INVALID,
         TAXONOMY_VERSION_MISMATCH,
+        WORKFLOW_POLICY_INVALID,
     ):
         return 422
     return 500
@@ -120,6 +134,9 @@ _JOB_PATH_PREFIXES = ("/jobs", "/locks", "/human-actions")
 #: Scheduler paths whose validation failures use the Schedule Workflow code.
 _SCHEDULE_PATH_PREFIXES = ("/schedules",)
 
+#: Opportunity paths (including ``/candidates/{id}/opportunities``) use their code.
+_OPPORTUNITY_PATH_PREFIXES = ("/opportunities",)
+
 
 def _is_job_path(request: Request) -> bool:
     return request.url.path.startswith(_JOB_PATH_PREFIXES)
@@ -129,14 +146,27 @@ def _is_schedule_path(request: Request) -> bool:
     return request.url.path.startswith(_SCHEDULE_PATH_PREFIXES)
 
 
+def _is_opportunity_path(request: Request) -> bool:
+    path = request.url.path
+    return path.startswith(_OPPORTUNITY_PATH_PREFIXES) or path.endswith("/opportunities")
+
+
 def _validation_error(request: Request, exc: RequestValidationError) -> JSONResponse:
     errors = exc.errors()
     sensitive = [item for item in errors if item.get("type") == SENSITIVE_FIELD_ERROR_TYPE]
     schedule_path = _is_schedule_path(request)
     job_path = _is_job_path(request)
-    workflow_path = schedule_path or job_path
-    workflow_code = SCHEDULE_INPUT_INVALID if schedule_path else JOB_INPUT_INVALID
-    workflow_label = "schedule" if schedule_path else "job"
+    opportunity_path = _is_opportunity_path(request)
+    workflow_path = schedule_path or job_path or opportunity_path
+    if opportunity_path:
+        workflow_code = OPPORTUNITY_INPUT_INVALID
+        workflow_label = "Opportunity"
+    elif schedule_path:
+        workflow_code = SCHEDULE_INPUT_INVALID
+        workflow_label = "schedule"
+    else:
+        workflow_code = JOB_INPUT_INVALID
+        workflow_label = "job"
     if sensitive:
         fields: list[str] = []
         for item in sensitive:

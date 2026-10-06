@@ -273,3 +273,24 @@ Projetado para notebook/VM persistente:
 - Core continua mesmo com Browser offline;
 - Browser jobs ficam WAITING_BROWSER;
 - backup diário e status de saúde.
+
+## Implementação (TKT-16, RDR-017/041)
+
+O Workflow Engine centraliza as transições de domínio (AUT-116, AUT-120). O
+planejamento determinístico vive em `radar.domain.workflow`: dado o estado do
+Candidate e a Evaluation imutável mais recente, ele decide `CREATE_OPPORTUNITY`
+(apenas com `APPROVE`), `REJECTED` (com `REJECT` ou Candidate inelegível) ou
+`REVIEW_REQUIRED` (com `REVIEW`). A fronteira pública
+`POST /candidates/{candidate_id}/opportunities` executa esse plano: cria a
+`Opportunity` em `READY`, transiciona para `LINK_PENDING` e **cria o próximo Job**
+(`GENERATE_AFFILIATE_LINK`) na mesma transação — o worker nunca chama outro worker
+(AUT-119). Um `REVIEW` materializa uma `HumanAction` `REVIEW_CANDIDATE` sem tocar
+na Evaluation antiga. `POST /opportunities/{id}/transitions` aplica transições
+explícitas: uma transição inválida é rejeitada com `RAD-WF-015` e registrada em
+`audit_event` (`OPPORTUNITY_TRANSITION_REJECTED`), enquanto uma válida grava
+`OPPORTUNITY_TRANSITIONED`; `GET /opportunities/{id}` expõe a trilha. Aging/TTL:
+um Candidate cuja Evaluation excede o TTL configurado exige revalidação antes da
+etapa dependente (`RAD-WF-005`, AUT-135/AUT-144); o TTL é policy versionada e
+hasheada (`config/opportunity-workflow.json`, opcional) e o baseline não inventa
+valor (o SDD não aprova um TTL numérico). Ver `docs/04_DATA_CONTRACTS.md` e
+`docs/10_PERSISTENCE_AND_RECOVERY.md`.

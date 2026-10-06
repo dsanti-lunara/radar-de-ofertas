@@ -464,3 +464,27 @@ window adiam o tick sem avançar o cursor. A fronteira pública (`POST /schedule
 cada tick grava `AuditEvent` com o Correlation ID do pipeline. A execução/renovação
 do lock pelo worker e a recuperação pós-crash (RDR-042) são tickets próprios. Ver
 `docs/08_WORKFLOW_ENGINE.md` e `docs/04_DATA_CONTRACTS.md`.
+
+## Implementação (TKT-16, RDR-017/041)
+
+A `Opportunity` é uma entidade própria (AUT-025) e **só nasce de um Candidate
+aprovado**: a fronteira pública `POST /candidates/{candidate_id}/opportunities`
+avança o Candidate pelo Workflow Engine e cria a Opportunity apenas quando a
+Evaluation imutável mais recente decidiu `APPROVE` (AUT-032). Um `REJECT` nunca
+avança; um `REVIEW` cria uma `HumanAction` `REVIEW_CANDIDATE` e **não** altera a
+Evaluation antiga (AUT-126, AUT-147); um Candidate apenas em processamento (sem
+Evaluation) é recusado com `RAD-CAP-013`. Os estados (`READY`, `LINK_PENDING`,
+`LINK_READY`, `CONTENT_PENDING`, `READY_TO_PUBLISH`, `PUBLISHED`, `EXPIRED`,
+`CANCELLED`) e as transições permitidas vivem em `radar.domain.opportunity`
+(sem FastAPI/SQLAlchemy/Chrome); uma transição inválida é rejeitada com
+`RAD-WF-015` e auditada em `audit_event` (`OPPORTUNITY_TRANSITION_REJECTED`), e
+uma transição válida grava `OPPORTUNITY_TRANSITIONED`. O **engine** (nunca um
+worker chamando outro worker, AUT-119/AUT-120) cria a próxima etapa
+(`GENERATE_AFFILIATE_LINK`) na mesma transação da Opportunity, gravando
+`OPPORTUNITY_CREATED`/`JOB_ENQUEUED`/`WORKFLOW_NEXT_JOB_ENQUEUED`. Candidate
+envelhecido além do TTL configurado exige revalidação antes da etapa dependente
+(`RAD-WF-005`, AUT-135/AUT-144); como os SDDs não aprovam um TTL numérico, o
+baseline deixa o TTL explicitamente ausente e o gate é configuração versionada e
+hasheada (`config/opportunity-workflow.json`, opcional). Ver
+`docs/08_WORKFLOW_ENGINE.md`, `docs/04_DATA_CONTRACTS.md` e
+`docs/10_PERSISTENCE_AND_RECOVERY.md`.

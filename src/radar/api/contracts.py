@@ -28,6 +28,7 @@ from radar.domain.purchase_source import PURCHASE_SOURCE_SCHEMA_VERSION
 from radar.domain.repost import REPOST_SCHEMA_VERSION, RepostEvidenceType
 from radar.domain.schedule import SCHEDULE_SCHEMA_VERSION
 from radar.domain.taxonomy import Brand
+from radar.domain.workflow import WORKFLOW_SCHEMA_VERSION
 
 #: Request/response header carrying the pipeline Correlation ID (AUT-040).
 CORRELATION_HEADER = "X-Correlation-ID"
@@ -422,3 +423,36 @@ class ScheduleCreateContract(_StrictContract):
                     {"fields": list(hits)},
                 )
         return data
+
+
+class OpportunityAdvanceContract(_StrictContract):
+    """Versioned input to advance a Candidate to an Opportunity (RDR-017)."""
+
+    schema_version: str = WORKFLOW_SCHEMA_VERSION
+    priority: int = Field(default=0, strict=True)
+
+    @field_validator("schema_version")
+    @classmethod
+    def _validate_schema_version(cls, value: str) -> str:
+        if value != WORKFLOW_SCHEMA_VERSION:
+            raise ValueError("schema_version de Opportunity não suportada")
+        return value
+
+
+class OpportunityTransitionContract(_StrictContract):
+    """Versioned input to transition an Opportunity (RDR-041).
+
+    ``target_state`` stays a plain string so the domain owns the state-machine
+    validation and rejects an unknown state with ``RAD-WF-016`` instead of
+    coercing it silently.
+    """
+
+    schema_version: str = WORKFLOW_SCHEMA_VERSION
+    target_state: str = Field(min_length=1, max_length=24)
+
+    @field_validator("schema_version")
+    @classmethod
+    def _validate_schema_version(cls, value: str) -> str:
+        if value != WORKFLOW_SCHEMA_VERSION:
+            raise ValueError("schema_version de Opportunity não suportada")
+        return value

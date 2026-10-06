@@ -82,6 +82,15 @@ REASON_HARD_CAP_REACHED = "HARD_CAP_REACHED"
 #: Reason a stale content preview must be revalidated before the publisher.
 REASON_REVALIDATION_REQUIRED = "REVALIDATION_REQUIRED"
 
+#: Reason the revalidation re-check (TKT-27) confirms the publication still passes.
+REASON_REVALIDATION_ALLOWED = "ALLOWED"
+
+#: Reason an audited lifecycle action cannot be applied to the current status.
+#: An unknown-result suspension is never cleared by expire/cancel, and a confirmed
+#: send is never un-sent by the local boundary (GRILL-002, ADR 0001).
+REASON_RESULT_UNKNOWN_OPEN = "RESULT_UNKNOWN_OPEN"
+REASON_ACTION_NOT_APPLICABLE = "ACTION_NOT_APPLICABLE"
+
 #: Reason an unknown send result suspends the publication (GRILL-002, ADR 0001).
 REASON_SEND_RESULT_UNKNOWN = "SEND_RESULT_UNKNOWN"
 
@@ -134,6 +143,10 @@ class PublicationEventType(StrEnum):
     RESULT_UNKNOWN = "RESULT_UNKNOWN"
     #: A human resolution of an unknown result was recorded (evidence audited).
     RESOLVED = "RESOLVED"
+    #: The operator cancelled a publication that was never confirmed as sent
+    #: (TKT-27/RDR-062). The history is preserved; the local record is marked
+    #: ``DELETED`` and no remote un-send is promised.
+    CANCELLED = "CANCELLED"
 
 
 class PublicationError(RadarException):
@@ -903,6 +916,150 @@ class PublicationResolution:
         return payload
 
 
+@dataclass(frozen=True, slots=True)
+class PublicationTransition:
+    """Planned audited lifecycle action of a Publication (TKT-27, RDR-062).
+
+    ``event`` is ``None`` for an idempotent replay (the target status was already
+    reached), so the caller never writes a duplicate append-only event.
+    """
+
+    publication_id: str
+    status: PublicationStatus
+    event: PublicationEvent | None
+    idempotent_replay: bool = False
+
+
+def _action_blocked(reason_code: str, message: str, publication: Publication) -> PublicationError:
+    """Build the structured block for an audited lifecycle action (RAD-PUB-003)."""
+
+    return publication_blocked_error(
+        reason_code=reason_code,
+        message=message,
+        context={
+            "publication_id": publication.publication_id,
+            "status": publication.status.value,
+        },
+    )
+
+
+def plan_expiration(
+    publication: Publication,
+    *,
+    now: datetime,
+    correlation_id: str,
+    id_factory: IdFactory = default_id_factory,
+) -> PublicationTransition:
+    """Plan marking a Publication ``EXPIRED`` (offer ended) without sending.
+
+    Expiring is a lifecycle action, never a send. An open unknown-result
+    suspension is never cleared by expiring (GRILL-002/ADR 0001), so the action is
+    blocked while the publication is ``UNKNOWN``; expiring an already ``EXPIRED``
+    publication is an idempotent replay with no new event.
+    """
+
+    if publication.status is PublicationStatus.UNKNOWN:
+        raise _action_blocked(
+            REASON_RESULT_UNKNOWN_OPEN,
+            "Publicação suspensa por resultado desconhecido: resolver a revisão antes de expirar",
+            publication,
+        )
+    if publication.status is PublicationStatus.DELETED:
+        raise _action_blocked(
+            REASON_ACTION_NOT_APPLICABLE, "Publicação cancelada não pode expirar", publication
+        )
+    if publication.status is PublicationStatus.EXPIRED:
+        return PublicationTransition(
+            publication_id=publication.publication_id,
+            status=PublicationStatus.EXPIRED,
+            event=None,
+            idempotent_replay=True,
+        )
+    event = PublicationEvent(
+        event_id=str(id_factory("pev")),
+        publication_id=publication.publication_id,
+        event_type=PublicationEventType.EXPIRED,
+        occurred_at=_to_utc(now),
+        correlation_id=correlation_id,
+        payload={
+            "status": PublicationStatus.EXPIRED.value,
+            "previous_status": publication.status.value,
+        },
+    )
+    return PublicationTransition(
+        publication_id=publication.publication_id,
+        status=PublicationStatus.EXPIRED,
+        event=event,
+    )
+
+
+def plan_cancellation(
+    publication: Publication,
+    *,
+    now: datetime,
+    correlation_id: str,
+    id_factory: IdFactory = default_id_factory,
+) -> PublicationTransition:
+    """Plan cancelling a Publication that was never confirmed as sent.
+
+    Cancelling is a soft local action (history preserved, status ``DELETED``); it
+    never promises a remote un-send. A confirmed ``PUBLISHED`` message cannot be
+    un-sent by the Core and an open ``UNKNOWN`` suspension must be resolved with
+    evidence first, so both are blocked (GRILL-002/ADR 0001). Cancelling an
+    already ``DELETED`` publication is an idempotent replay with no new event.
+    """
+
+    if publication.status is PublicationStatus.UNKNOWN:
+        raise _action_blocked(
+            REASON_RESULT_UNKNOWN_OPEN,
+            "Publicação suspensa por resultado desconhecido: resolver a revisão antes de cancelar",
+            publication,
+        )
+    if publication.status is PublicationStatus.PUBLISHED:
+        raise _action_blocked(
+            REASON_ACTION_NOT_APPLICABLE,
+            "Publicação confirmada não pode ser cancelada; expire ou atualize a mensagem",
+            publication,
+        )
+    if publication.status is PublicationStatus.DELETED:
+        return PublicationTransition(
+            publication_id=publication.publication_id,
+            status=PublicationStatus.DELETED,
+            event=None,
+            idempotent_replay=True,
+        )
+    event = PublicationEvent(
+        event_id=str(id_factory("pev")),
+        publication_id=publication.publication_id,
+        event_type=PublicationEventType.CANCELLED,
+        occurred_at=_to_utc(now),
+        correlation_id=correlation_id,
+        payload={
+            "status": PublicationStatus.DELETED.value,
+            "previous_status": publication.status.value,
+        },
+    )
+    return PublicationTransition(
+        publication_id=publication.publication_id,
+        status=PublicationStatus.DELETED,
+        event=event,
+    )
+
+
+#: Statuses that mean an attempt for an Opportunity is still open; the Publication
+#: Inbox hides a ready preview while one of these exists (TKT-27, RDR-061).
+OPEN_PUBLICATION_STATUSES: frozenset[PublicationStatus] = frozenset(
+    {
+        PublicationStatus.DRAFT,
+        PublicationStatus.READY,
+        PublicationStatus.PUBLISHING,
+        PublicationStatus.PUBLISHED,
+        PublicationStatus.UPDATED,
+        PublicationStatus.UNKNOWN,
+    }
+)
+
+
 def build_publication(
     *,
     opportunity_id: str,
@@ -1086,6 +1243,7 @@ __all__ = [
     "APPROVED_PUBLICATION_POLICY_DOCUMENT",
     "AUDIT_SOURCE_PUBLICATION",
     "ENTITY_PUBLICATION",
+    "OPEN_PUBLICATION_STATUSES",
     "PUBLICATION_BLOCKED",
     "PUBLICATION_INPUT_INVALID",
     "PUBLICATION_NOT_FOUND",
@@ -1096,12 +1254,15 @@ __all__ = [
     "PUBLICATION_RESOLUTION_BLOCKED",
     "PUBLICATION_RESULT_UNKNOWN",
     "PUBLICATION_SCHEMA_VERSION",
+    "REASON_ACTION_NOT_APPLICABLE",
     "REASON_ALLOWED",
     "REASON_AUTHORIZATION_BLOCKED",
     "REASON_BURST_LIMIT",
     "REASON_COOLDOWN_ACTIVE",
     "REASON_HARD_CAP_REACHED",
     "REASON_QUIET_HOURS",
+    "REASON_RESULT_UNKNOWN_OPEN",
+    "REASON_REVALIDATION_ALLOWED",
     "REASON_REVALIDATION_REQUIRED",
     "REASON_SEND_RESULT_UNKNOWN",
     "Publication",
@@ -1115,12 +1276,15 @@ __all__ = [
     "PublicationResultUnknown",
     "PublicationSendRequest",
     "PublicationStatus",
+    "PublicationTransition",
     "Publisher",
     "build_publication",
     "build_publication_policy",
     "build_suspended_publication",
     "evaluate_publication_policy",
     "parse_publisher_response",
+    "plan_cancellation",
+    "plan_expiration",
     "prepared_content_hash",
     "publication_blocked_error",
     "publication_input_invalid_error",

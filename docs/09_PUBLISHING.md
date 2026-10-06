@@ -197,6 +197,26 @@ encerramento abrupto do processo antes de qualquer registro local depende do
 publisher real persistir sua intenção de envio (RDR-071/RDR-108). Ver
 `docs/04_DATA_CONTRACTS.md` e `docs/10_PERSISTENCE_AND_RECOVERY.md`.
 
+Implementação (TKT-27, RDR-061/RDR-062): a consulta e as ações da Publication
+vivem no read model `radar.application.publication_read_service` e na fronteira
+pública `GET /publications` (Inbox), `GET /publications/{id}` (detail),
+`GET /publications/preview/{opportunity_id}` (preview de uma Opportunity
+`READY_TO_PUBLISH` que ainda não tem publicação aberta) e `POST
+/publications/{id}/revalidate|expire|cancel`. O Inbox é um read model real: mescla
+as Publications persistidas (com `status` de lifecycle, `revision`,
+`external_message_id` e `last_validation`) com a projeção `PREVIEW` do preview
+ainda não enviado; nenhum `PREVIEW` é uma `Publication` persistida (AUT-034) e a
+aprovação continua passando pelo contrato auditado `POST
+/opportunities/{id}/publications` com `publication_approved=true`. **Preview não
+faz envio**; aprovar/revalidar/expirar/cancelar nunca enviam e revalidar apenas lê
+os fatos e audita. O detail mostra preview renderizado, link literal, tracking,
+revision, external ID, `last_validation` (criação ou `PUBLICATION_REVALIDATED`),
+timeline (eventos + `AuditEvent`) e a `HumanAction` aberta do resultado
+desconhecido. Expirar bloqueia em `UNKNOWN` (`RESULT_UNKNOWN_OPEN`) e é idempotente;
+cancelar é soft (`DELETED`, evento `CANCELLED`) e bloqueia `PUBLISHED`/`UNKNOWN`.
+Ver `docs/04_DATA_CONTRACTS.md`, `docs/11_OPERATIONS_AND_UI.md` e
+`docs/13_QA_ACCEPTANCE_MATRIX.md`.
+
 ## Revisions
 
 Cada edição preserva revision history.

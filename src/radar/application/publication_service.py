@@ -24,15 +24,18 @@ window (crash after remote acceptance before local commit) belongs to TKT-24 and
 
 from __future__ import annotations
 
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
-from typing import Protocol
+from typing import Any, Protocol
 
 from radar.domain.affiliate_link import AffiliateLink
 from radar.domain.audit import (
     HUMAN_ACTION_CREATED,
+    PUBLICATION_CANCELLED,
+    PUBLICATION_EXPIRED,
     PUBLICATION_RESOLVED,
+    PUBLICATION_REVALIDATED,
     AuditEvent,
 )
 from radar.domain.audit import (
@@ -63,6 +66,7 @@ from radar.domain.publication import (
     AUDIT_SOURCE_PUBLICATION,
     PUBLICATION_RESOLUTION_BLOCKED,
     PUBLICATION_RESULT_UNKNOWN,
+    REASON_REVALIDATION_ALLOWED,
     REASON_REVALIDATION_REQUIRED,
     Publication,
     PublicationError,
@@ -73,11 +77,14 @@ from radar.domain.publication import (
     PublicationResultUnknown,
     PublicationSendRequest,
     PublicationStatus,
+    PublicationTransition,
     Publisher,
     build_publication,
     build_suspended_publication,
     evaluate_publication_policy,
     parse_publisher_response,
+    plan_cancellation,
+    plan_expiration,
     prepared_content_hash,
     publication_blocked_error,
     publication_input_invalid_error,
@@ -108,6 +115,12 @@ MAX_IDEMPOTENCY_KEY_LENGTH = 256
 
 def _utcnow() -> datetime:
     return datetime.now(UTC)
+
+
+def _utc(moment: datetime) -> datetime:
+    if moment.tzinfo is None:
+        return moment.replace(tzinfo=UTC)
+    return moment.astimezone(UTC)
 
 
 class OpportunityReader(Protocol):
@@ -165,6 +178,15 @@ class PublicationRepository(Protocol):
         audit_event: AuditEvent,
     ) -> Publication: ...
 
+    def apply_transition(
+        self,
+        publication_id: str,
+        *,
+        status: PublicationStatus,
+        event: PublicationEvent,
+        audit_event: AuditEvent,
+    ) -> Publication: ...
+
     def record_audit(self, audit_events: tuple[AuditEvent, ...]) -> None: ...
 
     def get_publication(self, publication_id: str) -> Publication | None: ...
@@ -192,6 +214,36 @@ def _require_clean_text(value: object, *, field_name: str, max_length: int) -> s
             context={"field": field_name, "max_length": max_length},
         )
     return cleaned
+
+
+@dataclass(frozen=True, slots=True)
+class PublicationRevalidationResult:
+    """Observable outcome of an audited revalidation re-check (RDR-062).
+
+    A revalidation only reads the persisted facts (Opportunity state, content
+    freshness, link literal): it never sends and never mutates the publication. The
+    outcome tells the operator whether a new attempt/approval would still pass the
+    pre-publisher guardrails.
+    """
+
+    publication_id: str
+    allowed: bool
+    reason_code: str
+    message: str
+    content_generation_id: str
+    details: Mapping[str, Any]
+    checked_at: datetime
+
+    def to_contract(self) -> dict[str, Any]:
+        return {
+            "publication_id": self.publication_id,
+            "allowed": self.allowed,
+            "reason_code": self.reason_code,
+            "message": self.message,
+            "content_generation_id": self.content_generation_id,
+            "details": dict(self.details),
+            "checked_at": _utc(self.checked_at).isoformat(),
+        }
 
 
 @dataclass(slots=True)
@@ -516,6 +568,178 @@ class PublicationService:
         )
         return resolution
 
+    def revalidate(
+        self, publication_id: str, *, correlation_id: str
+    ) -> PublicationRevalidationResult:
+        """Re-check the pre-publisher guardrails and audit it (never sends).
+
+        The check re-reads the persisted Opportunity/content/link, so the operator
+        can confirm whether a new approval/attempt would still pass revalidation.
+        It performs no side effect beyond the append-only audit event.
+        """
+
+        resolved_id = _require_clean_text(
+            publication_id, field_name="publication_id", max_length=64
+        )
+        resolved_correlation = _require_clean_text(
+            correlation_id, field_name="correlation_id", max_length=64
+        )
+        publication = self.repository.get_publication(resolved_id)
+        if publication is None:
+            raise publication_not_found_error(resolved_id)
+        now = self.clock()
+        allowed, reason_code, message, details = self._revalidation_check(publication)
+        audit = AuditEvent(
+            id=str(self.id_factory("aud")),
+            event_type=PUBLICATION_REVALIDATED,
+            entity_type="publication",
+            entity_id=resolved_id,
+            source=AUDIT_SOURCE_PUBLICATION,
+            correlation_id=resolved_correlation,
+            recorded_at=now,
+            payload={
+                "allowed": allowed,
+                "reason_code": reason_code,
+                "content_generation_id": publication.content_generation_id,
+                **details,
+            },
+        )
+        self.repository.record_audit((audit,))
+        return PublicationRevalidationResult(
+            publication_id=resolved_id,
+            allowed=allowed,
+            reason_code=reason_code,
+            message=message,
+            content_generation_id=publication.content_generation_id,
+            details=details,
+            checked_at=now,
+        )
+
+    def expire(self, publication_id: str, *, correlation_id: str) -> Publication:
+        """Mark a publication ``EXPIRED`` through the audited public contract.
+
+        Expiring never sends and never clears an open unknown-result suspension;
+        an already expired publication is an idempotent replay with no new event.
+        """
+
+        return self._apply_transition(
+            plan_expiration, PUBLICATION_EXPIRED, publication_id, correlation_id=correlation_id
+        )
+
+    def cancel(self, publication_id: str, *, correlation_id: str) -> Publication:
+        """Soft-cancel a publication that was never confirmed as sent.
+
+        The history is preserved and the status becomes ``DELETED``; a confirmed
+        send is not un-sent and an open suspension must be resolved first.
+        """
+
+        return self._apply_transition(
+            plan_cancellation, PUBLICATION_CANCELLED, publication_id, correlation_id=correlation_id
+        )
+
+    def _revalidation_check(
+        self, publication: Publication
+    ) -> tuple[bool, str, str, dict[str, Any]]:
+        opportunity = self.opportunities.get_opportunity(publication.opportunity_id)
+        if opportunity is None:
+            return (
+                False,
+                REASON_REVALIDATION_REQUIRED,
+                "Opportunity da publicação não encontrada",
+                {"issue": "OPPORTUNITY_NOT_FOUND"},
+            )
+        if opportunity.state is not OpportunityState.READY_TO_PUBLISH:
+            return (
+                False,
+                REASON_REVALIDATION_REQUIRED,
+                "Opportunity não está pronta para publicação",
+                {"issue": "OPPORTUNITY_NOT_READY", "state": opportunity.state.value},
+            )
+        content = self.content.get_content_generation(publication.content_generation_id)
+        if content is None:
+            return (
+                False,
+                REASON_REVALIDATION_REQUIRED,
+                "ContentGeneration da publicação não encontrada",
+                {"issue": "CONTENT_NOT_FOUND"},
+            )
+        if content.status is not ContentGenerationStatus.VALIDATED or self.revalidation.is_stale(
+            content
+        ):
+            return (
+                False,
+                REASON_REVALIDATION_REQUIRED,
+                "Conteúdo stale exige revalidação antes do envio",
+                {"issue": "REVALIDATION_REQUIRED", "content_status": content.status.value},
+            )
+        link = self.links.find_link_for_opportunity(publication.opportunity_id)
+        if link is None:
+            return (
+                False,
+                REASON_REVALIDATION_REQUIRED,
+                "Opportunity sem AffiliateLink validado",
+                {"issue": "LINK_MISSING"},
+            )
+        if link.affiliate_url != content.rendered.affiliate_url:
+            return (
+                False,
+                REASON_REVALIDATION_REQUIRED,
+                "AffiliateLink divergente do conteúdo renderizado",
+                {"issue": "LINK_MISMATCH"},
+            )
+        return (
+            True,
+            REASON_REVALIDATION_ALLOWED,
+            "Publicação ainda passa pela revalidação vigente",
+            {"issue": None},
+        )
+
+    def _apply_transition(
+        self,
+        planner: Callable[..., PublicationTransition],
+        audit_event_type: str,
+        publication_id: str,
+        *,
+        correlation_id: str,
+    ) -> Publication:
+        resolved_id = _require_clean_text(
+            publication_id, field_name="publication_id", max_length=64
+        )
+        resolved_correlation = _require_clean_text(
+            correlation_id, field_name="correlation_id", max_length=64
+        )
+        publication = self.repository.get_publication(resolved_id)
+        if publication is None:
+            raise publication_not_found_error(resolved_id)
+        now = self.clock()
+        transition = planner(
+            publication,
+            now=now,
+            correlation_id=resolved_correlation,
+            id_factory=self.id_factory,
+        )
+        if transition.idempotent_replay or transition.event is None:
+            return publication
+        audit = AuditEvent(
+            id=str(self.id_factory("aud")),
+            event_type=audit_event_type,
+            entity_type="publication",
+            entity_id=resolved_id,
+            source=AUDIT_SOURCE_PUBLICATION,
+            correlation_id=resolved_correlation,
+            recorded_at=now,
+            payload={
+                "status": transition.status.value,
+                "previous_status": publication.status.value,
+            },
+        )
+        return self.repository.apply_transition(
+            resolved_id,
+            status=transition.status,
+            event=transition.event,
+            audit_event=audit,
+        )
+
     def _suspend_unknown(
         self,
         *,
@@ -652,5 +876,6 @@ __all__ = [
     "OpportunityReader",
     "PublicationAuthorizer",
     "PublicationRepository",
+    "PublicationRevalidationResult",
     "PublicationService",
 ]

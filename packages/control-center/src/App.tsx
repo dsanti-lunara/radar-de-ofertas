@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { HealthStrip } from "./components/HealthStrip";
 import { loadHomeHealth, type HomeHealthState } from "./health/poller";
 import { describeHealthState, unknownStrip } from "./health/strip";
+import { PublicationsScreen } from "./publications/PublicationsScreen";
 import type { ReviewSubmission } from "./review/HumanReviewForm";
 import { ReviewApiError, submitHumanReview } from "./review/api";
 import { ReviewWorkspace } from "./review/ReviewWorkspace";
@@ -12,7 +13,7 @@ const OVERVIEW_URL = "/health/overview";
 const INBOX_URL = "/review/inbox";
 const POLL_INTERVAL_MS = 10_000;
 
-type View = "home" | "review";
+type View = "home" | "review" | "publications";
 
 export function App() {
   const [view, setView] = useState<View>("home");
@@ -104,6 +105,13 @@ export function App() {
           <button type="button" onClick={() => setView("review")} aria-current={view === "review"}>
             Oportunidades
           </button>
+          <button
+            type="button"
+            onClick={() => setView("publications")}
+            aria-current={view === "publications"}
+          >
+            Publicações
+          </button>
         </nav>
       </header>
 
@@ -127,7 +135,7 @@ export function App() {
             <HealthStrip items={items} />
           </section>
         </>
-      ) : (
+      ) : view === "review" ? (
         <ReviewWorkspace
           inbox={inbox}
           detail={detail}
@@ -138,6 +146,8 @@ export function App() {
           feedback={feedback}
           error={error}
         />
+      ) : (
+        <PublicationsScreen />
       )}
     </main>
   );

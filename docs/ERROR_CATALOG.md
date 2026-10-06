@@ -245,6 +245,20 @@ revisão. Os publishers reais (RDR-071/RDR-108) mapeiam o resultado desconhecido
 de WA para `RAD-WA-004`; o Slice Fake usa `RAD-PUB-006`. Erros usam o contrato
 `{schema_version, status:"INVALID", correlation_id, error}`.
 
+Implementação TKT-27 (RDR-061/RDR-062): a Publication Inbox/detail são **read
+models** (`GET /publications`, `GET /publications/{id}`,
+`GET /publications/preview/{opportunity_id}`) que não introduzem código de erro
+novo: um recurso ausente usa `RAD-PUB-002` e um `schema_version` inválido usa
+`RAD-PUB-001`. As ações auditadas `POST
+/publications/{id}/revalidate|expire|cancel` reutilizam `RAD-PUB-003` (409) para um
+bloqueio determinístico acrescentando `RESULT_UNKNOWN_OPEN` (a suspensão
+desconhecida não é removida por expirar/cancelar) e `ACTION_NOT_APPLICABLE`
+(publicação confirmada não é cancelada; cancelada não expira) a
+`error.context.reason_code`. A revalidação responde 200 com `allowed`/`reason_code`
+(`ALLOWED`/`REVALIDATION_REQUIRED`) e audita `PUBLICATION_REVALIDATED`; expirar
+audita `PUBLICATION_EXPIRED`; cancelar audita `PUBLICATION_CANCELLED` e marca
+`DELETED` (soft, histórico preservado). Nenhuma ação envia ou reenvia.
+
 ## Publishing
 
 | Code | Meaning |
@@ -267,7 +281,7 @@ canal.
 |---|---|---|
 | RAD-PUB-001 PUBLICATION_INPUT_INVALID | input de publicação inválido (schema_version, content_generation_id/destination_id/idempotency_key vazios, Opportunity fora de READY_TO_PUBLISH, ContentGeneration de outra Opportunity ou AffiliateLink divergente) | no |
 | RAD-PUB-002 PUBLICATION_NOT_FOUND | Publication consultada não existe | no |
-| RAD-PUB-003 PUBLICATION_BLOCKED | bloqueio determinístico **antes** do publisher; `error.context.reason_code` é acionável (`SHADOW_NO_COMMERCIAL_SEND`, `PUBLICATION_APPROVAL_REQUIRED`, `STOP_EXTERNAL_ACTIONS`, `POLICY_*`, `REVALIDATION_REQUIRED`, `QUIET_HOURS`, `COOLDOWN_ACTIVE`, `BURST_LIMIT`, `HARD_CAP_REACHED`) | no |
+| RAD-PUB-003 PUBLICATION_BLOCKED | bloqueio determinístico **antes** do publisher; `error.context.reason_code` é acionável (`SHADOW_NO_COMMERCIAL_SEND`, `PUBLICATION_APPROVAL_REQUIRED`, `STOP_EXTERNAL_ACTIONS`, `POLICY_*`, `REVALIDATION_REQUIRED`, `QUIET_HOURS`, `COOLDOWN_ACTIVE`, `BURST_LIMIT`, `HARD_CAP_REACHED`, `RESULT_UNKNOWN_OPEN`, `ACTION_NOT_APPLICABLE`) | no |
 | RAD-PUB-004 PUBLICATION_PUBLISHER_UNAVAILABLE | publisher indisponível; nada é persistido | yes |
 | RAD-PUB-005 PUBLICATION_PUBLISHER_INVALID | resposta do publisher inválida (não-mapping, campo sensível/desconhecido, `external_message_id` ausente) | no |
 | RAD-PUB-006 PUBLICATION_RESULT_UNKNOWN | resultado do envio desconhecido (crash/timeout após aceitação sem confirmação local); publicação suspensa, HumanAction e zero reenvio automático; nunca falha confirmada | no |

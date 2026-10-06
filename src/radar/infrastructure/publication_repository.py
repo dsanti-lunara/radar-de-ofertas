@@ -135,6 +135,38 @@ class SqlAlchemyPublicationRepository:
             raise publication_not_found_error(publication_id)
         return resolved
 
+    def apply_transition(
+        self,
+        publication_id: str,
+        *,
+        status: PublicationStatus,
+        event: PublicationEvent,
+        audit_event: AuditEvent,
+    ) -> Publication:
+        """Apply an audited lifecycle transition to a Publication row.
+
+        Used by the expire/cancel actions (TKT-27): the row's ``status`` is updated
+        and the append-only event plus the action audit event are written in **one**
+        transaction, so the lifecycle never advances without its history.
+        """
+
+        with Session(self.engine) as session, session.begin():
+            row = session.get(PublicationRow, publication_id)
+            if row is None:
+                raise publication_not_found_error(publication_id)
+            sequence = session.execute(
+                select(func.count())
+                .select_from(PublicationEventRow)
+                .where(PublicationEventRow.publication_id == publication_id)
+            ).scalar_one()
+            row.status = status.value
+            session.add(_audit_to_row(audit_event))
+            session.add(_event_to_row(event, sequence=int(sequence)))
+        updated = self.get_publication(publication_id)
+        if updated is None:  # pragma: no cover - row was just updated in this transaction
+            raise publication_not_found_error(publication_id)
+        return updated
+
     def record_audit(self, audit_events: tuple[AuditEvent, ...]) -> None:
         """Append audit events without mutating any publication row."""
 

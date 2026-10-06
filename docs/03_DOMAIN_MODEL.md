@@ -240,6 +240,15 @@ receipt (destino, revisão, `content_hash`, Correlation ID, `observed_at`) e ger
 `HumanAction`; uma suspensão aberta bloqueia novas tentativas até a resolução com
 evidência suficiente, sem reenvio automático. Ver `docs/04_DATA_CONTRACTS.md`.
 
+Implementação (TKT-27, RDR-061/RDR-062): a consulta e as ações da Publication são
+read models (`radar.application.publication_read_service`) e contratos auditados
+(`POST /publications/{id}/revalidate|expire|cancel`) que nunca enviam. O Inbox
+mescla Publications persistidas com a projeção `PREVIEW` de uma Opportunity
+`READY_TO_PUBLISH` (não é entidade persistida, AUT-034); o detail expõe preview,
+link/tracking, revision, external ID, última validação, timeline e HumanAction.
+Expirar (`EXPIRED`) e cancelar (soft, `DELETED`) preservam o histórico e a
+suspensão `UNKNOWN`. Ver `docs/04_DATA_CONTRACTS.md`.
+
 ### PublicationEvent
 
 Append-only:
@@ -252,6 +261,7 @@ Append-only:
 - ERROR
 - RESULT_UNKNOWN (resultado de envio desconhecido; TKT-24/ADR 0001)
 - RESOLVED (resolução humana auditada; TKT-24/ADR 0001)
+- CANCELLED (cancelamento soft de publicação não confirmada; TKT-27/RDR-062)
 
 ### ExtensionJob / BrowserJob
 

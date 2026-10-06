@@ -24,11 +24,16 @@ from radar.api.captures import resolve_correlation_id
 from radar.api.content_generations import build_content_generation_service
 from radar.api.contracts import (
     CORRELATION_HEADER,
+    PublicationActionContract,
     PublicationRequestContract,
     PublicationResolveContract,
 )
 from radar.application.correlation import bind_correlation_id
 from radar.application.operations_service import OperationsService
+from radar.application.publication_read_service import (
+    PUBLICATION_READ_SCHEMA_VERSION,
+    PublicationReadService,
+)
 from radar.application.publication_service import PublicationService
 from radar.domain.content import ContentProvider
 from radar.domain.knowledge import KnowledgePack
@@ -38,6 +43,7 @@ from radar.infrastructure.affiliate_link_repository import SqlAlchemyAffiliateLi
 from radar.infrastructure.content_repository import SqlAlchemyContentGenerationRepository
 from radar.infrastructure.operations_repository import SqlAlchemyOperationsRepository
 from radar.infrastructure.opportunity_repository import SqlAlchemyWorkflowRepository
+from radar.infrastructure.publication_read_repository import SqlAlchemyPublicationReadRepository
 from radar.infrastructure.publication_repository import SqlAlchemyPublicationRepository
 
 
@@ -71,9 +77,44 @@ def build_publication_router(
         policy=publication_policy,
         publisher=publisher,
     )
+    reads = PublicationReadService(
+        store=SqlAlchemyPublicationReadRepository(engine=engine, content=content_service)
+    )
 
     def _headers(correlation_id: str) -> dict[str, str]:
         return {CORRELATION_HEADER: correlation_id, "Cache-Control": "no-store"}
+
+    @router.get("/publications")
+    def list_inbox(request: Request) -> JSONResponse:
+        correlation_id = bind_correlation_id(resolve_correlation_id(request))
+        items = reads.inbox()
+        return JSONResponse(
+            status_code=200,
+            content={
+                "schema_version": PUBLICATION_READ_SCHEMA_VERSION,
+                "status": "OK",
+                "count": len(items),
+                "items": [item.to_contract() for item in items],
+                "correlation_id": correlation_id,
+            },
+            headers=_headers(correlation_id),
+        )
+
+    @router.get("/publications/preview/{opportunity_id}")
+    def get_preview(opportunity_id: str, request: Request) -> JSONResponse:
+        correlation_id = bind_correlation_id(resolve_correlation_id(request))
+        detail = reads.preview(opportunity_id)
+        return JSONResponse(
+            status_code=200,
+            content={
+                "schema_version": PUBLICATION_READ_SCHEMA_VERSION,
+                "status": "OK",
+                "opportunity_id": opportunity_id,
+                "detail": detail.to_contract(),
+                "correlation_id": correlation_id,
+            },
+            headers=_headers(correlation_id),
+        )
 
     @router.post("/opportunities/{opportunity_id}/publications")
     def publish(
@@ -116,12 +157,65 @@ def build_publication_router(
     def get_publication(publication_id: str, request: Request) -> JSONResponse:
         correlation_id = bind_correlation_id(resolve_correlation_id(request))
         record = service.get(publication_id)
+        detail = reads.detail(publication_id)
         return JSONResponse(
             status_code=200,
             content={
                 "schema_version": PUBLICATION_SCHEMA_VERSION,
                 "status": "OK",
                 "publication": record.to_contract(),
+                "detail": detail.to_contract(),
+                "correlation_id": correlation_id,
+            },
+            headers=_headers(correlation_id),
+        )
+
+    @router.post("/publications/{publication_id}/revalidate")
+    def revalidate_publication(
+        publication_id: str, payload: PublicationActionContract, request: Request
+    ) -> JSONResponse:
+        correlation_id = bind_correlation_id(resolve_correlation_id(request))
+        result = service.revalidate(publication_id, correlation_id=correlation_id)
+        return JSONResponse(
+            status_code=200,
+            content={
+                "schema_version": PUBLICATION_SCHEMA_VERSION,
+                "status": "OK",
+                "revalidation": result.to_contract(),
+                "correlation_id": correlation_id,
+            },
+            headers=_headers(correlation_id),
+        )
+
+    @router.post("/publications/{publication_id}/expire")
+    def expire_publication(
+        publication_id: str, payload: PublicationActionContract, request: Request
+    ) -> JSONResponse:
+        correlation_id = bind_correlation_id(resolve_correlation_id(request))
+        publication = service.expire(publication_id, correlation_id=correlation_id)
+        return JSONResponse(
+            status_code=200,
+            content={
+                "schema_version": PUBLICATION_SCHEMA_VERSION,
+                "status": publication.status.value,
+                "publication": publication.to_contract(),
+                "correlation_id": correlation_id,
+            },
+            headers=_headers(correlation_id),
+        )
+
+    @router.post("/publications/{publication_id}/cancel")
+    def cancel_publication(
+        publication_id: str, payload: PublicationActionContract, request: Request
+    ) -> JSONResponse:
+        correlation_id = bind_correlation_id(resolve_correlation_id(request))
+        publication = service.cancel(publication_id, correlation_id=correlation_id)
+        return JSONResponse(
+            status_code=200,
+            content={
+                "schema_version": PUBLICATION_SCHEMA_VERSION,
+                "status": publication.status.value,
+                "publication": publication.to_contract(),
                 "correlation_id": correlation_id,
             },
             headers=_headers(correlation_id),

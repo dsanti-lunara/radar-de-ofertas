@@ -1410,6 +1410,56 @@ publicação. Erros usam `{schema_version, status:"INVALID", correlation_id, err
 O publisher real de WhatsApp mapeia o mesmo caso para `RAD-WA-004`. Ver
 `adr/0001-unknown-publication-result.md`.
 
+## Publication Inbox/detail e ações auditadas (TKT-27, RDR-061/RDR-062)
+
+A Publicações do Control Center consulta a fronteira pública e não introduz
+side effect de envio:
+
+- `GET /publications` (`schema_version=1.0`) devolve o read model do Inbox:
+  `{status, count, items[], correlation_id}`. Cada item tem `entry_id`, `kind`
+  (`PUBLICATION`/`PREVIEW`), `publication_id` (null em `PREVIEW`),
+  `opportunity_id`, `content_generation_id`, `brand`, `channel`, `destination_id`,
+  `status`, `revision`, `external_message_id`, `published_price`, `product`
+  (marketplace/external_id/title/url/brand/current_price), `last_validation` e
+  `updated_at`. O `PREVIEW` é uma projeção de uma Opportunity `READY_TO_PUBLISH`
+  com preview validada e AffiliateLink, **sem** publicação aberta: não é uma
+  `Publication` persistida (AUT-034). Uma publicação aberta esconde o preview.
+- `GET /publications/{id}` preserva o contrato do `Publication` e acrescenta
+  `detail` (`kind`, `opportunity_id`, `publication`, `product`, `preview`, `link`,
+  `revision`, `external_message_id`, `last_validation`, `timeline`,
+  `human_actions`). `preview` é o conteúdo final renderizado (texto, preço,
+  `affiliate_url` literal, disclosure, `renderer_version`, `stale`); `link` traz
+  `affiliate_url` literal e o tracking interno (`tracking_context_id`,
+  `tracking_internal_reference`) separado da etiqueta externa
+  (`tracking_label`/`tracking_mapping_version`). `last_validation` é a última
+  `PUBLICATION_REVALIDATED` auditada ou a validação de criação. `human_actions`
+  encaminha o resultado desconhecido para a intervenção (`REVIEW_PUBLICATION`/
+  `SEND_RESULT_UNKNOWN`).
+- `GET /publications/preview/{opportunity_id}` devolve o mesmo `detail` com
+  `kind=PREVIEW` e `publication=null`; uma preview indisponível responde 404
+  `RAD-PUB-002` (a UI não inventa capability).
+- `POST /publications/{id}/revalidate` (corpo `{schema_version, reason?}`) relê
+  Opportunity/conteúdo/link e responde 200 com
+  `{revalidation:{allowed, reason_code, message, content_generation_id,
+  checked_at}}` (`ALLOWED`/`REVALIDATION_REQUIRED`), auditando
+  `PUBLICATION_REVALIDATED`. Nunca envia nem altera a publicação.
+- `POST /publications/{id}/expire` marca `EXPIRED` com o evento `EXPIRED` e o
+  `AuditEvent PUBLICATION_EXPIRED` na mesma transação; é idempotente (repetir não
+  duplica evento) e bloqueia em `UNKNOWN` (`RAD-PUB-003`, `RESULT_UNKNOWN_OPEN`).
+- `POST /publications/{id}/cancel` faz soft-cancel (`DELETED`, evento `CANCELLED`,
+  `AuditEvent PUBLICATION_CANCELLED`); bloqueia `PUBLISHED`
+  (`ACTION_NOT_APPLICABLE`, não há un-send) e `UNKNOWN` (`RESULT_UNKNOWN_OPEN`).
+- A aprovação explícita continua sendo `POST
+  /opportunities/{opportunity_id}/publications` com `publication_approved=true`;
+  aprovar um Candidate (`POST /candidates/{id}/human-reviews`) permanece
+  insuficiente (`publication_authorized=false`, GRILL-001). Nenhuma ação de
+  `/publications/{id}` reenvia automaticamente.
+
+Erros usam `{schema_version, status:"INVALID", correlation_id, error}` com
+`RAD-PUB-001` (input/schema), `RAD-PUB-002` (inexistente) e `RAD-PUB-003`
+(bloqueio emitido pelo lifecycle). Ver `docs/09_PUBLISHING.md`,
+`docs/11_OPERATIONS_AND_UI.md` e `docs/13_QA_ACCEPTANCE_MATRIX.md`.
+
 ## Home health overview, implementação (TKT-25, RDR-056/RDR-057)
 
 `GET /health/overview` (`schema_version=1.0`) é o read model consumido pela Home

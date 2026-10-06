@@ -89,6 +89,13 @@ PUBLICATION_RESULT_UNKNOWN = "PUBLICATION_RESULT_UNKNOWN"
 PUBLICATION_RESOLVED = "PUBLICATION_RESOLVED"
 PUBLICATION_RESOLUTION_BLOCKED = "PUBLICATION_RESOLUTION_BLOCKED"
 
+#: Event types recorded by the audited Publication actions (TKT-27, RDR-061/062).
+#: ``REVALIDATED`` is a diagnostic re-check that never sends; ``EXPIRED`` and
+#: ``CANCELLED`` are the operator lifecycle actions exposed by the detail screen.
+PUBLICATION_REVALIDATED = "PUBLICATION_REVALIDATED"
+PUBLICATION_EXPIRED = "PUBLICATION_EXPIRED"
+PUBLICATION_CANCELLED = "PUBLICATION_CANCELLED"
+
 
 @dataclass(frozen=True, slots=True)
 class AuditEvent:

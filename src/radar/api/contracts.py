@@ -762,6 +762,38 @@ class PublicationResolveContract(_StrictContract):
         ]
 
 
+class PublicationActionContract(_StrictContract):
+    """Versioned input for an audited publication lifecycle action (TKT-27).
+
+    The action never sends; ``reason`` is an optional operator note recorded on the
+    audit event. An unknown-result suspension can never be cleared by an action:
+    that still requires evidence through ``POST /publications/{id}/resolve``.
+    """
+
+    schema_version: str = PUBLICATION_SCHEMA_VERSION
+    reason: str | None = Field(default=None, max_length=512)
+
+    @field_validator("schema_version")
+    @classmethod
+    def _validate_schema_version(cls, value: str) -> str:
+        if value != PUBLICATION_SCHEMA_VERSION:
+            raise ValueError("schema_version de Publication não suportada")
+        return value
+
+    @model_validator(mode="before")
+    @classmethod
+    def _reject_sensitive_fields(cls, data: Any) -> Any:
+        if isinstance(data, Mapping):
+            hits = find_sensitive_fields(data)
+            if hits:
+                raise PydanticCustomError(
+                    SENSITIVE_FIELD_ERROR_TYPE,
+                    "Campos sensíveis não são aceitos na ação de publicação",
+                    {"fields": list(hits)},
+                )
+        return data
+
+
 class EditedContentContract(_StrictContract):
     """Sanitized operator-edited copy supplied with an ``EDIT_CONTENT`` decision.
 

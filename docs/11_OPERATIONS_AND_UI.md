@@ -247,3 +247,30 @@ acionável sem mutação local; loading, vazio e indisponível têm feedback tex
 (`.../review/state.ts`). A UI não cria capabilities que a API não possui e não
 envia conteúdo comercial por conta própria. As telas de Publicações, Ações,
 Sistema e Configurações seguem em RDR-061..RDR-067.
+
+## Implementação (TKT-27, RDR-061/062)
+
+O Control Center ganha a navegação **Publicações**. A tela consome `GET
+/publications`, `GET /publications/{id}` e `GET /publications/preview/{opportunity_id}`
+pelo mesmo polling REST same-origin; cada linha e o detail são dados reais
+persistidos (brand, canal, produto, preço, status, revision, external message ID e
+última validação) mais a projeção **PREVIEW** de uma Opportunity `READY_TO_PUBLISH`
+que ainda não tem publicação aberta — a UI não cria uma `Publication` que a API não
+possui (AUT-442, RDR-061). O detail mostra o preview renderizado, o link literal e
+o tracking, a revision, o external ID, a última validação, a timeline
+(eventos + auditoria) e a `HumanAction` do resultado desconhecido, explicando
+impacto e próximos passos sem reenviar sozinha.
+
+A aprovação explícita fica num formulário separado da review de Candidate
+(**Aprovar e publicar**): exige confirmação, informa o destino e chama
+`POST /opportunities/{id}/publications` com `publication_approved=true`; o envio
+continua sujeito ao portão operacional (SHADOW/ASSISTED/compliance/kill switch) e à
+revalidação. O **preview não faz envio**. O detail oferece as ações auditadas
+**Revalidar** (`POST /publications/{id}/revalidate`), **Expirar** (`/expire`) e
+**Cancelar** (`/cancel`); nenhuma delas reenvia e cada uma carrega Correlation ID,
+erro estruturado acionável (`RAD-PUB-003`) e feedback textual (rótulo, nunca só
+cor). O parser fica em
+`packages/control-center/src/publications/contracts.ts`, o cliente em
+`.../api.ts` e o estado assíncrono é testável sem DOM (`.../state.ts`).
+
+As telas de Ações, Sistema e Configurações seguem em RDR-063..RDR-067.

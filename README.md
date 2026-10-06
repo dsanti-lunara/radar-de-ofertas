@@ -400,4 +400,17 @@ resposta sempre traz `publication_authorized=false` e o portão operacional
 vigente (ex.: SHADOW com envio bloqueado). O parser/cliente da UI ficam em
 `packages/control-center/src/review/`.
 
+Consulta e aprovação de publicação (TKT-27, RDR-061/RDR-062): a aba Publicações
+consome `GET /publications` (Inbox com Publications reais e a projeção `PREVIEW` de
+uma Opportunity `READY_TO_PUBLISH` ainda não enviada), `GET /publications/{id}`
+(detail com preview, link literal, tracking, revision, external ID, última
+validação, timeline e HumanAction) e `GET /publications/preview/{opportunity_id}`.
+O **preview não faz envio**: a aprovação explícita é um formulário separado da
+review de Candidate e chama `POST /opportunities/{id}/publications` com
+`publication_approved=true`, continuando sujeita ao portão operacional e à
+revalidação. As ações auditadas `POST
+/publications/{id}/revalidate|expire|cancel` nunca reenviam (expirar é idempotente
+e bloqueado em `UNKNOWN`; cancelar é soft, `DELETED`, e bloqueia `PUBLISHED`). O
+parser/cliente da UI ficam em `packages/control-center/src/publications/`.
+
 Testes live (browser/IA/Telegram/WhatsApp) são opt-in e ficam fora da suíte padrão.

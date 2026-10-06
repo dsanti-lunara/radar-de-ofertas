@@ -1103,3 +1103,50 @@ pertence a RDR-061..RDR-063. O `automation` mostrado é o portão vigente de
 Fake continuam em TKT-23/TKT-17, e nenhuma capability foi promovida para AUTO. A
 calibração de SHADOW (samples/agreement) e a resolução de resultado desconhecido
 seguem nos tickets próprios; nenhum teste live/credenciado foi executado.
+
+## Publication UI traceability, TKT-27 (RDR-061, RDR-062)
+
+Escopo: Publication Inbox/detail reais com link, tracking, revision, external ID,
+última validação, preview e timeline; aprovação explícita separada da review de
+Candidate; resultado desconhecido suspenso e encaminhado à HumanAction; preview sem
+envio; ações auditadas revalidar/expirar/cancelar. Camadas `contract` e `unit` com
+SQLite temporário real e publisher Fake; nenhum teste live, credencial ou side
+effect comercial.
+
+| Requirement | Test (arquivo::caso) | Acceptance | Evidence |
+|---|---|---|---|
+| RDR-061 Publication Inbox | `tests/test_api_publication_ui.py::test_inbox_and_detail_expose_link_tracking_revision_external_id_and_validation`, `::test_preview_never_sends_and_the_real_action_respects_the_gate`; `packages/control-center/src/publications/PublicationWorkspace.test.tsx` | Inbox lista Publications reais e previews prontos com brand/canal/produto/preço/status/revision/external ID | `GET /publications` 200 `schema_version=1.0`; item `kind=PUBLICATION`/`PREVIEW`; estado vazio real (`count=0`) |
+| RDR-062 Publication detail/timeline | `tests/test_api_publication_ui.py::test_inbox_and_detail_expose_link_tracking_revision_external_id_and_validation`, `::test_revalidate_reports_stale_content_and_is_audited`; `packages/control-center/src/publications/contracts.test.ts`; `.../PublicationWorkspace.test.tsx` | Detail mostra preview, link literal, tracking, revision, external ID, última validação, timeline e HumanAction | `GET /publications/{id}` `detail.link.affiliate_url`/`tracking_*`, `preview.text`, `last_validation`, `timeline`; `GET /publications/preview/{opportunity_id}` |
+| Aprovação explícita ≠ review de Candidate | `tests/test_api_publication_ui.py::test_approval_is_explicit_and_distinct_from_the_candidate_review` | Aprovar Candidate não autoriza envio; a publicação exige aprovação explícita e gate vigente | review 201 `publication_authorized=false`; publish sem aprovação 409 `PUBLICATION_APPROVAL_REQUIRED`; com aprovação 201 |
+| Resultado desconhecido suspenso + HumanAction | `tests/test_api_publication_ui.py::test_unknown_result_is_suspended_and_routed_to_a_human_action`, `::test_expire_and_cancel_never_clear_an_open_unknown_suspension`; `packages/control-center/src/publications/PublicationWorkspace.test.tsx` | Envio incerto fica `UNKNOWN`, bloqueia nova tentativa e encaminha para `REVIEW_PUBLICATION`/`SEND_RESULT_UNKNOWN` | 409 `RAD-PUB-006`; eventos `[CREATED, RESULT_UNKNOWN]`; `human_actions` com impacto/próximos passos |
+| Preview não envia; ação real depende de permissão/revalidação | `tests/test_api_publication_ui.py::test_preview_never_sends_and_the_real_action_respects_the_gate`, `::test_shadow_never_sends_even_for_an_approved_publication` | Consultar preview/Inbox não chama publisher; SHADOW bloqueia mesmo aprovada; ASSISTED exige aprovação | `publisher.accepted_count()==0`; 409 `SHADOW_NO_COMMERCIAL_SEND`; 201 só com gate e revalidação |
+| Expirar/revalidar/cancelar auditados | `tests/test_api_publication_ui.py::test_revalidate_reports_stale_content_and_is_audited`, `::test_expire_is_audited_and_idempotent`, `::test_cancel_is_a_soft_audited_action_and_published_is_not_cancelable` | Ações operam só pelo contrato público auditado, sem reenvio; bloqueios explícitos | `PUBLICATION_REVALIDATED`/`PUBLICATION_EXPIRED`/`PUBLICATION_CANCELLED`; `EXPIRED` idempotente; cancel `DELETED`+`CANCELLED`; `RAD-PUB-003` |
+| Erros estruturados e validação | `tests/test_api_publication_ui.py::test_action_input_validation_and_missing_publication_errors` | Input/schema inválido e recurso ausente têm erro estruturado | 404 `RAD-PUB-002`; 422 `RAD-PUB-001` |
+| Comportamento pela fronteira pública; nenhum teste/guardrail enfraquecido | suíte completa `858 passed` (Python) + `80 passed` (TypeScript) | Read models e ações observáveis pela fronteira; nenhum teste removido | `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm --filter @radar/control-center build`; `pytest`; `pyright` |
+
+### Acceptance evidence, TKT-27
+
+| Acceptance criterion | Verification |
+|---|---|
+| Inbox/detail exibem link, tracking, revision, external ID e última validação | `tests/test_api_publication_ui.py::test_inbox_and_detail_expose_link_tracking_revision_external_id_and_validation` |
+| Aprovação explícita da publicação é distinta da review de Candidate | `tests/test_api_publication_ui.py::test_approval_is_explicit_and_distinct_from_the_candidate_review` |
+| Resultado desconhecido fica suspenso com encaminhamento à HumanAction | `tests/test_api_publication_ui.py::test_unknown_result_is_suspended_and_routed_to_a_human_action`, `::test_expire_and_cancel_never_clear_an_open_unknown_suspension` |
+| Preview não faz envio; ação real depende das permissões e revalidação | `tests/test_api_publication_ui.py::test_preview_never_sends_and_the_real_action_respects_the_gate`, `::test_shadow_never_sends_even_for_an_approved_publication` |
+| Expirar/revalidar/cancelar operam pelo contrato público auditado | `tests/test_api_publication_ui.py::test_revalidate_reports_stale_content_and_is_audited`, `::test_expire_is_audited_and_idempotent`, `::test_cancel_is_a_soft_audited_action_and_published_is_not_cancelable` |
+| Comportamento demonstrado pela fronteira pública com evidência rastreável; nenhum teste/guardrail enfraquecido | endpoints `/publications*`; suítes acima sem remoção de teste |
+| Docs/contratos afetados e matriz QA atualizados; limitações e blockers remanescentes explícitos | este documento, `docs/03_DOMAIN_MODEL.md`, `docs/04_DATA_CONTRACTS.md`, `docs/09_PUBLISHING.md`, `docs/11_OPERATIONS_AND_UI.md`, `docs/ERROR_CATALOG.md` |
+
+Requirement → Test → Acceptance → Evidence completo para TKT-27. Limitações e
+blockers remanescentes: o Inbox/detail são read models sobre as tabelas já
+persistidas; a projeção `PREVIEW` **não** é uma `Publication` persistida (AUT-034) e
+um publicador `READY`/`DRAFT` persistido continua nos tickets de publisher real
+(RDR-071/RDR-108). A aprovação continua sendo o contrato auditado `POST
+/opportunities/{id}/publications` com `publication_approved=true`; nenhuma
+autorização persistida nova foi criada e a revisão de HumanAction pertence a
+TKT-28/RDR-063. Editar a mensagem já enviada (Telegram) e o envio comercial real
+seguem em TKT-33/RDR-073 e nos publishers reais. O destination registry/vínculo
+WhatsApp (RDR-104/RDR-105) não é validado aqui: o `destination_id` é uma referência
+fornecida pelo operador. A geração TS a partir do OpenAPI segue pendente (AUT-395);
+o parser em `packages/control-center/src/publications/contracts.ts` é um espelho.
+Nenhuma capability foi promovida para AUTO e nenhum teste live/credenciado foi
+executado.

@@ -543,3 +543,24 @@ transação; a fronteira pública é `POST /candidates/{id}/ai-review` +
 demais métodos do provider (`generate_content`, `review_content`,
 `classify_product`) pertencem aos tickets dependentes. Ver
 `docs/06_AI_ENGINE.md` e `docs/04_DATA_CONTRACTS.md`.
+
+## Implementação (TKT-20, RDR-018/RDR-070)
+
+O `AffiliateLink` é uma entidade própria (AUT-033) criada **apenas** para um
+Candidate com Evaluation `APPROVE` cuja Opportunity está em
+`LINK_PENDING`/`LINK_READY`; Candidate não aprovado não gera link. O
+`TrackingContext` interno é separado da etiqueta externa: `tracking_label` aceita
+somente `[a-z0-9]{1,30}`, nunca é normalizada (maiúscula/separador/truncamento
+falham fechados) e é resolvida por um mapeamento explícito, versionado e hasheado
+(`config/tracking-labels.json`, opcional; baseline vazio, então nenhuma etiqueta
+é presumida). A validação rejeita host fora do allowlist do marketplace, link de
+produto/contexto diferente e `source` desconhecido, e o link retornado é
+preservado literalmente — a IA nunca altera URL (AUT-078, AUT-164). O provider
+Fake é determinístico/offline e o link resultante é marcado `productive=false`
+(AUT-422). A persistência é idempotente por Opportunity + etiqueta (constraint
+única) e grava `AuditEvent` `AFFILIATE_LINK_GENERATED` na mesma transação
+(AUT-141); a fronteira pública é `POST /candidates/{id}/affiliate-link` +
+`GET /candidates/{id}/affiliate-links` + `GET /affiliate-links/{id}`. A associação
+real ML/landing e a geração por adapter pertencem a #45/#46; a transição
+`LINK_PENDING`→`LINK_READY` continua explícita no Workflow Engine. Ver
+`docs/09_PUBLISHING.md` e `docs/04_DATA_CONTRACTS.md`.

@@ -120,6 +120,22 @@ Usar etiquetas conforme capacidade real validada no Recon.
 
 Sem redirect próprio na V1.
 
+Implementação (TKT-20, RDR-018/RDR-070): o `AffiliateLink` é entidade própria e
+só é gerado para Opportunity aprovada/linkável. O `TrackingContext` interno
+(``tracking_context_id``/``internal_reference``) é separado da etiqueta externa e
+resolvido por mapeamento versionado/hasheado (`config/tracking-labels.json`,
+opcional; baseline vazio — nenhuma etiqueta é presumida). O provider Fake é
+offline/determinístico e o link resultante é `productive=false`; o `affiliate_url`
+retornado é validado (host/produto/contexto) e preservado literalmente, nunca
+editado pela IA (AUT-078, AUT-164). A fronteira pública é
+`POST /candidates/{id}/affiliate-link` + `GET /candidates/{id}/affiliate-links` +
+`GET /affiliate-links/{id}` e a geração é idempotente por Opportunity + etiqueta.
+A associação real ML/landing, a geração por adapter e a transição
+`LINK_PENDING`→`LINK_READY` pertencem a #45/#46 e ao Workflow Engine. O adapter
+real deve passar o gate de autorização `AUTHENTICATED_LINK` (TKT-17) antes do side
+effect; o link Fake é offline, não produtivo e não consulta o gate. Ver
+`docs/04_DATA_CONTRACTS.md`.
+
 ## Publication states
 
 - DRAFT

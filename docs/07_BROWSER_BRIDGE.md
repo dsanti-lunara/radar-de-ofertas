@@ -92,6 +92,14 @@ Preferência:
 
 Validar que a URL é de produto elegível antes de gerar link.
 
+Implementação (TKT-20, RDR-018/RDR-070): o contrato de provider de link
+(`AffiliateLinkProvider`) e a validação host/produto/contexto vivem no domínio,
+com o `FakeAffiliateLinkProvider` determinístico e offline como primeiro
+provider. O retorno bruto `{affiliate_url, source, product_reference}` é validado
+antes de persistir; `source=FAKE` marca o link como não produtivo (AUT-422) e o
+`affiliate_url` é preservado literalmente. O adapter real ML (gerador/barra) e a
+observação de produto destacado/contexto continuam gated e pertencem a #45/#46.
+
 ## Shopee
 
 API oficial tem prioridade quando capability estiver disponível na conta.

@@ -149,6 +149,19 @@ então uma falha do provider (rede/recusa/schema inválido) não deixa registro
 parcial. Texto de marketplace é persistido sanitizado (sem HTML bruto, sem
 segredos) e dinheiro como string decimal. Ver `docs/04_DATA_CONTRACTS.md`.
 
+Implementação (TKT-20): a migration `0014_affiliate_link` acrescenta a tabela
+`affiliate_link` (FK para `opportunity`/`audit_event`, constraint única
+`uq_affiliate_link_opportunity_tracking` e índice `ix_affiliate_link_opportunity`)
+e atualiza `schema_version`. Cada linha é um `AffiliateLink` próprio com a URL
+original, a URL afiliada **literal** retornada pelo provider, o método de geração,
+o status, `productive` e o `TrackingContext` interno separado da etiqueta externa.
+A geração é idempotente por Opportunity + etiqueta (a constraint única garante que
+uma corrida não crie dois links) e grava o `AuditEvent`
+`AFFILIATE_LINK_GENERATED` na **mesma transação**, então uma falha de provider ou
+um link inválido não deixa registro parcial. A `affiliate_link` não é append-only
+porque a entidade tem `status`/lifecycle; a trilha de auditoria é o
+`audit_event`. Ver `docs/04_DATA_CONTRACTS.md`.
+
 ## Append-only
 
 Não sobrescrever:

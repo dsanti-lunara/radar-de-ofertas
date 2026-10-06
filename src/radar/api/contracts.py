@@ -15,6 +15,7 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from pydantic_core import PydanticCustomError
 
+from radar.domain.affiliate_link import AFFILIATE_LINK_SCHEMA_VERSION
 from radar.domain.ai_review import AI_REVIEW_SCHEMA_VERSION
 from radar.domain.capture import (
     CAPTURE_SCHEMA_VERSION,
@@ -560,6 +561,38 @@ class RecoveryShutdownContract(_StrictContract):
         if value != RECOVERY_SCHEMA_VERSION:
             raise ValueError("schema_version de recovery não suportada")
         return value
+
+
+class AffiliateLinkRequestContract(_StrictContract):
+    """Versioned input to generate an AffiliateLink (RDR-018, RDR-070).
+
+    Only the internal tracking reference may be supplied: the external
+    ``tracking_label`` is resolved from the versioned mapping, so a caller can
+    never inject or override a marketplace label.
+    """
+
+    schema_version: str = AFFILIATE_LINK_SCHEMA_VERSION
+    tracking_reference: str | None = Field(default=None, max_length=128)
+
+    @field_validator("schema_version")
+    @classmethod
+    def _validate_schema_version(cls, value: str) -> str:
+        if value != AFFILIATE_LINK_SCHEMA_VERSION:
+            raise ValueError("schema_version de AffiliateLink não suportada")
+        return value
+
+    @model_validator(mode="before")
+    @classmethod
+    def _reject_sensitive_fields(cls, data: Any) -> Any:
+        if isinstance(data, Mapping):
+            hits = find_sensitive_fields(data)
+            if hits:
+                raise PydanticCustomError(
+                    SENSITIVE_FIELD_ERROR_TYPE,
+                    "Campos sensíveis não são aceitos na geração de link",
+                    {"fields": list(hits)},
+                )
+        return data
 
 
 class AIReviewRequestContract(_StrictContract):

@@ -14,6 +14,7 @@ Prefixos sugeridos:
 - RAD-BKP
 - RAD-CFG
 - RAD-CAP
+- RAD-LINK
 
 ## Browser
 
@@ -44,6 +45,19 @@ Prefixos sugeridos:
 | RAD-SP-005 SHOPEE_LINK_RESULT_UNKNOWN | mutation sem confirmação; reconciliar, sem retry cego |
 | RAD-ML-003 ML_TRACKING_LABEL_INVALID | etiqueta inválida ou mapeamento/associação não verificado |
 | RAD-ML-004 ML_LINK_RESULT_STALE | erro atual ou resultado sem correlação com tentativa atual |
+
+## Affiliate link / tracking
+
+| Code | Meaning | Retry |
+|---|---|---|
+| RAD-LINK-001 AFFILIATE_LINK_INPUT_INVALID | input de geração de link inválido (schema_version, referência de tracking, URL original ausente) | no |
+| RAD-LINK-002 AFFILIATE_LINK_NOT_FOUND | AffiliateLink consultado não existe | no |
+| RAD-LINK-003 AFFILIATE_LINK_URL_INVALID | link retornado inválido (host não permitido, produto/contexto errado, source desconhecido, campo sensível); nunca editado/sintetizado | no |
+| RAD-LINK-004 TRACKING_LABEL_INVALID | `tracking_label` fora de `[a-z0-9]{1,30}` ou associação não configurada; nunca normalizado | no |
+| RAD-LINK-005 TRACKING_MAPPING_NOT_CONFIGURED | nenhuma etiqueta aprovada mapeia a referência interna; bloqueia o link | no |
+| RAD-LINK-006 AFFILIATE_LINK_PROVIDER_UNAVAILABLE | provider de link indisponível | yes |
+| RAD-LINK-007 AFFILIATE_LINK_OPPORTUNITY_NOT_LINKABLE | Opportunity não aprovada ou fora de LINK_PENDING/LINK_READY | no |
+| RAD-LINK-008 AFFILIATE_LINK_NOT_PRODUCTIVE | link Fake não pode ser usado como link produtivo | no |
 
 ## AI
 
@@ -164,6 +178,16 @@ inexistente) e `RAD-CAP-013` (Evaluation inexistente). Knowledge Pack inválido
 bloqueia a API com `RAD-CFG-014`. `GET /candidates/{candidate_id}/ai-reviews` e
 `GET /ai-reviews/{ai_review_id}` consultam as decisões.
 
+A geração de AffiliateLink (TKT-20, RDR-018/RDR-070) só ocorre para Candidate com
+Evaluation `APPROVE` e Opportunity em `LINK_PENDING`/`LINK_READY`; a etiqueta
+externa é resolvida do mapeamento versionado (nunca injetada pelo caller) e o
+link retornado é validado por host/produto/contexto e preservado literalmente.
+Candidate não aprovado/Opportunity não linkável retorna `RAD-LINK-007`,
+mapeamento ausente `RAD-LINK-005`, etiqueta inválida `RAD-LINK-004`, link
+inválido/produto errado/host inválido `RAD-LINK-003`, provider indisponível
+`RAD-LINK-006` (retryable) e um link Fake usado produtivamente `RAD-LINK-008`.
+Mapeamento de etiquetas inválido bloqueia a API com `RAD-CFG-015`.
+
 ## Publishing
 
 | Code | Meaning |
@@ -220,6 +244,7 @@ bloqueia a API com `RAD-CFG-014`. `GET /candidates/{candidate_id}/ai-reviews` e
 | RAD-CFG-012 AUTOMATION_POLICY_INVALID | automation policy ausente de schema/semântica válidos (versão, `default_mode`, rule com matcher, mode/brand válidos) | no |
 | RAD-CFG-013 COMPLIANCE_POLICY_INVALID | compliance policy ausente de schema/semântica válidos (versão, status, timestamps ISO-8601) | no |
 | RAD-CFG-014 KNOWLEDGE_INVALID | Knowledge Pack ausente de schema/semântica válidos (versão, prompt, brand/channel, guidance, campo sensível/desconhecido) | no |
+| RAD-CFG-015 TRACKING_LABELS_INVALID | mapeamento de etiquetas de tracking ausente de schema/semântica válidos (versão, referência interna, marketplace, label `[a-z0-9]{1,30}`, unicidade) | no |
 
 ## Capture / Domain
 

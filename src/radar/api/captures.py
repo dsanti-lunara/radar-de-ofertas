@@ -24,6 +24,14 @@ from radar.api.contracts import (
 )
 from radar.application.capture_service import ManualCaptureService
 from radar.application.correlation import bind_correlation_id, new_correlation_id
+from radar.domain.affiliate_link import (
+    AFFILIATE_LINK_INPUT_INVALID,
+    AFFILIATE_LINK_NOT_FOUND,
+    AFFILIATE_LINK_NOT_PRODUCTIVE,
+    AFFILIATE_LINK_OPPORTUNITY_NOT_LINKABLE,
+    AFFILIATE_LINK_PROVIDER_UNAVAILABLE,
+    AFFILIATE_LINK_URL_INVALID,
+)
 from radar.domain.ai_review import (
     AI_AUTH_REQUIRED,
     AI_INVALID_RESPONSE,
@@ -75,6 +83,11 @@ from radar.domain.taxonomy import (
     CLASSIFICATION_INPUT_INVALID,
     TAXONOMY_VERSION_MISMATCH,
 )
+from radar.domain.tracking import (
+    TRACKING_LABEL_INVALID,
+    TRACKING_LABELS_INVALID,
+    TRACKING_MAPPING_NOT_CONFIGURED,
+)
 from radar.domain.workflow import (
     REVALIDATION_REQUIRED,
     WORKFLOW_POLICY_INVALID,
@@ -98,12 +111,14 @@ def _error_status(error_code: str) -> int:
         SCHEDULE_NOT_FOUND,
         OPPORTUNITY_NOT_FOUND,
         AI_REVIEW_NOT_FOUND,
+        AFFILIATE_LINK_NOT_FOUND,
     ):
         return 404
     if error_code in (
         AI_AUTH_REQUIRED,
         AI_PROVIDER_UNAVAILABLE,
         AI_USAGE_UNAVAILABLE,
+        AFFILIATE_LINK_PROVIDER_UNAVAILABLE,
     ):
         return 503
     if error_code in (
@@ -120,6 +135,9 @@ def _error_status(error_code: str) -> int:
         LOCK_UNAVAILABLE,
         OPPORTUNITY_TRANSITION_INVALID,
         REVALIDATION_REQUIRED,
+        AFFILIATE_LINK_NOT_PRODUCTIVE,
+        AFFILIATE_LINK_OPPORTUNITY_NOT_LINKABLE,
+        TRACKING_MAPPING_NOT_CONFIGURED,
     ):
         return 409
     if error_code in (
@@ -143,6 +161,10 @@ def _error_status(error_code: str) -> int:
         SELLER_QUALITY_INPUT_INVALID,
         TAXONOMY_VERSION_MISMATCH,
         WORKFLOW_POLICY_INVALID,
+        AFFILIATE_LINK_INPUT_INVALID,
+        AFFILIATE_LINK_URL_INVALID,
+        TRACKING_LABEL_INVALID,
+        TRACKING_LABELS_INVALID,
     ):
         return 422
     return 500
@@ -181,6 +203,10 @@ _RECOVERY_PATH_PREFIXES = ("/recovery",)
 _AI_REVIEW_PATH_PREFIXES = ("/ai-reviews",)
 _AI_REVIEW_PATH_SUFFIXES = ("/ai-review", "/ai-reviews")
 
+#: Affiliate link paths (including ``/candidates/{id}/affiliate-link``) use their code.
+_AFFILIATE_LINK_PATH_PREFIXES = ("/affiliate-links",)
+_AFFILIATE_LINK_PATH_SUFFIXES = ("/affiliate-link", "/affiliate-links")
+
 
 def _is_job_path(request: Request) -> bool:
     return request.url.path.startswith(_JOB_PATH_PREFIXES)
@@ -208,6 +234,13 @@ def _is_ai_review_path(request: Request) -> bool:
     return path.startswith(_AI_REVIEW_PATH_PREFIXES) or path.endswith(_AI_REVIEW_PATH_SUFFIXES)
 
 
+def _is_affiliate_link_path(request: Request) -> bool:
+    path = request.url.path
+    return path.startswith(_AFFILIATE_LINK_PATH_PREFIXES) or path.endswith(
+        _AFFILIATE_LINK_PATH_SUFFIXES
+    )
+
+
 def _validation_error(request: Request, exc: RequestValidationError) -> JSONResponse:
     errors = exc.errors()
     sensitive = [item for item in errors if item.get("type") == SENSITIVE_FIELD_ERROR_TYPE]
@@ -217,6 +250,7 @@ def _validation_error(request: Request, exc: RequestValidationError) -> JSONResp
     operations_path = _is_operations_path(request)
     recovery_path = _is_recovery_path(request)
     ai_review_path = _is_ai_review_path(request)
+    affiliate_link_path = _is_affiliate_link_path(request)
     workflow_path = (
         schedule_path
         or job_path
@@ -224,8 +258,12 @@ def _validation_error(request: Request, exc: RequestValidationError) -> JSONResp
         or operations_path
         or recovery_path
         or ai_review_path
+        or affiliate_link_path
     )
-    if ai_review_path:
+    if affiliate_link_path:
+        workflow_code = AFFILIATE_LINK_INPUT_INVALID
+        workflow_label = "affiliate link"
+    elif ai_review_path:
         workflow_code = AI_REVIEW_INPUT_INVALID
         workflow_label = "AI review"
     elif operations_path:

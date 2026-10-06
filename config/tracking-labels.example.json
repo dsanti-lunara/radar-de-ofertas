@@ -1,0 +1,11 @@
+{
+  "schema_version": "1.0",
+  "mapping_version": "tracking-labels-1.0",
+  "entries": [
+    {
+      "internal_reference": "RADAR_BEAUTY:MERCADO_LIVRE",
+      "marketplace": "MERCADO_LIVRE",
+      "label": "rbtgoffer"
+    }
+  ]
+}

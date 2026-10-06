@@ -540,3 +540,49 @@ class AIReviewRow(Base):
     )
     schema_version: Mapped[str] = mapped_column(String(16), nullable=False)
     created_at: Mapped[str] = mapped_column(String(40), nullable=False)
+
+
+class AffiliateLinkRow(Base):
+    """Independent, auditable affiliate link of one approved Opportunity (RDR-018).
+
+    The row stores the literal ``affiliate_url`` returned by the provider (never
+    rewritten by the domain/AI), the generation method, the status and the
+    internal tracking context separated from the external label (RDR-070). The
+    ``uq_affiliate_link_opportunity_tracking`` unique constraint makes generation
+    idempotent for the same Opportunity + label, so a repeated call never
+    duplicates the entity (AUT-039, AUT-132). ``opportunity_id`` is a real foreign
+    key so an orphan link is impossible (AUT-233).
+    """
+
+    __tablename__ = "affiliate_link"
+    __table_args__ = (
+        UniqueConstraint(
+            "opportunity_id",
+            "tracking_label",
+            name="uq_affiliate_link_opportunity_tracking",
+        ),
+        Index("ix_affiliate_link_opportunity", "opportunity_id", "created_at"),
+    )
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    opportunity_id: Mapped[str] = mapped_column(
+        String(64), ForeignKey("opportunity.id"), nullable=False
+    )
+    marketplace: Mapped[str] = mapped_column(String(32), nullable=False)
+    original_url: Mapped[str] = mapped_column(Text, nullable=False)
+    affiliate_url: Mapped[str] = mapped_column(Text, nullable=False)
+    generation_method: Mapped[str] = mapped_column(String(32), nullable=False)
+    productive: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    status: Mapped[str] = mapped_column(String(16), nullable=False)
+    tracking_context_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    tracking_label: Mapped[str] = mapped_column(String(64), nullable=False)
+    tracking_brand: Mapped[str] = mapped_column(String(32), nullable=False)
+    tracking_internal_reference: Mapped[str] = mapped_column(String(128), nullable=False)
+    tracking_mapping_version: Mapped[str] = mapped_column(String(64), nullable=False)
+    tracking_mapping_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    correlation_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    audit_event_id: Mapped[str] = mapped_column(
+        String(64), ForeignKey("audit_event.id"), nullable=False
+    )
+    schema_version: Mapped[str] = mapped_column(String(16), nullable=False)
+    created_at: Mapped[str] = mapped_column(String(40), nullable=False)

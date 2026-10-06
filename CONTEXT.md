@@ -13,6 +13,12 @@ Registro versionado de pareamento/evidência e reverificação do grupo. Não ha
 **Etiqueta externa ML**:
 Valor alfanumérico minúsculo até 30 caracteres, mapeado explicitamente ao TrackingContext interno e configurado pelo operador.
 
+**TrackingContext**:
+Referência interna auditável que correlaciona conversão → publicação → opportunity → candidate, separada da etiqueta externa do marketplace e sem PII. Nunca é normalizada silenciosamente.
+
+**AffiliateLink**:
+Entidade própria e auditável com URL original, URL afiliada literal (nunca editada pela IA), método de geração e tracking; só existe após Opportunity aprovada e linkável. Um provider Fake não é link produtivo.
+
 **Link Shopee manual validado**:
 Retorno literal gerado pelo operador no portal, após Opportunity aprovada, aceito pelo Core somente com contexto/tracking/evidência válidos; não é fallback automático do Browser Bridge.
 

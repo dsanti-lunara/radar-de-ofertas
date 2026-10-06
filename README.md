@@ -298,4 +298,24 @@ com seu `AuditEvent`; o marcador vive em `runtime_state` (migration
 `0012_runtime_state`). Erros usam `RAD-WF-019`; contrato em
 `docs/04_DATA_CONTRACTS.md`.
 
+Affiliate link e tracking (TKT-20): `POST /candidates/{id}/affiliate-link` gera o
+`AffiliateLink` próprio (RDR-018) de um Candidate com Evaluation `APPROVE` cuja
+Opportunity está em `LINK_PENDING`/`LINK_READY`; um Candidate não aprovado não
+gera link (`RAD-LINK-007`). O `TrackingContext` interno (RDR-070) é resolvido de
+um mapeamento versionado/hasheado (`config/tracking-labels.json`, opcional; use
+`config/tracking-labels.example.json`) e é separado da etiqueta externa:
+`tracking_label` aceita somente `[a-z0-9]{1,30}` e nunca é normalizada
+(`RAD-LINK-004`); o baseline é vazio porque nenhuma etiqueta é presumida
+(`rbtgoffer` é exemplo sintático), então um slice sem associação bloqueia com
+`RAD-LINK-005`. O provider Fake é determinístico e offline; o retorno
+`{affiliate_url, source, product_reference}` é validado por host/produto/contexto
+(`RAD-LINK-003`) e o link é preservado **literalmente** — a IA nunca altera URL
+(AUT-078/AUT-164). `source=FAKE` marca o link como `productive=false` (AUT-422).
+A geração é idempotente por Opportunity + etiqueta e grava o `AuditEvent`
+`AFFILIATE_LINK_GENERATED` na mesma transação; `GET
+/candidates/{id}/affiliate-links` e `GET /affiliate-links/{id}` consultam os
+links. Erros: `RAD-LINK-001/002/003/004/005/006/007/008`; mapeamento inválido
+bloqueia a API com `RAD-CFG-015`. A associação real ML/landing e a geração por
+adapter pertencem a #45/#46. Contrato em `docs/04_DATA_CONTRACTS.md`.
+
 Testes live (browser/IA/Telegram/WhatsApp) são opt-in e ficam fora da suíte padrão.

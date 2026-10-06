@@ -1165,6 +1165,66 @@ inexistente) e `RAD-CAP-013` (Evaluation inexistente). Knowledge Pack inválido
 bloqueia a API com `RAD-CFG-014` (use `config/knowledge-pack.example.json`;
 `RADAR_KNOWLEDGE_FILE` força um arquivo).
 
+## AffiliateLink e TrackingContext, implementação (TKT-20, RDR-018/RDR-070)
+
+`POST /candidates/{candidate_id}/affiliate-link` (`schema_version=1.0`) gera o
+AffiliateLink validado de um Candidate com Evaluation `APPROVE` cuja Opportunity
+está em `LINK_PENDING`/`LINK_READY`. O `TrackingContext` interno é resolvido do
+mapeamento versionado/hasheado (`config/tracking-labels.json`, opcional; use
+`config/tracking-labels.example.json`; `RADAR_TRACKING_LABELS_FILE` força um
+arquivo) e é **separado** da etiqueta externa: `tracking_label` aceita somente
+`[a-z0-9]{1,30}` e nunca é normalizada. `GET
+/candidates/{candidate_id}/affiliate-links` lista e `GET
+/affiliate-links/{affiliate_link_id}` retorna um link.
+
+```json
+{
+  "schema_version": "1.0",
+  "status": "VALIDATED",
+  "affiliate_link_id": "lnk_...",
+  "opportunity_id": "opp_...",
+  "marketplace": "MERCADO_LIVRE",
+  "original_url": "https://www.mercadolivre.com.br/p/MLB123",
+  "affiliate_url": "https://www.mercadolivre.com.br/social/radar-fake/MLB123?matt_word=rbtgoffer",
+  "generation_method": "FAKE",
+  "productive": false,
+  "tracking": {
+    "schema_version": "1.0",
+    "tracking_context_id": "trk_...",
+    "opportunity_id": "opp_...",
+    "marketplace": "MERCADO_LIVRE",
+    "brand": "RADAR_BEAUTY",
+    "internal_reference": "RADAR_BEAUTY:MERCADO_LIVRE",
+    "external_label": "rbtgoffer",
+    "mapping_version": "tracking-labels-1.0",
+    "mapping_hash": "sha256...",
+    "configured": true
+  },
+  "correlation_id": "cid-1",
+  "audit_event_id": "aud_...",
+  "created_at": "2026-10-06T12:00:00+00:00"
+}
+```
+
+O provider (Fake em desenvolvimento) retorna
+`{affiliate_url, source, product_reference}`; a validação rejeita host fora do
+allowlist do marketplace, produto/contexto diferente do `external_id` esperado,
+`source` desconhecido e campo sensível, e o `affiliate_url` é persistido
+**literalmente** (nunca editado/sintetizado pela IA). O provider Fake produz
+`source=FAKE`, então `productive=false` (AUT-422). O mapeamento baseline é vazio
+(nenhuma etiqueta é presumida; `rbtgoffer` é exemplo sintático), então um slice
+sem associação bloqueia com `RAD-LINK-005`. A geração é idempotente por
+Opportunity + etiqueta (constraint única
+`uq_affiliate_link_opportunity_tracking`) e grava o `AuditEvent`
+`AFFILIATE_LINK_GENERATED` na mesma transação. Erros: `RAD-LINK-001` (input),
+`RAD-LINK-002` (inexistente, 404), `RAD-LINK-003` (link inválido/produto
+errado/host inválido), `RAD-LINK-004` (etiqueta), `RAD-LINK-005` (mapeamento),
+`RAD-LINK-006` (provider, 503 retryable), `RAD-LINK-007` (Opportunity não
+linkável) e `RAD-LINK-008` (Fake produtivo); mapeamento inválido bloqueia a API
+com `RAD-CFG-015`. A associação real ML/landing e a geração por adapter pertencem
+a #45/#46; o adapter real deve passar o gate `AUTHENTICATED_LINK` (TKT-17) antes
+do side effect, enquanto o Fake offline não é produtivo e não consulta o gate.
+
 ## AI Editorial Review input
 
 ```json
@@ -1272,6 +1332,16 @@ OpportunityState (TKT-16, RDR-017):
 - PUBLISHED
 - EXPIRED
 - CANCELLED
+
+LinkGenerationMethod (TKT-20, RDR-018):
+- FAKE
+- ML_LINK_GENERATOR
+- ML_AFFILIATE_BAR
+- SHOPEE_API
+- MANUAL_PORTAL
+
+AffiliateLinkStatus (TKT-20, RDR-018):
+- VALIDATED
 
 AutomationMode:
 - MANUAL

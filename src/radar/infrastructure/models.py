@@ -595,7 +595,9 @@ class ContentGenerationRow(Base):
     backend price/link/disclosure) are stored separately with their own versions
     (AUT-034, AUT-081, AUT-163). ``facts``/``fact_hash`` snapshot the facts the copy
     depends on, so a later change makes the content ``STALE`` on read without
-    mutating the row. SQLite triggers installed by migration
+    mutating the row. ``ai_input_hash`` (RDR-055) records the canonical hash of the
+    versioned provider input so an equivalent input reuses the persisted result.
+    SQLite triggers installed by migration
     ``0015_content_generation`` reject UPDATE/DELETE, keeping the artifact
     append-only, and foreign keys tie the row to its Opportunity, Candidate and
     audit event (AUT-233). Money is a decimal string and timestamps ISO-8601 UTC
@@ -603,7 +605,10 @@ class ContentGenerationRow(Base):
     """
 
     __tablename__ = "content_generation"
-    __table_args__ = (Index("ix_content_generation_opportunity", "opportunity_id", "created_at"),)
+    __table_args__ = (
+        Index("ix_content_generation_opportunity", "opportunity_id", "created_at"),
+        Index("ix_content_generation_ai_input", "opportunity_id", "ai_input_hash"),
+    )
 
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
     opportunity_id: Mapped[str] = mapped_column(
@@ -625,6 +630,7 @@ class ContentGenerationRow(Base):
     warnings: Mapped[str] = mapped_column(Text, nullable=False)
     facts: Mapped[str] = mapped_column(Text, nullable=False)
     fact_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    ai_input_hash: Mapped[str] = mapped_column(String(64), nullable=False)
     status: Mapped[str] = mapped_column(String(16), nullable=False)
     correlation_id: Mapped[str] = mapped_column(String(64), nullable=False)
     audit_event_id: Mapped[str] = mapped_column(

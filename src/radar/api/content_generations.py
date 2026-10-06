@@ -5,7 +5,9 @@
 sanitized facts, the immutable Evaluation, the backend-sustained allowed claims and
 the validated AffiliateLink, applies the deterministic local guards, renders the
 final content with backend price/link/disclosure and persists the versioned
-``ContentGeneration``. ``GET`` endpoints expose the append-only previews; a missing
+``ContentGeneration``. An equivalent, still-valid input reuses the persisted
+generation and reports ``cache_hit=true`` without calling the provider again
+(RDR-055). ``GET`` endpoints expose the append-only previews; a missing
 one returns ``RAD-AI-011`` and a preview whose relevant facts changed is reported
 as ``STALE``.
 
@@ -67,14 +69,14 @@ def build_content_generation_router(
         request: Request,
     ) -> JSONResponse:
         correlation_id = bind_correlation_id(resolve_correlation_id(request))
-        record = service.generate(
+        resolution = service.generate(
             opportunity_id,
             channel=payload.channel,
             correlation_id=correlation_id,
         )
         return JSONResponse(
             status_code=201,
-            content=record.to_contract(stale=False),
+            content=resolution.to_contract(stale=False),
             headers={CORRELATION_HEADER: correlation_id, "Cache-Control": "no-store"},
         )
 

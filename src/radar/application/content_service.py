@@ -47,9 +47,11 @@ from radar.domain.content import (
     CONTENT_GENERATION_ENGINE_VERSION,
     GENERATE_CONTENT_TASK,
     ContentGeneration,
+    ContentGenerationResolution,
     ContentProvider,
     build_content_generation,
     build_content_generation_input,
+    canonical_ai_input_hash,
     canonical_money,
     content_generation_not_found_error,
     content_input_invalid_error,
@@ -100,6 +102,10 @@ class ContentGenerationRepository(Protocol):
 
     def get_content_generation(self, content_generation_id: str) -> ContentGeneration | None: ...
 
+    def list_content_generations_by_ai_input_hash(
+        self, opportunity_id: str, ai_input_hash: str
+    ) -> tuple[ContentGeneration, ...]: ...
+
 
 @dataclass(slots=True)
 class ContentGenerationService:
@@ -124,12 +130,15 @@ class ContentGenerationService:
         *,
         channel: Channel,
         correlation_id: str,
-    ) -> ContentGeneration:
-        """Generate, validate and persist the content preview of one Opportunity.
+    ) -> ContentGenerationResolution:
+        """Resolve the content preview of one Opportunity (RDR-019, RDR-055).
 
         The Opportunity must exist, be non-terminal and already carry a validated
         AffiliateLink; otherwise the request fails closed before the provider is
-        called or anything is written.
+        called or anything is written. When an equivalent input was already
+        generated and is still valid, the persisted generation is reused without a
+        new provider call (``cache_hit=True``); a relevant change to product/offer,
+        scores, warnings or Knowledge/Prompt versions invalidates the cache.
         """
 
         opportunity = self.opportunities.get_opportunity(opportunity_id)
@@ -201,6 +210,17 @@ class ContentGenerationService:
             forbidden_claims=claims.to_contract()["forbidden_claims"],
         )
 
+        # An equivalent, still-valid input reuses the persisted generation and
+        # never calls the provider (RDR-055). ``is_stale`` also guards facts the
+        # provider input does not carry (e.g. the validated affiliate URL), so a
+        # matching-but-stale row is skipped instead of being served.
+        ai_input_hash = canonical_ai_input_hash(request)
+        for candidate in self.repository.list_content_generations_by_ai_input_hash(
+            opportunity_id, ai_input_hash
+        ):
+            if not self.is_stale(candidate):
+                return ContentGenerationResolution(record=candidate, cache_hit=True)
+
         # Provider failure/refusal/invalid schema/URL raises here, before any write.
         raw_response = self.provider.generate_content(request)
         generated = parse_generate_content_response(raw_response, provider=self.provider.name)
@@ -249,7 +269,8 @@ class ContentGenerationService:
             created_at=now,
             id_factory=self.id_factory,
         )
-        return self.repository.save_content_generation(record)
+        saved = self.repository.save_content_generation(record)
+        return ContentGenerationResolution(record=saved, cache_hit=False)
 
     def list(self, opportunity_id: str) -> tuple[ContentGeneration, ...]:
         """Return the persisted ContentGenerations of an Opportunity, oldest first."""

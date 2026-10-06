@@ -28,6 +28,18 @@ class _CannedContentProvider:
         return self._response
 
 
+class _CountingContentProvider:
+    name = "counting"
+
+    def __init__(self, response: dict[str, Any]) -> None:
+        self._response = response
+        self.calls = 0
+
+    def generate_content(self, request: Any) -> dict[str, Any]:
+        self.calls += 1
+        return self._response
+
+
 def _mapping(label: str = "rbtgoffer") -> TrackingLabelMapping:
     return build_tracking_label_mapping(
         {
@@ -309,3 +321,77 @@ def test_correlation_id_is_generated_when_absent(migrated_database_url: str) -> 
     assert body["correlation_id"]
     assert response.headers["x-correlation-id"] == body["correlation_id"]
     assert response.headers["cache-control"] == "no-store"
+
+
+def test_equivalent_request_reuses_generation_without_calling_provider_again(
+    migrated_database_url: str,
+) -> None:
+    provider = _CountingContentProvider(
+        {"headline": "Oferta", "body": "Oferta selecionada.", "cta": "Compre", "warnings": []}
+    )
+    client = _client(migrated_database_url, provider=provider)
+    opportunity_id = _ready_opportunity(client)
+
+    first = _generate(client, opportunity_id)
+    second = _generate(client, opportunity_id)
+
+    assert first["status_code"] == 201
+    assert first["cache_hit"] is False
+    assert first["status"] == "VALIDATED"
+    assert first["publishable"] is True
+    assert first["ai_input_hash"]
+    assert second["status_code"] == 201
+    assert second["cache_hit"] is True
+    assert second["content_generation_id"] == first["content_generation_id"]
+    assert second["ai_input_hash"] == first["ai_input_hash"]
+    assert second["publishable"] is True
+
+    # The provider is called once: the second request reused the persisted result.
+    assert provider.calls == 1
+    listing = client.get(f"/opportunities/{opportunity_id}/content-generations")
+    assert listing.json()["count"] == 1
+
+
+def test_price_change_regenerates_via_the_public_boundary(migrated_database_url: str) -> None:
+    provider = _CountingContentProvider(
+        {"headline": "Oferta", "body": "Oferta selecionada.", "cta": "Compre", "warnings": []}
+    )
+    client = _client(migrated_database_url, provider=provider)
+    opportunity_id = _ready_opportunity(client)
+
+    first = _generate(client, opportunity_id)
+    _capture(client, price="90.00", captured_at="2026-10-06T18:00:00+00:00")
+    second = _generate(client, opportunity_id)
+
+    assert first["cache_hit"] is False
+    assert second["cache_hit"] is False
+    assert second["content_generation_id"] != first["content_generation_id"]
+    # The new price observation makes the first generation stale, so the request
+    # cannot reuse it and the provider is called again.
+    detail = client.get(f"/content-generations/{first['content_generation_id']}")
+    assert detail.json()["content_generation"]["status"] == "STALE"
+    assert provider.calls == 2
+    assert client.get(f"/opportunities/{opportunity_id}/content-generations").json()["count"] == 2
+
+
+def test_invalid_provider_output_is_never_cached_via_the_public_boundary(
+    migrated_database_url: str,
+) -> None:
+    provider = _CountingContentProvider(
+        {
+            "headline": "Oferta",
+            "body": "Preço especial de R$ 999,00!",
+            "cta": "Compre",
+            "warnings": [],
+        }
+    )
+    client = _client(migrated_database_url, provider=provider)
+    opportunity_id = _ready_opportunity(client)
+
+    for _ in range(2):
+        body = _generate(client, opportunity_id)
+        assert body["status_code"] == 422
+        assert body["error"]["code"] == "RAD-AI-005"
+
+    assert provider.calls == 2
+    assert client.get(f"/opportunities/{opportunity_id}/content-generations").json()["count"] == 0

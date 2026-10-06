@@ -204,9 +204,9 @@ antes de qualquer persistência: schema/enum inválido, `AUTO_PUBLISH`, refusal,
 timeout, auth e indisponibilidade retornam erro estruturado
 (`RAD-AI-001..004`/`RAD-AI-010`) e nunca criam Opportunity por aprovação cega. O
 `AIReview` append-only guarda provider/model, `knowledge_version`/`prompt_version`
-e os `allowed_claims` que sustentam a decisão. `GENERATE_CONTENT`/`CONTENT_REVIEW`
-(RDR-051) e o cache `ai_input_hash` (RDR-055) pertencem a tickets próprios; o
-Circuit Breaker permanece fora deste ticket.
+e os `allowed_claims` que sustentam a decisão. `GENERATE_CONTENT` (RDR-051) foi
+implementado no TKT-21 e o cache `ai_input_hash` (RDR-055) no TKT-22; `CONTENT_REVIEW`
+e o Circuit Breaker permanecem fora deste ticket.
 
 ## Implementação (TKT-21, RDR-019/RDR-051..054/RDR-069)
 
@@ -222,4 +222,23 @@ regras de canal (`RAD-AI-014`) e compliance (`RAD-AI-015`). O renderer determin�
 literal e o disclosure, nunca uma URL da IA (AUT-163/AUT-164). `generated_content` e
 `final_content` ficam separados com suas versões e o `facts`/`fact_hash` permitem
 marcar a geração como `STALE` quando um fato relevante muda, sem mutar a linha.
-`CONTENT_REVIEW` e o cache `ai_input_hash` (RDR-055) continuam em tickets próprios.
+`CONTENT_REVIEW` continua em ticket próprio; o cache `ai_input_hash` (RDR-055) foi
+implementado no TKT-22.
+
+## Implementação (TKT-22, RDR-055)
+
+O cache de resultado de IA é um `ai_input_hash` canônico do input versionado do
+provider (`radar.domain.content.canonical_ai_input_hash`, RDR-055): o hash cobre
+produto/oferta, scores da Evaluation, `allowed_claims` sustentados pelo backend,
+warnings e as versões de Knowledge/Prompt (com `knowledge_hash`), então um input
+equivalente reutiliza o resultado e qualquer mudança relevante invalida o cache. O
+`ContentGenerationService.generate` consulta o store append-only por
+`(opportunity_id, ai_input_hash)`; um resultado persistido ainda não-`STALE` é
+reusado sem nova chamada ao provider (`cache_hit=true`, o `POST` responde com
+`cache_hit`) e um miss gera, valida e persiste normalmente. O cache **nunca**
+contorna a validação: uma resposta inválida (schema/URL/número/claim) falha fechada
+antes de persistir e não é cacheada, e um resultado que virou `STALE` (nova
+observação de preço, link vigente, versão de knowledge/prompt) é ignorado. A
+migration `0016_ai_input_cache` acrescenta `ai_input_hash` e o índice
+`ix_content_generation_ai_input`; linhas anteriores carregam hash vazio e nunca
+casam. O provider real segue o gate SPIKE-01/RDR-048.

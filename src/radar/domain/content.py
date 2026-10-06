@@ -1,5 +1,5 @@
-"""ContentGeneration, deterministic guards and renderer
-(RDR-019, RDR-051, RDR-052, RDR-053, RDR-054, RDR-069).
+"""ContentGeneration, deterministic guards, renderer and AI input cache
+(RDR-019, RDR-051, RDR-052, RDR-053, RDR-054, RDR-055, RDR-069).
 
 ``docs/03_DOMAIN_MODEL.md`` keeps ``ContentGeneration`` separate from
 ``Publication`` (AUT-034) and ``docs/06_AI_ENGINE.md`` separates ``AIReview`` from
@@ -21,7 +21,11 @@ of that slice (AUT-397):
 * generated and final content are stored separately with their own versions
   (``generation_version``/``knowledge_version``/``prompt_version``/
   ``renderer_version``), and the persisted facts are hashed so content becomes
-  ``STALE`` when a relevant fact changes (``docs/08_WORKFLOW_ENGINE.md``).
+  ``STALE`` when a relevant fact changes (``docs/08_WORKFLOW_ENGINE.md``);
+* the versioned provider input is hashed canonically (``canonical_ai_input_hash``,
+  RDR-055) so an equivalent input can reuse the persisted result while a change to
+  product/offer, scores, warnings or Knowledge/Prompt versions invalidates it
+  (``docs/06_AI_ENGINE.md`` Cache).
 
 No AI, HTTP, SQLAlchemy or browser code lives here.
 """
@@ -554,6 +558,7 @@ class ContentGeneration:
     correlation_id: str
     audit_event_id: str
     created_at: datetime
+    ai_input_hash: str
     status: ContentGenerationStatus = ContentGenerationStatus.VALIDATED
     schema_version: str = CONTENT_SCHEMA_VERSION
 
@@ -580,10 +585,29 @@ class ContentGeneration:
             "stale": stale,
             "fact_hash": self.fact_hash,
             "facts": dict(self.facts),
+            "ai_input_hash": self.ai_input_hash,
             "correlation_id": self.correlation_id,
             "audit_event_id": self.audit_event_id,
             "created_at": _to_utc(self.created_at).isoformat(),
         }
+
+
+@dataclass(frozen=True, slots=True)
+class ContentGenerationResolution:
+    """Outcome of resolving a Content Generation request (RDR-055).
+
+    ``cache_hit`` is ``True`` when an equivalent, still-valid persisted
+    generation was reused instead of calling the provider again; the ``record``
+    is always the versioned, validated :class:`ContentGeneration`.
+    """
+
+    record: ContentGeneration
+    cache_hit: bool
+
+    def to_contract(self, *, stale: bool = False) -> dict[str, Any]:
+        payload = self.record.to_contract(stale=stale)
+        payload["cache_hit"] = self.cache_hit
+        return payload
 
 
 @runtime_checkable
@@ -955,6 +979,21 @@ def build_content_generation_input(
     return request
 
 
+def canonical_ai_input_hash(request: ContentGenerationInput) -> str:
+    """Hash the versioned provider input canonically (RDR-055).
+
+    The hash covers the exact sanitized input handed to the provider — product,
+    offer, Evaluation scores, backend-sustained claims, warnings and
+    Knowledge/Prompt versions — so an equivalent input reuses the persisted result
+    while any relevant change invalidates it (``docs/06_AI_ENGINE.md`` Cache).
+    """
+
+    canonical = json.dumps(
+        request.to_contract(), sort_keys=True, separators=(",", ":"), ensure_ascii=False
+    )
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
 def canonical_fact_hash(facts: Mapping[str, Any]) -> str:
     """Hash a fact snapshot canonically so staleness is deterministic."""
 
@@ -1014,6 +1053,7 @@ def build_content_generation(
         correlation_id=str(correlation_id).strip(),
         audit_event_id=str(audit_event_id).strip(),
         created_at=_to_utc(created_at),
+        ai_input_hash=canonical_ai_input_hash(request),
     )
 
 
@@ -1056,6 +1096,7 @@ __all__ = [
     "ContentGeneration",
     "ContentGenerationError",
     "ContentGenerationInput",
+    "ContentGenerationResolution",
     "ContentGenerationStatus",
     "ContentGuardError",
     "ContentProvider",
@@ -1065,6 +1106,7 @@ __all__ = [
     "RenderedContent",
     "build_content_generation",
     "build_content_generation_input",
+    "canonical_ai_input_hash",
     "canonical_fact_hash",
     "canonical_money",
     "channel_guard",

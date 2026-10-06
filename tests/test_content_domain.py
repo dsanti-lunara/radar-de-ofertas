@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import UTC, datetime
 from decimal import Decimal
 from typing import Any
@@ -21,9 +22,11 @@ from radar.domain.content import (
     ContentGenerationInput,
     ContentGenerationStatus,
     ContentValidation,
+    ContentWarning,
     GeneratedContent,
     build_content_generation,
     build_content_generation_input,
+    canonical_ai_input_hash,
     channel_guard,
     claim_guard,
     is_stale,
@@ -255,6 +258,71 @@ def test_generated_and_final_content_are_separate_and_versioned() -> None:
     }
     assert contract["final_content"]["affiliate_url"].endswith("matt_word=rbtgoffer")
     assert contract["generated_content"]["body"] != contract["final_content"]["text"]
+    assert contract["ai_input_hash"] == canonical_ai_input_hash(request)
+
+
+def test_ai_input_hash_covers_facts_scores_warnings_and_versions() -> None:
+    request = _input()
+    base = canonical_ai_input_hash(request)
+
+    # The hash is stable for the exact same versioned input.
+    assert canonical_ai_input_hash(_input()) == base
+
+    # Product/offer facts.
+    assert (
+        canonical_ai_input_hash(
+            replace(request, offer=AIReviewOfferFacts(current_price="90.00", sales_count=2300))
+        )
+        != base
+    )
+    assert (
+        canonical_ai_input_hash(
+            replace(request, product=AIReviewProductFacts(external_id="MLB-2", title="Perfume"))
+        )
+        != base
+    )
+
+    # Evaluation scores.
+    assert (
+        canonical_ai_input_hash(
+            replace(
+                request,
+                evaluation=AIReviewEvaluationFacts(
+                    evaluation_id="eval_1", decision="APPROVE", deal_score="50.00"
+                ),
+            )
+        )
+        != base
+    )
+
+    # Backend-sustained claims.
+    assert canonical_ai_input_hash(replace(request, allowed_claims=())) != base
+
+    # Warnings.
+    assert (
+        canonical_ai_input_hash(replace(request, warnings=(ContentWarning(code="X", message="y"),)))
+        != base
+    )
+
+    # Knowledge/Prompt versions.
+    assert (
+        canonical_ai_input_hash(
+            replace(
+                request,
+                knowledge=replace(request.knowledge, knowledge_version="knowledge-pack-9.9"),
+            )
+        )
+        != base
+    )
+    assert (
+        canonical_ai_input_hash(
+            replace(
+                request,
+                knowledge=replace(request.knowledge, prompt_version="editorial-review-9.9"),
+            )
+        )
+        != base
+    )
 
 
 def test_staleness_is_derived_from_the_fact_hash() -> None:

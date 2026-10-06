@@ -330,8 +330,10 @@ preço (claim `CURRENT_PRICE`), a URL afiliada **literal** e o disclosure; gener
 e final content ficam separados com suas versões. `GET
 /opportunities/{id}/content-generations` e `GET /content-generations/{id}`
 consultam as previews, reportando `STALE` quando um fato relevante (nova
-observação de preço, link, versão de knowledge/prompt) muda. Erros:
-`RAD-AI-004/005/006/007/011/012/013/014/015`; contrato em
+observação de preço, link, versão de knowledge/prompt) muda. Um input equivalente e
+ainda válido reusa o resultado persistido (`cache_hit=true`, RDR-055) sem nova
+chamada ao provider; uma mudança relevante ou um resultado inválido nunca é
+reusado. Erros: `RAD-AI-004/005/006/007/011/012/013/014/015`; contrato em
 `docs/04_DATA_CONTRACTS.md`.
 
 Testes live (browser/IA/Telegram/WhatsApp) são opt-in e ficam fora da suíte padrão.

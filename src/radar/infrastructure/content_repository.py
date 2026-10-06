@@ -67,6 +67,33 @@ class SqlAlchemyContentGenerationRepository:
             row = session.get(ContentGenerationRow, content_generation_id)
             return None if row is None else _content_generation_from_row(row)
 
+    def list_content_generations_by_ai_input_hash(
+        self, opportunity_id: str, ai_input_hash: str
+    ) -> tuple[ContentGeneration, ...]:
+        """Return persisted generations of an equivalent input, newest first (RDR-055).
+
+        Legacy rows written before migration ``0016`` carry an empty hash and can
+        never match a real sha256, so they are never served as cache hits.
+        """
+
+        with Session(self.engine) as session:
+            rows = (
+                session.execute(
+                    select(ContentGenerationRow)
+                    .where(
+                        ContentGenerationRow.opportunity_id == opportunity_id,
+                        ContentGenerationRow.ai_input_hash == ai_input_hash,
+                    )
+                    .order_by(
+                        ContentGenerationRow.created_at.desc(),
+                        ContentGenerationRow.id.desc(),
+                    )
+                )
+                .scalars()
+                .all()
+            )
+            return tuple(_content_generation_from_row(row) for row in rows)
+
 
 def _audit_event_to_row(record: ContentGeneration) -> AuditEventRow:
     return AuditEventRow(
@@ -86,6 +113,7 @@ def _audit_event_to_row(record: ContentGeneration) -> AuditEventRow:
                 "prompt_version": record.prompt_version,
                 "renderer_version": record.renderer_version,
                 "fact_hash": record.fact_hash,
+                "ai_input_hash": record.ai_input_hash,
             },
             ensure_ascii=False,
             sort_keys=True,
@@ -118,6 +146,7 @@ def _content_generation_to_row(record: ContentGeneration) -> ContentGenerationRo
         ),
         facts=json.dumps(dict(record.facts), ensure_ascii=False, sort_keys=True),
         fact_hash=record.fact_hash,
+        ai_input_hash=record.ai_input_hash,
         status=record.status.value,
         correlation_id=record.correlation_id,
         audit_event_id=record.audit_event_id,
@@ -183,6 +212,7 @@ def _content_generation_from_row(row: ContentGenerationRow) -> ContentGeneration
         correlation_id=row.correlation_id,
         audit_event_id=row.audit_event_id,
         created_at=datetime.fromisoformat(row.created_at),
+        ai_input_hash=row.ai_input_hash,
         status=ContentGenerationStatus(row.status),
         schema_version=row.schema_version,
     )

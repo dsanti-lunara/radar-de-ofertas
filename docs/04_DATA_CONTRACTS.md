@@ -1275,6 +1275,7 @@ resolve o contexto mínimo (`brand + channel + task`). `GET
   "stale": false,
   "fact_hash": "sha256...",
   "facts": {"price": "80.00", "affiliate_url": "https://...", "channel": "TELEGRAM"},
+  "ai_input_hash": "sha256...",
   "correlation_id": "cid-1",
   "audit_event_id": "aud_...",
   "created_at": "2026-10-06T12:00:00+00:00"
@@ -1303,6 +1304,15 @@ IA), `RAD-AI-014` (regra de canal), `RAD-AI-015` (compliance BLOCKED), `RAD-AI-0
 Evidence), `RAD-AI-007` (campo sensível), `RAD-WF-014` (Opportunity inexistente) e
 `RAD-CAP-004`/`RAD-CAP-013` (Candidate/Evaluation inexistentes). O gate de
 autorização `PUBLISH` (TKT-17) e a `Publication` pertencem aos tickets dependentes.
+
+O cache de resultado de IA (TKT-22, RDR-055) usa `ai_input_hash`, o hash canônico
+do input versionado do provider (produto/oferta, scores, `allowed_claims`, warnings
+e versões de Knowledge/Prompt). O `POST` responde com `cache_hit`: `true` quando um
+resultado persistido equivalente e ainda não-`STALE` foi reusado sem chamar o
+provider; `false` quando o resultado foi gerado, validado e persistido. Uma mudança
+relevante (fato/preço/versão) invalida a reutilização, e uma saída inválida nunca é
+cacheada nem transformada em válida. A migration `0016_ai_input_cache` acrescenta a
+coluna e o índice `ix_content_generation_ai_input`.
 
 ## AI Editorial Review input
 

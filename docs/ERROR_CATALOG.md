@@ -206,7 +206,9 @@ inexistente `RAD-AI-011`. `RAD-WF-014` cobre Opportunity inexistente e
 `RAD-CAP-004`/`RAD-CAP-013` Candidate/Evaluation inexistentes. `GET
 /opportunities/{opportunity_id}/content-generations` e
 `GET /content-generations/{content_generation_id}` consultam as previews e reportam
-`STALE` quando um fato relevante muda.
+`STALE` quando um fato relevante muda. O cache `ai_input_hash` (TKT-22, RDR-055)
+não introduz código de erro novo: um `cache_hit` reusa um resultado já validado e
+nunca transforma uma saída inválida em válida.
 
 ## Publishing
 

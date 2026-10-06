@@ -65,6 +65,18 @@ class _CannedContentProvider:
         return self._response
 
 
+class _CountingContentProvider:
+    name = "counting"
+
+    def __init__(self, response: dict[str, Any]) -> None:
+        self._response = response
+        self.calls = 0
+
+    def generate_content(self, request: Any) -> dict[str, Any]:
+        self.calls += 1
+        return self._response
+
+
 def _count(engine: Engine, table: str) -> int:
     with engine.connect() as connection:
         value = connection.exec_driver_sql(f"SELECT COUNT(*) FROM {table}").scalar()
@@ -186,6 +198,8 @@ def test_content_is_persisted_with_audit_and_queryable(migrated_engine: Engine) 
     service = _content_service(migrated_engine, clock)
 
     record = service.generate(opportunity_id, channel=Channel.TELEGRAM, correlation_id="cid-ctg")
+    assert record.cache_hit is False
+    record = record.record
 
     assert record.generated.headline.startswith("Radar Beauty")
     assert "80.00" in record.generated.body
@@ -204,6 +218,7 @@ def test_content_is_persisted_with_audit_and_queryable(migrated_engine: Engine) 
         assert row.candidate_id == candidate_id
         assert row.channel == "TELEGRAM"
         assert row.status == "VALIDATED"
+        assert row.ai_input_hash == record.ai_input_hash
         audit = session.get(AuditEventRow, record.audit_event_id)
         assert audit is not None
         assert audit.event_type == "CONTENT_GENERATION_RECORDED"
@@ -216,8 +231,10 @@ def test_content_is_persisted_with_audit_and_queryable(migrated_engine: Engine) 
 def test_content_is_append_only_at_the_database_level(migrated_engine: Engine) -> None:
     clock = _Clock(FIXED_NOW)
     _, opportunity_id = _ready_opportunity(migrated_engine, clock)
-    record = _content_service(migrated_engine, clock).generate(
-        opportunity_id, channel=Channel.TELEGRAM, correlation_id="cid-ctg"
+    record = (
+        _content_service(migrated_engine, clock)
+        .generate(opportunity_id, channel=Channel.TELEGRAM, correlation_id="cid-ctg")
+        .record
     )
 
     with pytest.raises(IntegrityError), Session(migrated_engine) as session, session.begin():
@@ -238,7 +255,9 @@ def test_content_becomes_stale_when_a_new_price_observation_appears(
     clock = _Clock(FIXED_NOW)
     _, opportunity_id = _ready_opportunity(migrated_engine, clock)
     service = _content_service(migrated_engine, clock)
-    record = service.generate(opportunity_id, channel=Channel.TELEGRAM, correlation_id="cid-ctg")
+    record = service.generate(
+        opportunity_id, channel=Channel.TELEGRAM, correlation_id="cid-ctg"
+    ).record
 
     assert service.is_stale(record) is False
 
@@ -323,3 +342,72 @@ def test_missing_opportunity_and_missing_content_fail_closed(migrated_engine: En
     with pytest.raises(RadarException) as missing_content:
         service.get("ctg_missing")
     assert missing_content.value.error.code == CONTENT_GENERATION_NOT_FOUND
+
+
+def test_equivalent_input_reuses_the_persisted_generation_without_calling_the_provider(
+    migrated_engine: Engine,
+) -> None:
+    clock = _Clock(FIXED_NOW)
+    _, opportunity_id = _ready_opportunity(migrated_engine, clock)
+    provider = _CountingContentProvider(
+        {"headline": "Oferta", "body": "Oferta selecionada.", "cta": "Compre", "warnings": []}
+    )
+    service = _content_service(migrated_engine, clock, provider=provider)
+
+    first = service.generate(opportunity_id, channel=Channel.TELEGRAM, correlation_id="cid-1")
+    second = service.generate(opportunity_id, channel=Channel.TELEGRAM, correlation_id="cid-2")
+
+    assert first.cache_hit is False
+    assert second.cache_hit is True
+    assert second.record.content_generation_id == first.record.content_generation_id
+    assert second.record.ai_input_hash == first.record.ai_input_hash
+    assert provider.calls == 1
+    assert _count(migrated_engine, "content_generation") == 1
+    assert service.list(opportunity_id) == (first.record,)
+
+
+def test_price_change_invalidates_the_cache_and_regenerates(migrated_engine: Engine) -> None:
+    clock = _Clock(FIXED_NOW)
+    _, opportunity_id = _ready_opportunity(migrated_engine, clock)
+    provider = _CountingContentProvider(
+        {"headline": "Oferta", "body": "Oferta selecionada.", "cta": "Compre", "warnings": []}
+    )
+    service = _content_service(migrated_engine, clock, provider=provider)
+
+    first = service.generate(opportunity_id, channel=Channel.TELEGRAM, correlation_id="cid-1")
+    assert first.cache_hit is False
+
+    clock.advance(hours=1)
+    _capture(migrated_engine, clock, price="90.00")
+
+    second = service.generate(opportunity_id, channel=Channel.TELEGRAM, correlation_id="cid-2")
+
+    assert second.cache_hit is False
+    assert second.record.content_generation_id != first.record.content_generation_id
+    # The new price observation makes the first generation stale, so it is not reused.
+    assert service.is_stale(first.record) is True
+    assert provider.calls == 2
+    assert _count(migrated_engine, "content_generation") == 2
+
+
+def test_invalid_provider_output_is_never_cached_or_promoted(migrated_engine: Engine) -> None:
+    clock = _Clock(FIXED_NOW)
+    _, opportunity_id = _ready_opportunity(migrated_engine, clock)
+    provider = _CountingContentProvider(
+        {
+            "headline": "Oferta",
+            "body": "Preço especial de R$ 999,00!",
+            "cta": "Compre",
+            "warnings": [],
+        }
+    )
+    service = _content_service(migrated_engine, clock, provider=provider)
+
+    for _ in range(2):
+        with pytest.raises(ContentGenerationError) as excinfo:
+            service.generate(opportunity_id, channel=Channel.TELEGRAM, correlation_id="cid-ctg")
+        assert excinfo.value.error.code == UNSUPPORTED_NUMERIC_CLAIM
+
+    # The invalid response is never persisted, so it can never be served as a hit.
+    assert provider.calls == 2
+    assert _count(migrated_engine, "content_generation") == 0

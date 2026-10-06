@@ -174,7 +174,11 @@ gravada na **mesma transação** do seu `AuditEvent` `CONTENT_GENERATION_RECORDE
 então uma falha de provider, uma URL inventada pela IA ou um guard (número/claim sem
 Evidence) não deixa registro parcial. A linha nunca é mutada: `STALE` é derivado na
 leitura comparando o `fact_hash` com os fatos atuais (última observação de preço,
-link vigente, versão de knowledge/prompt). Ver `docs/04_DATA_CONTRACTS.md`.
+link vigente, versão de knowledge/prompt). A migration `0016_ai_input_cache`
+(TKT-22, RDR-055) acrescenta a coluna `ai_input_hash` (hash canônico do input
+versionado do provider) e o índice `ix_content_generation_ai_input`, usados para
+reusar um resultado persistido equivalente sem nova chamada ao provider; linhas
+anteriores ficam com hash vazio e nunca casam. Ver `docs/04_DATA_CONTRACTS.md`.
 
 ## Append-only
 

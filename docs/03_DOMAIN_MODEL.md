@@ -205,6 +205,7 @@ Separada de Publication.
 - prompt_version;
 - renderer_version;
 - facts/fact_hash (para derivar STALE na leitura);
+- ai_input_hash (cache de resultado por input equivalente, RDR-055);
 - status (VALIDATED/STALE).
 
 ### Publication

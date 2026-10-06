@@ -24,6 +24,7 @@ from radar.domain.capture import (
     Marketplace,
     find_sensitive_fields,
 )
+from radar.domain.content import CONTENT_SCHEMA_VERSION
 from radar.domain.evaluation import EVALUATION_SCHEMA_VERSION
 from radar.domain.job import DEFAULT_MAX_ATTEMPTS, JOB_SCHEMA_VERSION
 from radar.domain.knowledge import Channel
@@ -622,6 +623,38 @@ class AIReviewRequestContract(_StrictContract):
                 raise PydanticCustomError(
                     SENSITIVE_FIELD_ERROR_TYPE,
                     "Campos sensíveis não são aceitos no Editorial Review",
+                    {"fields": list(hits)},
+                )
+        return data
+
+
+class ContentGenerationRequestContract(_StrictContract):
+    """Versioned input to generate a content preview (RDR-051).
+
+    Only the target channel is supplied by the caller: the facts, the immutable
+    Evaluation, the ``allowed_claims`` and the validated AffiliateLink are read
+    from persistence, so a caller can never inject a price, claim or URL.
+    """
+
+    schema_version: str = CONTENT_SCHEMA_VERSION
+    channel: Channel
+
+    @field_validator("schema_version")
+    @classmethod
+    def _validate_schema_version(cls, value: str) -> str:
+        if value != CONTENT_SCHEMA_VERSION:
+            raise ValueError("schema_version de ContentGeneration não suportada")
+        return value
+
+    @model_validator(mode="before")
+    @classmethod
+    def _reject_sensitive_fields(cls, data: Any) -> Any:
+        if isinstance(data, Mapping):
+            hits = find_sensitive_fields(data)
+            if hits:
+                raise PydanticCustomError(
+                    SENSITIVE_FIELD_ERROR_TYPE,
+                    "Campos sensíveis não são aceitos na geração de conteúdo",
                     {"fields": list(hits)},
                 )
         return data

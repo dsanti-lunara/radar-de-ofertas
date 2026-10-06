@@ -22,6 +22,7 @@ from radar.api.ai_review import build_ai_review_router
 from radar.api.allowed_claims import build_allowed_claims_router
 from radar.api.captures import build_capture_router, register_capture_error_handlers
 from radar.api.classification import build_classification_router
+from radar.api.content_generations import build_content_generation_router
 from radar.api.contracts import CORRELATION_HEADER
 from radar.api.demand import build_demand_router
 from radar.api.evaluation import build_evaluation_router
@@ -40,6 +41,7 @@ from radar.bootstrap import build_health_service
 from radar.domain.affiliate_link import AffiliateLinkProvider
 from radar.domain.ai_review import AIProvider
 from radar.domain.config import RadarConfig
+from radar.domain.content import ContentProvider
 from radar.domain.demand import DemandNormalization
 from radar.domain.knowledge import KnowledgePack
 from radar.domain.operations import AutomationPolicy, ChannelCompliancePolicy
@@ -83,6 +85,7 @@ def create_app(
     compliance_policy: ChannelCompliancePolicy | None = None,
     knowledge_pack: KnowledgePack | None = None,
     ai_provider: AIProvider | None = None,
+    content_provider: ContentProvider | None = None,
     tracking_labels: TrackingLabelMapping | None = None,
     affiliate_link_provider: AffiliateLinkProvider | None = None,
 ) -> FastAPI:
@@ -111,6 +114,7 @@ def create_app(
     resolved_compliance = compliance_policy or CompliancePolicyLoader.from_env().load()
     resolved_knowledge = knowledge_pack or KnowledgePackLoader.from_env().load()
     resolved_provider = ai_provider or FakeAIProvider()
+    resolved_content_provider = content_provider or FakeAIProvider()
     resolved_tracking = tracking_labels or TrackingLabelMappingLoader.from_env().load()
     resolved_link_provider = affiliate_link_provider or FakeAffiliateLinkProvider()
     health_service = build_health_service(resolved_settings, resolved_engine)
@@ -130,6 +134,7 @@ def create_app(
     app.state.compliance_policy = resolved_compliance
     app.state.knowledge_pack = resolved_knowledge
     app.state.ai_provider = resolved_provider
+    app.state.content_provider = resolved_content_provider
     app.state.tracking_labels = resolved_tracking
     app.state.affiliate_link_provider = resolved_link_provider
 
@@ -156,6 +161,11 @@ def create_app(
     )
     app.include_router(
         build_affiliate_link_router(resolved_engine, resolved_tracking, resolved_link_provider)
+    )
+    app.include_router(
+        build_content_generation_router(
+            resolved_engine, resolved_knowledge, resolved_content_provider, resolved_compliance
+        )
     )
 
     @app.get("/version")

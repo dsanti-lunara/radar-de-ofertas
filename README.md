@@ -318,4 +318,20 @@ links. Erros: `RAD-LINK-001/002/003/004/005/006/007/008`; mapeamento inválido
 bloqueia a API com `RAD-CFG-015`. A associação real ML/landing e a geração por
 adapter pertencem a #45/#46. Contrato em `docs/04_DATA_CONTRACTS.md`.
 
+Content generation (TKT-21): `POST /opportunities/{id}/content-generations` gera a
+`ContentGeneration` (RDR-019/RDR-051) de uma Opportunity não terminal que já possui
+`AffiliateLink` validado. O provider Fake (RDR-051) devolve apenas
+`headline`/`body`/`cta`/`warnings`; os guards determinísticos (Numeric Guard
+RDR-052, Claim Guard RDR-053, regras de canal e compliance RDR-054) precedem
+conteúdo utilizável: um número comercial ou claim sem Evidence bloqueia a preview
+publicável (`RAD-AI-005`/`RAD-AI-006`) e uma URL inventada pela IA é recusada
+(`RAD-AI-013`), sem persistir nada. O renderer determinístico (RDR-069) insere
+preço (claim `CURRENT_PRICE`), a URL afiliada **literal** e o disclosure; generated
+e final content ficam separados com suas versões. `GET
+/opportunities/{id}/content-generations` e `GET /content-generations/{id}`
+consultam as previews, reportando `STALE` quando um fato relevante (nova
+observação de preço, link, versão de knowledge/prompt) muda. Erros:
+`RAD-AI-004/005/006/007/011/012/013/014/015`; contrato em
+`docs/04_DATA_CONTRACTS.md`.
+
 Testes live (browser/IA/Telegram/WhatsApp) são opt-in e ficam fora da suíte padrão.

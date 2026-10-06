@@ -51,6 +51,15 @@ from radar.domain.capture import (
     CAPTURE_SENSITIVE_FIELD,
     MARKETPLACE_PRODUCT_NOT_FOUND,
 )
+from radar.domain.content import (
+    CONTENT_CHANNEL_INVALID,
+    CONTENT_COMPLIANCE_BLOCKED,
+    CONTENT_GENERATION_NOT_FOUND,
+    CONTENT_INPUT_INVALID,
+    CONTENT_URL_NOT_ALLOWED,
+    UNSUPPORTED_CLAIM,
+    UNSUPPORTED_NUMERIC_CLAIM,
+)
 from radar.domain.demand import DEMAND_INPUT_INVALID
 from radar.domain.errors import RadarError, RadarException
 from radar.domain.evaluation import EVALUATION_INPUT_INVALID
@@ -112,6 +121,7 @@ def _error_status(error_code: str) -> int:
         OPPORTUNITY_NOT_FOUND,
         AI_REVIEW_NOT_FOUND,
         AFFILIATE_LINK_NOT_FOUND,
+        CONTENT_GENERATION_NOT_FOUND,
     ):
         return 404
     if error_code in (
@@ -143,6 +153,12 @@ def _error_status(error_code: str) -> int:
     if error_code in (
         AI_REVIEW_INPUT_INVALID,
         ALLOWED_CLAIMS_INPUT_INVALID,
+        CONTENT_CHANNEL_INVALID,
+        CONTENT_COMPLIANCE_BLOCKED,
+        CONTENT_INPUT_INVALID,
+        CONTENT_URL_NOT_ALLOWED,
+        UNSUPPORTED_CLAIM,
+        UNSUPPORTED_NUMERIC_CLAIM,
         CAPTURE_PAYLOAD_INVALID,
         CAPTURE_SENSITIVE_FIELD,
         CLASSIFICATION_INPUT_INVALID,
@@ -207,6 +223,10 @@ _AI_REVIEW_PATH_SUFFIXES = ("/ai-review", "/ai-reviews")
 _AFFILIATE_LINK_PATH_PREFIXES = ("/affiliate-links",)
 _AFFILIATE_LINK_PATH_SUFFIXES = ("/affiliate-link", "/affiliate-links")
 
+#: Content generation paths (``/opportunities/{id}/content-generations``).
+_CONTENT_PATH_PREFIXES = ("/content-generations",)
+_CONTENT_PATH_SUFFIXES = ("/content-generations",)
+
 
 def _is_job_path(request: Request) -> bool:
     return request.url.path.startswith(_JOB_PATH_PREFIXES)
@@ -241,6 +261,11 @@ def _is_affiliate_link_path(request: Request) -> bool:
     )
 
 
+def _is_content_path(request: Request) -> bool:
+    path = request.url.path
+    return path.startswith(_CONTENT_PATH_PREFIXES) or path.endswith(_CONTENT_PATH_SUFFIXES)
+
+
 def _validation_error(request: Request, exc: RequestValidationError) -> JSONResponse:
     errors = exc.errors()
     sensitive = [item for item in errors if item.get("type") == SENSITIVE_FIELD_ERROR_TYPE]
@@ -251,6 +276,7 @@ def _validation_error(request: Request, exc: RequestValidationError) -> JSONResp
     recovery_path = _is_recovery_path(request)
     ai_review_path = _is_ai_review_path(request)
     affiliate_link_path = _is_affiliate_link_path(request)
+    content_path = _is_content_path(request)
     workflow_path = (
         schedule_path
         or job_path
@@ -259,8 +285,12 @@ def _validation_error(request: Request, exc: RequestValidationError) -> JSONResp
         or recovery_path
         or ai_review_path
         or affiliate_link_path
+        or content_path
     )
-    if affiliate_link_path:
+    if content_path:
+        workflow_code = CONTENT_INPUT_INVALID
+        workflow_label = "content generation"
+    elif affiliate_link_path:
         workflow_code = AFFILIATE_LINK_INPUT_INVALID
         workflow_label = "affiliate link"
     elif ai_review_path:

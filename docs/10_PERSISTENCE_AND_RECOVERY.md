@@ -162,6 +162,20 @@ um link inválido não deixa registro parcial. A `affiliate_link` não é append
 porque a entidade tem `status`/lifecycle; a trilha de auditoria é o
 `audit_event`. Ver `docs/04_DATA_CONTRACTS.md`.
 
+Implementação (TKT-21): a migration `0015_content_generation` acrescenta a tabela
+`content_generation` (append-only via triggers `trg_content_generation_no_update`/
+`_no_delete`, com FK para `opportunity`/`candidate`/`audit_event` e índice
+`ix_content_generation_opportunity`) e atualiza `schema_version`. Cada linha é uma
+`ContentGeneration` versionada com o conteúdo gerado (headline/body/cta) e o
+conteúdo final renderizado (preço, URL afiliada literal, disclosure, tracking)
+guardados **separadamente**, além de `generation_version`/`knowledge_version`/
+`prompt_version`/`renderer_version` e do snapshot `facts`/`fact_hash`. A preview é
+gravada na **mesma transação** do seu `AuditEvent` `CONTENT_GENERATION_RECORDED`,
+então uma falha de provider, uma URL inventada pela IA ou um guard (número/claim sem
+Evidence) não deixa registro parcial. A linha nunca é mutada: `STALE` é derivado na
+leitura comparando o `fact_hash` com os fatos atuais (última observação de preço,
+link vigente, versão de knowledge/prompt). Ver `docs/04_DATA_CONTRACTS.md`.
+
 ## Append-only
 
 Não sobrescrever:
@@ -170,6 +184,7 @@ Não sobrescrever:
 - PurchaseSourceDecision;
 - RepostDecision;
 - AIReview;
+- ContentGeneration;
 - HumanReview;
 - PublicationEvent;
 - Domain/Audit events.

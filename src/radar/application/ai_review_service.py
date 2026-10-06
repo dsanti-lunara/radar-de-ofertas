@@ -62,6 +62,7 @@ class CandidateAIContext:
     correlation_id: str
     raw_capture_id: str
     offer_id: str
+    marketplace_product_id: str | None = None
 
 
 class CandidateAIContextRepository(Protocol):

@@ -586,3 +586,49 @@ class AffiliateLinkRow(Base):
     )
     schema_version: Mapped[str] = mapped_column(String(16), nullable=False)
     created_at: Mapped[str] = mapped_column(String(40), nullable=False)
+
+
+class ContentGenerationRow(Base):
+    """Versioned, auditable content preview of one Opportunity (RDR-019).
+
+    ``generated_content`` (AI copy) and ``final_content`` (renderer output with
+    backend price/link/disclosure) are stored separately with their own versions
+    (AUT-034, AUT-081, AUT-163). ``facts``/``fact_hash`` snapshot the facts the copy
+    depends on, so a later change makes the content ``STALE`` on read without
+    mutating the row. SQLite triggers installed by migration
+    ``0015_content_generation`` reject UPDATE/DELETE, keeping the artifact
+    append-only, and foreign keys tie the row to its Opportunity, Candidate and
+    audit event (AUT-233). Money is a decimal string and timestamps ISO-8601 UTC
+    (AUT-231, AUT-232).
+    """
+
+    __tablename__ = "content_generation"
+    __table_args__ = (Index("ix_content_generation_opportunity", "opportunity_id", "created_at"),)
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    opportunity_id: Mapped[str] = mapped_column(
+        String(64), ForeignKey("opportunity.id"), nullable=False
+    )
+    candidate_id: Mapped[str] = mapped_column(
+        String(64), ForeignKey("candidate.id"), nullable=False
+    )
+    brand: Mapped[str] = mapped_column(String(32), nullable=False)
+    channel: Mapped[str] = mapped_column(String(16), nullable=False)
+    generation_version: Mapped[str] = mapped_column(String(64), nullable=False)
+    knowledge_version: Mapped[str] = mapped_column(String(64), nullable=False)
+    knowledge_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    prompt_version: Mapped[str] = mapped_column(String(64), nullable=False)
+    renderer_version: Mapped[str] = mapped_column(String(64), nullable=False)
+    generated_content: Mapped[str] = mapped_column(Text, nullable=False)
+    final_content: Mapped[str] = mapped_column(Text, nullable=False)
+    guards: Mapped[str] = mapped_column(Text, nullable=False)
+    warnings: Mapped[str] = mapped_column(Text, nullable=False)
+    facts: Mapped[str] = mapped_column(Text, nullable=False)
+    fact_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    status: Mapped[str] = mapped_column(String(16), nullable=False)
+    correlation_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    audit_event_id: Mapped[str] = mapped_column(
+        String(64), ForeignKey("audit_event.id"), nullable=False
+    )
+    schema_version: Mapped[str] = mapped_column(String(16), nullable=False)
+    created_at: Mapped[str] = mapped_column(String(40), nullable=False)

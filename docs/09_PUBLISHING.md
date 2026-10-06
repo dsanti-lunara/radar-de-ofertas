@@ -68,6 +68,15 @@ Renderer adiciona deterministicamente:
 
 IA nunca cria/edita URL.
 
+Implementação (TKT-21, RDR-069): o renderer vive em `radar.domain.content` e lê
+somente o preço sustentado pela claim `CURRENT_PRICE` (Evidence do backend) e o
+`AffiliateLink.affiliate_url` **literal** já validado; `render_content` monta os
+blocos determinísticos (disclosure, headline, body, preço, CTA, link) com
+`renderer_version`. Nenhuma URL vinda da IA é aceita (a resposta do provider é
+recusada com `RAD-AI-013`) e a URL persistida nunca é editada/sintetizada
+(AUT-163/AUT-164). `generated_content` e `final_content` ficam separados com suas
+versões. Ver `docs/04_DATA_CONTRACTS.md`.
+
 ## Telegram
 
 - um bot operacional pode atender ambos os canais;

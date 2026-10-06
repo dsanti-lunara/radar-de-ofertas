@@ -73,6 +73,11 @@ Prefixos sugeridos:
 | RAD-AI-008 AI_REVIEW_INPUT_INVALID | input do Editorial Review inválido (schema_version, channel) |
 | RAD-AI-009 AI_REVIEW_NOT_FOUND | AIReview consultada não existe |
 | RAD-AI-010 AI_REFUSAL | provider recusou a tarefa; nunca vira aprovação |
+| RAD-AI-011 CONTENT_GENERATION_NOT_FOUND | ContentGeneration consultada não existe |
+| RAD-AI-012 CONTENT_INPUT_INVALID | input/estado de geração de conteúdo inválido (schema_version, channel, Opportunity terminal ou sem link validado) |
+| RAD-AI-013 CONTENT_URL_NOT_ALLOWED | a IA tentou introduzir uma URL; o renderer usa o link validado |
+| RAD-AI-014 CONTENT_CHANNEL_INVALID | conteúdo excede as regras do canal |
+| RAD-AI-015 CONTENT_COMPLIANCE_BLOCKED | policy de compliance BLOCKED recusa a preview |
 
 ## Workflow
 
@@ -187,6 +192,21 @@ mapeamento ausente `RAD-LINK-005`, etiqueta inválida `RAD-LINK-004`, link
 inválido/produto errado/host inválido `RAD-LINK-003`, provider indisponível
 `RAD-LINK-006` (retryable) e um link Fake usado produtivamente `RAD-LINK-008`.
 Mapeamento de etiquetas inválido bloqueia a API com `RAD-CFG-015`.
+
+A geração de conteúdo (TKT-21, RDR-019/RDR-051..054/RDR-069) ocorre por
+`POST /opportunities/{opportunity_id}/content-generations` para uma Opportunity não
+terminal que já possui `AffiliateLink` validado. A IA devolve apenas
+`headline`/`body`/`cta`/`warnings`; os guards determinísticos precedem conteúdo
+utilizável e um número comercial ou claim sem Evidence bloqueia a preview
+publicável (`RAD-AI-005`/`RAD-AI-006`) sem persistir nada. Uma URL introduzida pela
+IA é recusada (`RAD-AI-013`), um campo sensível `RAD-AI-007`, um schema inválido
+`RAD-AI-004`, uma regra de canal `RAD-AI-014`, compliance `BLOCKED` `RAD-AI-015`, um
+input/estado inválido (Opportunity terminal ou sem link) `RAD-AI-012` e uma geração
+inexistente `RAD-AI-011`. `RAD-WF-014` cobre Opportunity inexistente e
+`RAD-CAP-004`/`RAD-CAP-013` Candidate/Evaluation inexistentes. `GET
+/opportunities/{opportunity_id}/content-generations` e
+`GET /content-generations/{content_generation_id}` consultam as previews e reportam
+`STALE` quando um fato relevante muda.
 
 ## Publishing
 

@@ -102,6 +102,18 @@ class SqlAlchemyAffiliateLinkRepository:
             raise
         return link
 
+    def find_link_for_opportunity(self, opportunity_id: str) -> AffiliateLink | None:
+        """Return the most recent validated link of one Opportunity, if any."""
+
+        with Session(self.engine) as session:
+            row = session.execute(
+                select(AffiliateLinkRow)
+                .where(AffiliateLinkRow.opportunity_id == opportunity_id)
+                .order_by(AffiliateLinkRow.created_at.desc(), AffiliateLinkRow.id.desc())
+                .limit(1)
+            ).scalar_one_or_none()
+            return None if row is None else _link_from_row(row)
+
     def list_links(self, candidate_id: str) -> tuple[AffiliateLink, ...]:
         with Session(self.engine) as session:
             rows = (

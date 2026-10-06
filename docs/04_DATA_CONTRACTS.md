@@ -1225,6 +1225,85 @@ com `RAD-CFG-015`. A associação real ML/landing e a geração por adapter pert
 a #45/#46; o adapter real deve passar o gate `AUTHENTICATED_LINK` (TKT-17) antes
 do side effect, enquanto o Fake offline não é produtivo e não consulta o gate.
 
+## ContentGeneration e renderer determinístico, implementação (TKT-21, RDR-019/RDR-051..054/RDR-069)
+
+`POST /opportunities/{opportunity_id}/content-generations` (`schema_version=1.0`)
+gera a `ContentGeneration` de uma Opportunity não terminal que já possui
+`AffiliateLink` validado. A entrada pública carrega somente o `channel`
+(`TELEGRAM`/`WHATSAPP`); os fatos sanitizados, a Evaluation imutável, os
+`allowed_claims` e o link validado são lidos da persistência, e o Knowledge Pack
+resolve o contexto mínimo (`brand + channel + task`). `GET
+/opportunities/{opportunity_id}/content-generations` lista as gerações e
+`GET /content-generations/{content_generation_id}` retorna uma geração.
+
+```json
+{
+  "schema_version": "1.0",
+  "status": "VALIDATED",
+  "content_generation_id": "ctg_...",
+  "opportunity_id": "opp_...",
+  "candidate_id": "cand_...",
+  "brand": "RADAR_BEAUTY",
+  "channel": "TELEGRAM",
+  "generation_version": "content-generation-1.0",
+  "knowledge_version": "knowledge-pack-1.0",
+  "knowledge_hash": "sha256...",
+  "prompt_version": "editorial-review-1.0",
+  "renderer_version": "renderer-1.0",
+  "generated_content": {
+    "headline": "Radar Beauty: oferta selecionada",
+    "body": "Oferta por R$ 80.00.",
+    "cta": "Aproveite agora",
+    "warnings": []
+  },
+  "final_content": {
+    "headline": "Radar Beauty: oferta selecionada",
+    "body": "Oferta por R$ 80.00.",
+    "cta": "Aproveite agora",
+    "price": "80.00",
+    "price_display": "80,00",
+    "affiliate_url": "https://www.mercadolivre.com.br/social/radar-fake/MLB123?matt_word=rbtgoffer",
+    "disclosure": "Conteúdo de afiliado: podemos receber comissão por compras feitas pelos links.",
+    "tracking": {"tracking_context_id": "trk_...", "external_label": "rbtgoffer"},
+    "blocks": ["...", "Preço: R$ 80,00", "..."],
+    "text": "...",
+    "renderer_version": "renderer-1.0"
+  },
+  "guards": ["numeric", "claim", "channel", "compliance"],
+  "warnings": [],
+  "publishable": true,
+  "stale": false,
+  "fact_hash": "sha256...",
+  "facts": {"price": "80.00", "affiliate_url": "https://...", "channel": "TELEGRAM"},
+  "correlation_id": "cid-1",
+  "audit_event_id": "aud_...",
+  "created_at": "2026-10-06T12:00:00+00:00"
+}
+```
+
+A IA devolve apenas `headline`/`body`/`cta`/`warnings` (RDR-051): preço renderizado,
+URL afiliada e disclosure são inseridos pelo renderer determinístico (RDR-069,
+AUT-163). Os validators locais precedem conteúdo utilizável (AUT-082): schema,
+Numeric Guard (RDR-052), Claim Guard (RDR-053), regras de canal e compliance
+(RDR-054). Um número comercial ou claim sem Evidence bloqueia a preview publicável
+(`RAD-AI-005`/`RAD-AI-006`) e uma URL introduzida pela IA é recusada
+(`RAD-AI-013`), sem persistir nada; o `publishable` reflete os guards de conteúdo
+(o envio comercial continua gated por TKT-17). Conteúdo de marketplace é dado não
+confiável: o texto é sanitizado (HTML bruto removido e caracteres de controle
+normalizados) e campo sensível é recusado (`RAD-AI-007`). `generated_content` e
+`final_content` ficam separados com suas versões. A linha é append-only (triggers no
+banco) e cada gravação cria um `AuditEvent` `CONTENT_GENERATION_RECORDED` na mesma
+transação. `STALE` é derivado na leitura: quando um fato relevante muda (nova
+`PriceObservation`, link vigente ou versão de knowledge/prompt), a geração é
+reportada como `STALE`/`publishable=false` sem mutar a linha. Erros usam
+`{schema_version, status:"INVALID", correlation_id, error}` com `RAD-AI-011`
+(geração inexistente), `RAD-AI-012` (input/estado inválido), `RAD-AI-013` (URL da
+IA), `RAD-AI-014` (regra de canal), `RAD-AI-015` (compliance BLOCKED), `RAD-AI-004`
+(schema inválido), `RAD-AI-005` (número sem Evidence), `RAD-AI-006` (claim sem
+Evidence), `RAD-AI-007` (campo sensível), `RAD-WF-014` (Opportunity inexistente) e
+`RAD-CAP-004`/`RAD-CAP-013` (Candidate/Evaluation inexistentes). O gate de
+autorização `PUBLISH` (TKT-17) e a `Publication` pertencem aos tickets dependentes.
+
 ## AI Editorial Review input
 
 ```json

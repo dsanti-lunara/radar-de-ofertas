@@ -198,10 +198,14 @@ Separada de Publication.
 - opportunity_id;
 - brand;
 - channel;
-- headline/body/cta;
+- generated_content (headline/body/cta) separado de final_content renderizado
+  (preço, affiliate URL literal, disclosure e tracking);
 - generation_version;
 - knowledge_version;
-- status.
+- prompt_version;
+- renderer_version;
+- facts/fact_hash (para derivar STALE na leitura);
+- status (VALIDATED/STALE).
 
 ### Publication
 

@@ -16,11 +16,15 @@ from __future__ import annotations
 from typing import Any
 
 from radar.domain.ai_review import AIReviewInput, EditorialDecision
+from radar.domain.content import ContentGenerationInput
 from radar.domain.evaluation import Decision
 
 #: Provider identity recorded on every AIReview produced by the fake.
 FAKE_PROVIDER_NAME = "fake"
 FAKE_PROVIDER_MODEL = "fake-editorial-review-1.0"
+
+#: Model recorded on every Content Generation produced by the fake.
+FAKE_CONTENT_MODEL = "fake-content-generation-1.0"
 
 #: Reason codes emitted deterministically by the fake provider.
 REASON_EDITORIAL_PASSED = "EDITORIAL_REVIEW_PASSED"
@@ -112,11 +116,40 @@ class FakeAIProvider:
             "warnings": [],
         }
 
+    def generate_content(self, request: ContentGenerationInput) -> dict[str, Any]:
+        """Return a deterministic Content Generation response mapping.
+
+        The copy is derived only from backend-sustained facts: the headline names
+        the brand and the body quotes the ``CURRENT_PRICE`` claim value, so every
+        number the fake emits is already backed by Evidence (RDR-052) and the
+        content passes the local guards. No URL is produced: the renderer inserts
+        the validated affiliate link (AUT-163, AUT-164).
+        """
+
+        brand_label = request.brand.value.replace("_", " ").title()
+        price = _claim_value(request.allowed_claims, "CURRENT_PRICE")
+        body = f"Oferta por R$ {price}." if price is not None else "Oferta selecionada pelo Radar."
+        return {
+            "headline": f"{brand_label}: oferta selecionada",
+            "body": body,
+            "cta": "Aproveite agora",
+            "warnings": [],
+        }
+
+
+def _claim_value(claims: tuple[Any, ...] | list[Any], claim_type: str) -> str | None:
+    for claim in claims:
+        if isinstance(claim, dict) and claim.get("claim_type") == claim_type:
+            value = claim.get("value")
+            return None if value is None else str(value)
+    return None
+
 
 __all__ = [
     "ANGLE_CONFIRMED_COUPON",
     "ANGLE_GENERAL",
     "ANGLE_PRICE_OPPORTUNITY",
+    "FAKE_CONTENT_MODEL",
     "FAKE_PROVIDER_MODEL",
     "FAKE_PROVIDER_NAME",
     "FakeAIProvider",

@@ -207,3 +207,19 @@ timeout, auth e indisponibilidade retornam erro estruturado
 e os `allowed_claims` que sustentam a decisão. `GENERATE_CONTENT`/`CONTENT_REVIEW`
 (RDR-051) e o cache `ai_input_hash` (RDR-055) pertencem a tickets próprios; o
 Circuit Breaker permanece fora deste ticket.
+
+## Implementação (TKT-21, RDR-019/RDR-051..054/RDR-069)
+
+`GENERATE_CONTENT` (RDR-051) é implementado em `radar.domain.content`: o provider
+(contrato `ContentProvider`, satisfeito pelo `FakeAIProvider`) devolve somente
+`headline`/`body`/`cta`/`warnings`, e o `ContentGenerationService` valida a resposta
+antes de persistir. Os validators locais de `docs/06_AI_ENGINE.md` são
+determinísticos (AUT-082): schema (`RAD-AI-004`, campo sensível `RAD-AI-007`, URL da
+IA `RAD-AI-013`), Numeric Guard (RDR-052, número comercial sem Evidence →
+`RAD-AI-005`), Claim Guard (RDR-053, claim proibido/não sustentado → `RAD-AI-006`),
+regras de canal (`RAD-AI-014`) e compliance (`RAD-AI-015`). O renderer determinístico
+(RDR-069) insere o preço sustentado pela claim `CURRENT_PRICE`, a `AffiliateLink`
+literal e o disclosure, nunca uma URL da IA (AUT-163/AUT-164). `generated_content` e
+`final_content` ficam separados com suas versões e o `facts`/`fact_hash` permitem
+marcar a geração como `STALE` quando um fato relevante muda, sem mutar a linha.
+`CONTENT_REVIEW` e o cache `ai_input_hash` (RDR-055) continuam em tickets próprios.

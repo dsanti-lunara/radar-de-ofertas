@@ -411,6 +411,7 @@ class SqlAlchemyCaptureRepository:
                 correlation_id=candidate.correlation_id,
                 raw_capture_id=candidate.raw_capture_id,
                 offer_id=offer.id,
+                marketplace_product_id=marketplace_product.id,
             )
 
     def get_candidate_repost_context(self, candidate_id: str) -> CandidateRepostContext | None:

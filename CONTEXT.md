@@ -19,6 +19,12 @@ Referência interna auditável que correlaciona conversão → publicação → 
 **AffiliateLink**:
 Entidade própria e auditável com URL original, URL afiliada literal (nunca editada pela IA), método de geração e tracking; só existe após Opportunity aprovada e linkável. Um provider Fake não é link produtivo.
 
+**ContentGeneration**:
+Preview editorial versionada e auditável de uma Opportunity, com o conteúdo gerado
+pela IA separado do conteúdo final renderizado (preço, URL afiliada literal,
+disclosure e tracking). Números e claims só existem com Evidence do backend; o
+conteúdo fica STALE quando um fato relevante muda.
+
 **Link Shopee manual validado**:
 Retorno literal gerado pelo operador no portal, após Opportunity aprovada, aceito pelo Core somente com contexto/tracking/evidência válidos; não é fallback automático do Browser Bridge.
 

@@ -74,6 +74,9 @@ AI_REVIEW_RECORDED = "AI_REVIEW_RECORDED"
 #: Event type recorded when a validated AffiliateLink is persisted (RDR-018).
 AFFILIATE_LINK_GENERATED = "AFFILIATE_LINK_GENERATED"
 
+#: Event type recorded when a validated ContentGeneration is persisted (RDR-019).
+CONTENT_GENERATION_RECORDED = "CONTENT_GENERATION_RECORDED"
+
 
 @dataclass(frozen=True, slots=True)
 class AuditEvent:

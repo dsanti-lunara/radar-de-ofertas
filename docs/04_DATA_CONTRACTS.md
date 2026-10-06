@@ -1103,6 +1103,68 @@ pode ter produzido side effect externo de resultado desconhecido
 schedules perdidos são coalescidos em um único Job por schedule. `trigger`
 desconhecido e `schema_version` não suportada retornam `RAD-WF-019`.
 
+## AIReview, implementação (TKT-19, RDR-045..RDR-047/050)
+
+`POST /candidates/{candidate_id}/ai-review` (`schema_version=1.0`) executa o
+Editorial Review Fake sobre um Candidate já avaliado. A entrada pública carrega
+somente o `channel` (`TELEGRAM`/`WHATSAPP`); os fatos sanitizados do produto/oferta,
+a Evaluation imutável mais recente e os `allowed_claims` do backend são lidos da
+persistência, e o Knowledge Pack resolve o contexto mínimo (`brand + channel +
+task`). `GET /candidates/{candidate_id}/ai-reviews` lista as reviews e
+`GET /ai-reviews/{ai_review_id}` retorna uma review.
+
+```json
+{
+  "schema_version": "1.0",
+  "status": "OK",
+  "ai_review_id": "air_...",
+  "candidate_id": "cand_...",
+  "evaluation_id": "eval_...",
+  "task": "EDITORIAL_REVIEW",
+  "provider": "fake",
+  "model": "fake-editorial-review-1.0",
+  "knowledge_version": "knowledge-pack-1.0",
+  "knowledge_hash": "sha256...",
+  "prompt_version": "editorial-review-1.0",
+  "decision": "APPROVE",
+  "editorial_angle": "PRICE_OPPORTUNITY",
+  "reason_codes": ["EDITORIAL_REVIEW_PASSED", "PRICE_CONTEXT_AVAILABLE"],
+  "warnings": [],
+  "allowed_claims": [{"claim_type": "CURRENT_PRICE", "value": "80.00", "unit": "money"}],
+  "input_snapshot": {
+    "task": "EDITORIAL_REVIEW",
+    "brand": "RADAR_BEAUTY",
+    "channel": "TELEGRAM",
+    "product": {"external_id": "MLB123", "title": "Produto", "category": "Perfumes", "url": "https://..."},
+    "offer": {"current_price": "80.00", "original_price": null, "sales_count": 2300, "seller_name": "Loja"},
+    "evaluation": {"decision": "APPROVE", "deal_score": "91.00", "confidence": "HIGH"},
+    "knowledge": {"knowledge_version": "knowledge-pack-1.0", "configured": false}
+  },
+  "approval_eligible": true,
+  "audit_event_id": "aud_...",
+  "correlation_id": "cid-1",
+  "created_at": "2026-10-06T12:00:00+00:00"
+}
+```
+
+A decisão é `APPROVE`, `REVIEW` ou `REJECT` — a IA nunca retorna `AUTO_PUBLISH`
+(decisão de AutomationPolicy, AUT-059). O Fake é determinístico e offline (sem
+rede/credenciais): uma Evaluation `REJECT`/`REVIEW` nunca é sobrescrita em
+aprovação (AUT-056) e o ângulo editorial vem apenas dos claims sustentados pelo
+backend. Conteúdo de marketplace é dado não confiável: o texto é sanitizado (HTML
+bruto removido e caracteres de controle normalizados) e campo sensível é recusado
+(`RAD-AI-007`). Um Knowledge Pack sem contexto aprovado para o slice é uma lacuna
+explícita (`KNOWLEDGE_CONTEXT_NOT_CONFIGURED`, `configured=false`), nunca guidance
+inventada. O `AIReview` é append-only (triggers no banco) e cada gravação cria um
+`AuditEvent` `AI_REVIEW_RECORDED` na mesma transação. Falha/recusa/schema inválido
+do provider retorna `RAD-AI-001..004`/`RAD-AI-010` (503/502) antes de qualquer
+escrita, então nenhuma aprovação cega cria Opportunity. Erros usam
+`{schema_version, status:"INVALID", correlation_id, error}` com `RAD-AI-008` (input
+inválido), `RAD-AI-009` (AIReview inexistente), `RAD-CAP-004` (Candidate
+inexistente) e `RAD-CAP-013` (Evaluation inexistente). Knowledge Pack inválido
+bloqueia a API com `RAD-CFG-014` (use `config/knowledge-pack.example.json`;
+`RADAR_KNOWLEDGE_FILE` força um arquivo).
+
 ## AI Editorial Review input
 
 ```json

@@ -17,6 +17,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.engine import Engine
 
 from radar import __version__
+from radar.api.ai_review import build_ai_review_router
 from radar.api.allowed_claims import build_allowed_claims_router
 from radar.api.captures import build_capture_router, register_capture_error_handlers
 from radar.api.classification import build_classification_router
@@ -35,8 +36,10 @@ from radar.api.schedules import build_schedule_router
 from radar.api.seller_quality import build_seller_quality_router
 from radar.application.correlation import new_correlation_id
 from radar.bootstrap import build_health_service
+from radar.domain.ai_review import AIProvider
 from radar.domain.config import RadarConfig
 from radar.domain.demand import DemandNormalization
+from radar.domain.knowledge import KnowledgePack
 from radar.domain.operations import AutomationPolicy, ChannelCompliancePolicy
 from radar.domain.purchase_source import PurchaseSourcePolicy
 from radar.domain.repost import RepostPolicy
@@ -44,11 +47,13 @@ from radar.domain.retry import RetryPolicy
 from radar.domain.seller_quality import SellerQualityNormalization
 from radar.domain.taxonomy import BrandTaxonomy
 from radar.domain.workflow import WorkflowPolicy
+from radar.infrastructure.ai_provider import FakeAIProvider
 from radar.infrastructure.automation_policy import AutomationPolicyLoader
 from radar.infrastructure.compliance_policy import CompliancePolicyLoader
 from radar.infrastructure.config import ConfigLoader
 from radar.infrastructure.database import create_database_engine
 from radar.infrastructure.demand import DemandLoader
+from radar.infrastructure.knowledge import KnowledgePackLoader
 from radar.infrastructure.purchase_source import PurchaseSourcePolicyLoader
 from radar.infrastructure.repost import RepostPolicyLoader
 from radar.infrastructure.retry import RetryPolicyLoader
@@ -71,6 +76,8 @@ def create_app(
     workflow_policy: WorkflowPolicy | None = None,
     automation_policy: AutomationPolicy | None = None,
     compliance_policy: ChannelCompliancePolicy | None = None,
+    knowledge_pack: KnowledgePack | None = None,
+    ai_provider: AIProvider | None = None,
 ) -> FastAPI:
     # Invalid configuration raises ConfigInvalidError, so the API never serves
     # with a config that failed schema validation (RDR-004). The taxonomy is
@@ -95,6 +102,8 @@ def create_app(
     resolved_workflow = workflow_policy or WorkflowPolicyLoader.from_env().load()
     resolved_automation = automation_policy or AutomationPolicyLoader.from_env().load()
     resolved_compliance = compliance_policy or CompliancePolicyLoader.from_env().load()
+    resolved_knowledge = knowledge_pack or KnowledgePackLoader.from_env().load()
+    resolved_provider = ai_provider or FakeAIProvider()
     health_service = build_health_service(resolved_settings, resolved_engine)
 
     app = FastAPI(title="Radar Engine API", version=__version__)
@@ -110,6 +119,8 @@ def create_app(
     app.state.workflow_policy = resolved_workflow
     app.state.automation_policy = resolved_automation
     app.state.compliance_policy = resolved_compliance
+    app.state.knowledge_pack = resolved_knowledge
+    app.state.ai_provider = resolved_provider
 
     register_capture_error_handlers(app)
     app.include_router(build_capture_router(resolved_engine))
@@ -129,6 +140,9 @@ def create_app(
         build_operations_router(resolved_engine, resolved_automation, resolved_compliance)
     )
     app.include_router(build_recovery_router(resolved_engine))
+    app.include_router(
+        build_ai_review_router(resolved_engine, resolved_knowledge, resolved_provider)
+    )
 
     @app.get("/version")
     def version() -> dict[str, Any]:

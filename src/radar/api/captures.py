@@ -24,6 +24,16 @@ from radar.api.contracts import (
 )
 from radar.application.capture_service import ManualCaptureService
 from radar.application.correlation import bind_correlation_id, new_correlation_id
+from radar.domain.ai_review import (
+    AI_AUTH_REQUIRED,
+    AI_INVALID_RESPONSE,
+    AI_POLICY_VIOLATION,
+    AI_PROVIDER_UNAVAILABLE,
+    AI_REFUSAL,
+    AI_REVIEW_INPUT_INVALID,
+    AI_REVIEW_NOT_FOUND,
+    AI_USAGE_UNAVAILABLE,
+)
 from radar.domain.allowed_claims import ALLOWED_CLAIMS_INPUT_INVALID, EVALUATION_NOT_FOUND
 from radar.domain.capture import (
     CANDIDATE_NOT_FOUND,
@@ -87,8 +97,21 @@ def _error_status(error_code: str) -> int:
         JOB_NOT_FOUND,
         SCHEDULE_NOT_FOUND,
         OPPORTUNITY_NOT_FOUND,
+        AI_REVIEW_NOT_FOUND,
     ):
         return 404
+    if error_code in (
+        AI_AUTH_REQUIRED,
+        AI_PROVIDER_UNAVAILABLE,
+        AI_USAGE_UNAVAILABLE,
+    ):
+        return 503
+    if error_code in (
+        AI_INVALID_RESPONSE,
+        AI_POLICY_VIOLATION,
+        AI_REFUSAL,
+    ):
+        return 502
     if error_code in (
         CAPTURE_IDENTITY_CONFLICT,
         JOB_LEASE_NOT_HELD,
@@ -100,6 +123,7 @@ def _error_status(error_code: str) -> int:
     ):
         return 409
     if error_code in (
+        AI_REVIEW_INPUT_INVALID,
         ALLOWED_CLAIMS_INPUT_INVALID,
         CAPTURE_PAYLOAD_INVALID,
         CAPTURE_SENSITIVE_FIELD,
@@ -153,6 +177,10 @@ _OPERATIONS_PATH_PREFIXES = ("/operations", "/integrations")
 #: Recovery paths use the recovery input code.
 _RECOVERY_PATH_PREFIXES = ("/recovery",)
 
+#: AI review paths (including ``/candidates/{id}/ai-review``) use their code.
+_AI_REVIEW_PATH_PREFIXES = ("/ai-reviews",)
+_AI_REVIEW_PATH_SUFFIXES = ("/ai-review", "/ai-reviews")
+
 
 def _is_job_path(request: Request) -> bool:
     return request.url.path.startswith(_JOB_PATH_PREFIXES)
@@ -175,6 +203,11 @@ def _is_recovery_path(request: Request) -> bool:
     return request.url.path.startswith(_RECOVERY_PATH_PREFIXES)
 
 
+def _is_ai_review_path(request: Request) -> bool:
+    path = request.url.path
+    return path.startswith(_AI_REVIEW_PATH_PREFIXES) or path.endswith(_AI_REVIEW_PATH_SUFFIXES)
+
+
 def _validation_error(request: Request, exc: RequestValidationError) -> JSONResponse:
     errors = exc.errors()
     sensitive = [item for item in errors if item.get("type") == SENSITIVE_FIELD_ERROR_TYPE]
@@ -183,10 +216,19 @@ def _validation_error(request: Request, exc: RequestValidationError) -> JSONResp
     opportunity_path = _is_opportunity_path(request)
     operations_path = _is_operations_path(request)
     recovery_path = _is_recovery_path(request)
+    ai_review_path = _is_ai_review_path(request)
     workflow_path = (
-        schedule_path or job_path or opportunity_path or operations_path or recovery_path
+        schedule_path
+        or job_path
+        or opportunity_path
+        or operations_path
+        or recovery_path
+        or ai_review_path
     )
-    if operations_path:
+    if ai_review_path:
+        workflow_code = AI_REVIEW_INPUT_INVALID
+        workflow_label = "AI review"
+    elif operations_path:
         workflow_code = OPERATIONS_INPUT_INVALID
         workflow_label = "operations"
     elif recovery_path:

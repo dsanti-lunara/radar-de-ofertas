@@ -18,6 +18,7 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from radar.application.ai_review_service import CandidateAIContext
 from radar.application.allowed_claims_service import CandidateClaimsContext
 from radar.application.demand_service import CandidateDemandContext
 from radar.application.price_opportunity_service import CandidatePriceContext
@@ -375,6 +376,41 @@ class SqlAlchemyCaptureRepository:
                     )
                     for row in rows
                 ),
+            )
+
+    def get_candidate_ai_context(self, candidate_id: str) -> CandidateAIContext | None:
+        """Read the sanitized product/offer facts used by the AI review (RDR-050).
+
+        The stored capture already sanitized free text and never stores HTML
+        (AUT-203); this read only exposes the inert, structured facts the AI may
+        use, together with the provenance Correlation ID of the capture.
+        """
+
+        with Session(self.engine) as session:
+            candidate = session.get(CandidateRow, candidate_id)
+            if candidate is None:
+                return None
+            offer = session.get(OfferRow, candidate.offer_id)
+            if offer is None:
+                return None
+            marketplace_product = session.get(MarketplaceProductRow, offer.marketplace_product_id)
+            if marketplace_product is None:
+                return None
+            return CandidateAIContext(
+                candidate_id=candidate.id,
+                marketplace=marketplace_product.marketplace,
+                external_id=marketplace_product.external_id,
+                title=marketplace_product.title,
+                url=marketplace_product.url,
+                raw_category=marketplace_product.raw_category,
+                current_price=Decimal(offer.current_price),
+                original_price=_optional_decimal(offer.original_price),
+                sales_count=offer.sales_count,
+                seller_name=offer.seller_name,
+                captured_at=_parse(offer.captured_at),
+                correlation_id=candidate.correlation_id,
+                raw_capture_id=candidate.raw_capture_id,
+                offer_id=offer.id,
             )
 
     def get_candidate_repost_context(self, candidate_id: str) -> CandidateRepostContext | None:

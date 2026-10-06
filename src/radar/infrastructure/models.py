@@ -499,3 +499,44 @@ class HumanActionRow(Base):
     schema_version: Mapped[str] = mapped_column(String(16), nullable=False)
     created_at: Mapped[str] = mapped_column(String(40), nullable=False)
     updated_at: Mapped[str] = mapped_column(String(40), nullable=False)
+
+
+class AIReviewRow(Base):
+    """Append-only, versioned editorial AI review (RDR-050, AUT-035/AUT-065).
+
+    SQLite triggers installed by migration ``0013_ai_review`` reject any UPDATE or
+    DELETE, so an old review is never overwritten. The row stores the provider and
+    model, the knowledge/prompt versions it was produced from, the structured
+    decision and the ``allowed_claims``/input snapshot as JSON. Marketplace facts
+    are stored sanitized (no HTML, no secrets) and money as decimal strings
+    (AUT-203, AUT-232, AUT-299).
+    """
+
+    __tablename__ = "ai_review"
+    __table_args__ = (Index("ix_ai_review_candidate", "candidate_id", "created_at"),)
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    candidate_id: Mapped[str] = mapped_column(
+        String(64), ForeignKey("candidate.id"), nullable=False
+    )
+    evaluation_id: Mapped[str] = mapped_column(
+        String(64), ForeignKey("evaluation.id"), nullable=False
+    )
+    task: Mapped[str] = mapped_column(String(48), nullable=False)
+    provider: Mapped[str] = mapped_column(String(32), nullable=False)
+    model: Mapped[str | None] = mapped_column(String(64))
+    knowledge_version: Mapped[str] = mapped_column(String(64), nullable=False)
+    knowledge_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    prompt_version: Mapped[str] = mapped_column(String(64), nullable=False)
+    decision: Mapped[str] = mapped_column(String(16), nullable=False)
+    editorial_angle: Mapped[str | None] = mapped_column(String(128))
+    reason_codes: Mapped[str] = mapped_column(Text, nullable=False)
+    warnings: Mapped[str] = mapped_column(Text, nullable=False)
+    allowed_claims: Mapped[str] = mapped_column(Text, nullable=False)
+    input_snapshot: Mapped[str] = mapped_column(Text, nullable=False)
+    correlation_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    audit_event_id: Mapped[str] = mapped_column(
+        String(64), ForeignKey("audit_event.id"), nullable=False
+    )
+    schema_version: Mapped[str] = mapped_column(String(16), nullable=False)
+    created_at: Mapped[str] = mapped_column(String(40), nullable=False)

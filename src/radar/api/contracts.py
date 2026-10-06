@@ -15,6 +15,7 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from pydantic_core import PydanticCustomError
 
+from radar.domain.ai_review import AI_REVIEW_SCHEMA_VERSION
 from radar.domain.capture import (
     CAPTURE_SCHEMA_VERSION,
     CaptureIntake,
@@ -24,6 +25,7 @@ from radar.domain.capture import (
 )
 from radar.domain.evaluation import EVALUATION_SCHEMA_VERSION
 from radar.domain.job import DEFAULT_MAX_ATTEMPTS, JOB_SCHEMA_VERSION
+from radar.domain.knowledge import Channel
 from radar.domain.operations import (
     OPERATIONS_SCHEMA_VERSION,
     ExternalAction,
@@ -558,3 +560,35 @@ class RecoveryShutdownContract(_StrictContract):
         if value != RECOVERY_SCHEMA_VERSION:
             raise ValueError("schema_version de recovery não suportada")
         return value
+
+
+class AIReviewRequestContract(_StrictContract):
+    """Versioned input to run an Editorial Review (RDR-050).
+
+    Only the target channel is supplied by the caller: the reviewed facts, the
+    Immutable Evaluation and the ``allowed_claims`` are read from persistence, so
+    a caller can never inject a claim or steer the AI with unverified content.
+    """
+
+    schema_version: str = AI_REVIEW_SCHEMA_VERSION
+    channel: Channel
+
+    @field_validator("schema_version")
+    @classmethod
+    def _validate_schema_version(cls, value: str) -> str:
+        if value != AI_REVIEW_SCHEMA_VERSION:
+            raise ValueError("schema_version de AIReview não suportada")
+        return value
+
+    @model_validator(mode="before")
+    @classmethod
+    def _reject_sensitive_fields(cls, data: Any) -> Any:
+        if isinstance(data, Mapping):
+            hits = find_sensitive_fields(data)
+            if hits:
+                raise PydanticCustomError(
+                    SENSITIVE_FIELD_ERROR_TYPE,
+                    "Campos sensíveis não são aceitos no Editorial Review",
+                    {"fields": list(hits)},
+                )
+        return data

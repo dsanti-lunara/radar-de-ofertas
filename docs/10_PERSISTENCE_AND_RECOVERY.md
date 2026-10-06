@@ -138,6 +138,17 @@ knowledge → validate → database check → migrations check → recovery → 
 `radarctl recover`/`POST /recovery` executa a etapa de recovery e a fiação
 systemd pertence a RDR-117.
 
+Implementação (TKT-19): a migration `0013_ai_review` acrescenta a tabela
+`ai_review` (append-only via triggers `trg_ai_review_no_update`/`_no_delete`, com
+FK para `candidate`/`evaluation`/`audit_event`) e atualiza `schema_version`. Cada
+linha é uma `AIReview` imutável: provider/model, `knowledge_version`/
+`prompt_version`/`knowledge_hash`, a decisão editorial
+(`APPROVE`/`REVIEW`/`REJECT`) e os `allowed_claims`/input snapshot como JSON. A
+review é gravada na **mesma transação** do seu `AuditEvent` `AI_REVIEW_RECORDED`,
+então uma falha do provider (rede/recusa/schema inválido) não deixa registro
+parcial. Texto de marketplace é persistido sanitizado (sem HTML bruto, sem
+segredos) e dinheiro como string decimal. Ver `docs/04_DATA_CONTRACTS.md`.
+
 ## Append-only
 
 Não sobrescrever:

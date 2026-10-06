@@ -523,3 +523,23 @@ Scheduler (AUT-134). A fronteira pública (`POST`/`GET /recovery`, `POST
 /recovery/clean-shutdown`, `radarctl recover`) demonstra o comportamento. A
 suspensão de publicação e a HumanAction de resultado desconhecido pertencem ao
 TKT-24. Ver `docs/08_WORKFLOW_ENGINE.md` e `docs/04_DATA_CONTRACTS.md`.
+
+## Implementação (TKT-19, RDR-045..RDR-047/050)
+
+`AIReview` é uma entidade imutável/versionada, separada da `Evaluation` (AUT-035).
+O contrato do provider vive em `radar.domain.ai_review` (`AIProvider` +
+`EditorialDecision`/`AIReview`) e a seleção do Knowledge Pack em
+`radar.domain.knowledge` (`KnowledgePack`, `select_knowledge_context`), ambos sem
+FastAPI/SQLAlchemy/Chrome (AUT-397). O `AIReview` guarda provider/model,
+`knowledge_version`/`prompt_version`/`knowledge_hash`, a decisão estruturada
+(`APPROVE`/`REVIEW`/`REJECT`, nunca `AUTO_PUBLISH`) e o snapshot do input com os
+`allowed_claims` do backend, então o contexto editorial é rastreável (AUT-065). O
+`FakeAIProvider` é determinístico e offline (RDR-047) e o provider real continua
+gated por SPIKE-01/RDR-048. A persistência append-only vive em `ai_review`
+(migration `0013_ai_review`) com `AuditEvent` `AI_REVIEW_RECORDED` na mesma
+transação; a fronteira pública é `POST /candidates/{id}/ai-review` +
+`GET /candidates/{id}/ai-reviews` + `GET /ai-reviews/{id}`. A integração do
+`AIReview` como gate explícito do pipeline `AI_REVIEW_PENDING` (RDR-041) e os
+demais métodos do provider (`generate_content`, `review_content`,
+`classify_product`) pertencem aos tickets dependentes. Ver
+`docs/06_AI_ENGINE.md` e `docs/04_DATA_CONTRACTS.md`.

@@ -186,3 +186,24 @@ Estados:
 Falha da IA nunca resulta em publicação cega.
 
 Circuit breaker pode suspender AUTO quando houver sequência de respostas inválidas.
+
+## Implementação (TKT-19, RDR-045..RDR-047/050)
+
+O Knowledge Pack é uma configuração editorial versionada e hasheada
+(`radar.domain.knowledge`; `config/knowledge-pack.json` opcional, use
+`config/knowledge-pack.example.json`, `RADAR_KNOWLEDGE_FILE` força um arquivo) e o
+Runtime seleciona somente o contexto de `brand + channel + task`. O baseline
+aprovado é intencionalmente vazio: um slice sem contexto é lacuna explícita
+(`KNOWLEDGE_CONTEXT_NOT_CONFIGURED`), nunca guidance inventada.
+
+O contrato `AIProvider` (RDR-046) é o seam por onde o provider real (SPIKE-01/
+RDR-048) entrará; o `FakeAIProvider` (RDR-047) é determinístico, offline, não
+acessa rede nem credenciais e respeita os Hard Rules: uma Evaluation
+`REJECT`/`REVIEW` nunca vira aprovação. O Editorial Review (RDR-050) é validado
+antes de qualquer persistência: schema/enum inválido, `AUTO_PUBLISH`, refusal,
+timeout, auth e indisponibilidade retornam erro estruturado
+(`RAD-AI-001..004`/`RAD-AI-010`) e nunca criam Opportunity por aprovação cega. O
+`AIReview` append-only guarda provider/model, `knowledge_version`/`prompt_version`
+e os `allowed_claims` que sustentam a decisão. `GENERATE_CONTENT`/`CONTENT_REVIEW`
+(RDR-051) e o cache `ai_input_hash` (RDR-055) pertencem a tickets próprios; o
+Circuit Breaker permanece fora deste ticket.

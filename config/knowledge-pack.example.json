@@ -1,0 +1,22 @@
+{
+  "schema_version": "1.0",
+  "knowledge_version": "knowledge-pack-1.0",
+  "prompt_version": "editorial-review-1.0",
+  "entries": [
+    {
+      "brand": "RADAR_BEAUTY",
+      "channel": "TELEGRAM",
+      "system_contract": [
+        "Você é componente editorial do Radar; use apenas fatos fornecidos.",
+        "Não crie valores comerciais, não altere scores nem URLs.",
+        "Allowed claims e Hard Rules precedem criatividade."
+      ],
+      "brand_guidance": [
+        "Tom próximo e direto para Radar Beauty."
+      ],
+      "channel_guidance": [
+        "Mensagem curta para Telegram."
+      ]
+    }
+  ]
+}

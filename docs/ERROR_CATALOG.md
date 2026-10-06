@@ -56,6 +56,9 @@ Prefixos sugeridos:
 | RAD-AI-005 UNSUPPORTED_NUMERIC_CLAIM | número não sustentado |
 | RAD-AI-006 UNSUPPORTED_CLAIM | claim não sustentado |
 | RAD-AI-007 AI_POLICY_VIOLATION | conteúdo externo influenciou contrato |
+| RAD-AI-008 AI_REVIEW_INPUT_INVALID | input do Editorial Review inválido (schema_version, channel) |
+| RAD-AI-009 AI_REVIEW_NOT_FOUND | AIReview consultada não existe |
+| RAD-AI-010 AI_REFUSAL | provider recusou a tarefa; nunca vira aprovação |
 
 ## Workflow
 
@@ -145,6 +148,22 @@ desconhecido são bloqueados (`RECOVERY_JOB_BLOCKED`, `UNKNOWN_RESULT`), sem
 reenvio automático. `radarctl recover` oferece a mesma entrada pela CLI. Erros usam
 o contrato `{schema_version, status:"INVALID", correlation_id, error}`.
 
+Implementação TKT-19 (RDR-045..RDR-047/RDR-050): o Editorial Review Fake é
+executado por `POST /candidates/{candidate_id}/ai-review` (`schema_version=1.0`,
+`channel` `TELEGRAM`/`WHATSAPP`), que lê os fatos sanitizados do Candidate, a
+Evaluation imutável mais recente e os `allowed_claims` do backend, seleciona o
+contexto mínimo do Knowledge Pack (`brand + channel + task`) e persiste um
+`AIReview` append-only com `knowledge_version`/`prompt_version`/`knowledge_hash`,
+a decisão estruturada (`APPROVE`/`REVIEW`/`REJECT`) e o snapshot do input. A IA
+nunca retorna `AUTO_PUBLISH` (decisão de AutomationPolicy) e uma falha/recusa/
+schema inválido retorna `RAD-AI-001..004`/`RAD-AI-010` sem persistir nada, então
+nenhuma aprovação cega cria Opportunity. Erros usam o contrato
+`{schema_version, status:"INVALID", correlation_id, error}` com `RAD-AI-008`
+(input inválido), `RAD-AI-009` (AIReview inexistente), `RAD-CAP-004` (Candidate
+inexistente) e `RAD-CAP-013` (Evaluation inexistente). Knowledge Pack inválido
+bloqueia a API com `RAD-CFG-014`. `GET /candidates/{candidate_id}/ai-reviews` e
+`GET /ai-reviews/{ai_review_id}` consultam as decisões.
+
 ## Publishing
 
 | Code | Meaning |
@@ -200,6 +219,7 @@ o contrato `{schema_version, status:"INVALID", correlation_id, error}`.
 | RAD-CFG-011 WORKFLOW_POLICY_INVALID | policy do workflow ausente de schema/semântica válidos (versão, TTL inteiro `>0` ou nulo) | no |
 | RAD-CFG-012 AUTOMATION_POLICY_INVALID | automation policy ausente de schema/semântica válidos (versão, `default_mode`, rule com matcher, mode/brand válidos) | no |
 | RAD-CFG-013 COMPLIANCE_POLICY_INVALID | compliance policy ausente de schema/semântica válidos (versão, status, timestamps ISO-8601) | no |
+| RAD-CFG-014 KNOWLEDGE_INVALID | Knowledge Pack ausente de schema/semântica válidos (versão, prompt, brand/channel, guidance, campo sensível/desconhecido) | no |
 
 ## Capture / Domain
 

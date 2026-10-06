@@ -6,7 +6,7 @@ The model is intentionally framework-free. Infrastructure provides
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from enum import StrEnum
@@ -75,22 +75,29 @@ class SystemHealth:
         }
 
 
-def aggregate_health(checks: Sequence[HealthCheck]) -> HealthState:
-    """Combine individual checks into one system state.
+def aggregate_health_states(states: Iterable[HealthState]) -> HealthState:
+    """Combine individual states into one system state.
 
-    Fail closed: any ``UNHEALTHY`` check makes the system unhealthy, an
-    ``UNKNOWN`` check is reported as ``DEGRADED`` so an unproven dependency is
-    never advertised as healthy.
+    Fail closed: any ``UNHEALTHY`` state makes the system unhealthy, an
+    ``UNKNOWN``/``DEGRADED`` state is reported as ``DEGRADED`` so an unproven
+    dependency is never advertised as healthy.
     """
 
-    if not checks:
+    normalized = tuple(states)
+    if not normalized:
         return HealthState.UNKNOWN
-    states = {check.state for check in checks}
-    if HealthState.UNHEALTHY in states:
+    present = set(normalized)
+    if HealthState.UNHEALTHY in present:
         return HealthState.UNHEALTHY
-    if HealthState.UNKNOWN in states or HealthState.DEGRADED in states:
+    if HealthState.UNKNOWN in present or HealthState.DEGRADED in present:
         return HealthState.DEGRADED
     return HealthState.HEALTHY
+
+
+def aggregate_health(checks: Sequence[HealthCheck]) -> HealthState:
+    """Combine individual checks into one system state."""
+
+    return aggregate_health_states(check.state for check in checks)
 
 
 @runtime_checkable

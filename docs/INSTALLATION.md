@@ -57,6 +57,8 @@ Configuração e secrets (TKT-02): `radarctl config` valida e exibe a configura�
 
 Taxonomia de marcas (TKT-05): `config/brand-taxonomy.json` é opcional (base em `config/brand-taxonomy.example.json`); `RADAR_TAXONOMY_FILE` força um arquivo explícito. Taxonomia inválida bloqueia a criação da API com `RAD-CFG-005`. O baseline aprovado é usado quando o arquivo não existe.
 
+Control Center (TKT-25): o frontend React/TypeScript/Vite vive em `packages/control-center`; `pnpm --filter @radar/control-center build` gera `packages/control-center/dist`, servido localmente pelo `radar-api` em `127.0.0.1` (sem porta pública e sem CORS). `RADAR_CONTROL_CENTER_DIST` aponta para um build alternativo; sem build, a API continua operando (a UI não é pré-requisito do Core). O read model da Home é `GET /health/overview`.
+
 ## Verificação final
 
 `radarctl doctor` deve validar:

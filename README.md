@@ -367,4 +367,26 @@ evidência retorna 409 `RAD-PUB-007` e mantém a suspensão. `CONFIRM_SENT` marc
 mantém revalidação/guardrails. O Fake simula o crash
 (`FakePublisher(crash_after_accept=True)`).
 
+Control Center e Home health (TKT-25, RDR-056/RDR-057): a UI React/TypeScript/Vite
+fica em `packages/control-center` e consulta o read model
+`GET /health/overview` por polling REST. O overview (`schema_version=1.0`)
+responde 200 com as capabilities canônicas da Home (Core, Database, Scheduler,
+IA/ChatGPT, Browser, Mercado Livre, Shopee, WhatsApp, Telegram, Backup):
+`core` reflete a API que responde, `database` vem do probe de saúde e cada
+dependência vem de `GET /integrations`; uma integração nunca registrada é
+`UNKNOWN` (`INTEGRATION_NOT_REGISTERED`), nunca saudável, e o agregado usa a
+regra fail-closed (`DEGRADED`/`UNHEALTHY`). Build e execução local:
+
+```bash
+pnpm --filter @radar/control-center build   # gera packages/control-center/dist
+uv run radar-api                            # serve a UI em 127.0.0.1:8000 (GET /)
+pnpm --filter @radar/control-center dev     # dev server (proxy /health -> 127.0.0.1:8000)
+```
+
+O `radar-api` monta os assets em `/` apenas se o build existir (ou
+`RADAR_CONTROL_CENTER_DIST` apontar para ele), só em `127.0.0.1` e sem CORS; sem
+build a API continua operando normalmente. O contrato em
+`docs/04_DATA_CONTRACTS.md` e a rastreabilidade em
+`docs/13_QA_ACCEPTANCE_MATRIX.md`.
+
 Testes live (browser/IA/Telegram/WhatsApp) são opt-in e ficam fora da suíte padrão.

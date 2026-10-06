@@ -204,3 +204,24 @@ próprio escopo (AUT-315). Comandos e decisões de side effect são auditáveis 
 carregam Correlation ID. Esta fatia é demonstrável pela API; a UI dedicada
 permanece nos tickets de Control Center (RDR-057/RDR-064/RDR-066). Ver
 `docs/08_WORKFLOW_ENGINE.md` e `docs/04_DATA_CONTRACTS.md`.
+
+## Implementação (TKT-25, RDR-056/057)
+
+O Control Center é um app React + TypeScript + Vite (`packages/control-center`)
+com polling REST e sem WebSocket (AUT-391..394). A Home consulta o read model
+`GET /health/overview` a cada intervalo e desenha o health strip com as
+capabilities canônicas (Core, Database, Scheduler, IA/ChatGPT, Browser, Mercado
+Livre, Shopee, WhatsApp, Telegram, Backup). Cada item mostra o estado por texto
+(`Saudável`/`Degradado`/`Indisponível`/`Desconhecido`), nunca só por cor, e uma
+capability sem integração registrada ou sem probe é `UNKNOWN` — o strip não
+inventa capacidade (AUT-243, AUT-315). Um erro de API vira mensagem acionável e
+local, sem vazar corpo/credencial.
+
+A UI compilada é servida pelo próprio `radar-api` a partir de
+`packages/control-center/dist` (override `RADAR_CONTROL_CENTER_DIST`), montada
+em `/` depois das rotas da API e apenas em `127.0.0.1` (AUT-401/AUT-402). A UI
+não é pré-requisito do Core: sem build, a API continua servindo saúde/read models
+(AUT-442). Build local: `pnpm --filter @radar/control-center build` e então
+`radar-api`. Em desenvolvimento, `pnpm --filter @radar/control-center dev` faz
+proxy de `/health` para `127.0.0.1:8000`. As demais telas (Inbox, Publicações,
+Ações, Sistema, Configurações) seguem em RDR-058..RDR-067.

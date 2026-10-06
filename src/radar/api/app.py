@@ -1,19 +1,24 @@
 """Control Center API (RDR-010 / SPEC-01).
 
-The health/version/config boundary plus the manual capture boundary exist at
-this stage; the UI and the rest of the API arrive in their own tickets. Health
-reports fail closed: an unhealthy dependency yields HTTP 503 while the body
-keeps the structured contract. Invalid configuration blocks app creation
-before serving. Capture validation failures return the structured error
-contract with the Correlation ID.
+The health/version/config boundary, the manual capture boundary and the Home
+health overview read model exist at this stage; the rest of the UI arrives in its
+own tickets. Health reports fail closed: an unhealthy dependency yields HTTP 503
+while the body keeps the structured contract, whereas ``GET /health/overview``
+answers 200 with per-capability states for the Home strip. Invalid configuration
+blocks app creation before serving. Capture validation failures return the
+structured error contract with the Correlation ID. The compiled Control Center is
+served locally when a build exists, without becoming a prerequisite for the Core.
 """
 
 from __future__ import annotations
 
+import os
+from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy.engine import Engine
 
 from radar import __version__
@@ -26,6 +31,7 @@ from radar.api.content_generations import build_content_generation_router
 from radar.api.contracts import CORRELATION_HEADER
 from radar.api.demand import build_demand_router
 from radar.api.evaluation import build_evaluation_router
+from radar.api.home_health import build_home_health_router
 from radar.api.human_actions import build_human_action_router
 from radar.api.jobs import build_job_router
 from radar.api.operations import build_operations_router
@@ -73,6 +79,45 @@ from radar.infrastructure.taxonomy import TaxonomyLoader
 from radar.infrastructure.tracking_labels import TrackingLabelMappingLoader
 from radar.infrastructure.workflow_policy import WorkflowPolicyLoader
 
+#: Environment variable that overrides the Control Center build directory.
+CONTROL_CENTER_DIST_ENV = "RADAR_CONTROL_CENTER_DIST"
+
+#: Default Control Center build directory (relative to the repository root).
+_DEFAULT_CONTROL_CENTER_DIST = Path("packages") / "control-center" / "dist"
+
+
+def resolve_control_center_dist(override: Path | str | None = None) -> Path:
+    """Resolve the directory that holds the compiled Control Center assets.
+
+    Precedence: explicit ``override`` (used by tests) > ``RADAR_CONTROL_CENTER_DIST``
+    > the repository default ``packages/control-center/dist``.
+    """
+
+    if override is not None:
+        return Path(override)
+    configured = os.environ.get(CONTROL_CENTER_DIST_ENV)
+    if configured:
+        return Path(configured)
+    repository_root = Path(__file__).resolve().parents[3]
+    return repository_root / _DEFAULT_CONTROL_CENTER_DIST
+
+
+def mount_control_center(app: FastAPI, dist: Path | str | None = None) -> bool:
+    """Serve the compiled Control Center locally when it exists (AUT-401).
+
+    The mount is additive and fail-open for the Core: a missing build directory
+    (or a missing ``index.html``) leaves the API untouched, so the UI is never a
+    prerequisite for the Core to run. ``StaticFiles`` refuses directory listings
+    and path traversal by default and is mounted on ``127.0.0.1`` only, so no
+    public exposure is introduced (AUT-399, AUT-402).
+    """
+
+    directory = resolve_control_center_dist(dist)
+    if not (directory / "index.html").is_file():
+        return False
+    app.mount("/", StaticFiles(directory=str(directory), html=True), name="control-center")
+    return True
+
 
 def create_app(
     settings: Settings | None = None,
@@ -94,6 +139,7 @@ def create_app(
     affiliate_link_provider: AffiliateLinkProvider | None = None,
     publication_policy: PublicationPolicy | None = None,
     publisher: Publisher | None = None,
+    control_center_dist: Path | str | None = None,
 ) -> FastAPI:
     # Invalid configuration raises ConfigInvalidError, so the API never serves
     # with a config that failed schema validation (RDR-004). The taxonomy is
@@ -188,6 +234,7 @@ def create_app(
             resolved_automation,
         )
     )
+    app.include_router(build_home_health_router(resolved_engine, health_service))
 
     @app.get("/version")
     def version() -> dict[str, Any]:
@@ -222,5 +269,8 @@ def create_app(
                 "Cache-Control": "no-store",
             },
         )
+
+    # Mounted last so every API route takes precedence over the static assets.
+    mount_control_center(app, control_center_dist)
 
     return app

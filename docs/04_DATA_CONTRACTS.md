@@ -1410,6 +1410,74 @@ publicação. Erros usam `{schema_version, status:"INVALID", correlation_id, err
 O publisher real de WhatsApp mapeia o mesmo caso para `RAD-WA-004`. Ver
 `adr/0001-unknown-publication-result.md`.
 
+## Home health overview, implementação (TKT-25, RDR-056/RDR-057)
+
+`GET /health/overview` (`schema_version=1.0`) é o read model consumido pela Home
+do Control Center. Diferente do contrato de liveness/readiness de `GET /health`
+(que falha fechado com HTTP 503), o overview é uma representação diagnóstica:
+responde **HTTP 200** com o corpo versionado, e o estado agregado (`status`) e o
+estado de cada capability ficam explícitos no corpo, para a UI não confundir o
+status HTTP com a falha de uma dependência. O `Correlation ID` é ecoado no corpo
+e no header, com `Cache-Control: no-store`.
+
+```json
+{
+  "schema_version": "1.0",
+  "status": "DEGRADED",
+  "engine_version": "home-health-1.0",
+  "app_version": "0.1.0",
+  "correlation_id": "cid-1",
+  "observed_at": "2026-10-06T12:00:00+00:00",
+  "items": [
+    {"capability": "core", "state": "HEALTHY", "summary": "Control Center API respondendo", "source": "api", "reason_code": "API_RESPONDING"},
+    {"capability": "database", "state": "HEALTHY", "summary": "SQLite acessível com WAL e foreign keys ativos", "source": "health"},
+    {"capability": "scheduler", "state": "UNKNOWN", "summary": "Integração não registrada", "source": "unregistered", "reason_code": "INTEGRATION_NOT_REGISTERED", "integration": "scheduler"},
+    {"capability": "telegram", "state": "HEALTHY", "summary": "up", "source": "integration", "integration": "telegram", "integration_state": "ONLINE"}
+  ]
+}
+```
+
+As capabilities canônicas seguem `docs/11_OPERATIONS_AND_UI.md` e a ordem é
+estável: `core`, `database`, `scheduler`, `ai`, `browser`, `mercado_livre`,
+`shopee`, `whatsapp`, `telegram`, `backup`. `core` é `HEALTHY` quando este
+processo responde (uma falha de rede/HTTP é observada pelo próprio cliente da UI,
+que então mostra a capability como indisponível/desconhecida); `database` vem do
+probe `database` do health report. As demais vêm de `GET /integrations`
+(`PUT /integrations/{name}` continua sendo a fronteira de escrita) pelo nome
+canônico (`telegram`, `whatsapp`, `mercado_livre`, `shopee`, `ai`, `browser`,
+`scheduler`, `backup`), e uma capability **nunca registrada** é `UNKNOWN`
+(`reason_code=INTEGRATION_NOT_REGISTERED`), nunca saudável — sem inventar
+capacidade. Quando o store de integrações está ilegível (por exemplo, banco
+indisponível), todas viram `UNKNOWN` com
+`reason_code=INTEGRATION_HEALTH_UNAVAILABLE`.
+
+Mapeamento de `IntegrationState` para o estado da capability (fail closed):
+
+| IntegrationState | Capability state |
+|---|---|
+| `ONLINE` | `HEALTHY` |
+| `DEGRADED` | `DEGRADED` |
+| `OFFLINE`, `AUTH_REQUIRED`, `PAUSED`, `DISABLED` | `UNHEALTHY` |
+| `UNKNOWN` | `UNKNOWN` |
+
+O `status` agregado usa a mesma regra fail-closed do health model: qualquer
+`UNHEALTHY` torna o agregado `UNHEALTHY`; `UNKNOWN`/`DEGRADED` tornam o agregado
+`DEGRADED`, de modo que uma dependência não comprovada nunca é anunciada como
+saudável. O endpoint não introduz novo código de erro (não recebe input além do
+Correlation ID); um erro acionável aparece no item afetado (`error.code`,
+`error.retryable`, `error.action`).
+
+### Assets do Control Center (RDR-056, AUT-391/AUT-401)
+
+A UI é React + TypeScript + Vite (`packages/control-center`), faz polling REST em
+`/health/overview` (`AUT-394`) e é servida localmente pelo `radar-api` a partir
+de `packages/control-center/dist` (override por `RADAR_CONTROL_CENTER_DIST`). O
+mount estático é aditivo e montado **depois** das rotas da API (que mantêm
+precedência) e apenas em `127.0.0.1`; sem CORS. Um build ausente não impede o
+Core/API de operar (AUT-442). O contrato do overview é o mesmo consumido pela UI
+(`packages/control-center/src/contracts.ts`, espelho até a geração por OpenAPI de
+AUT-395).
+
 ## AI Editorial Review input
 
 ```json

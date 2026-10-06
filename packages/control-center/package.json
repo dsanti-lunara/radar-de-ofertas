@@ -1,0 +1,23 @@
+{
+  "name": "@radar/control-center",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Control Center local do Radar Engine (RDR-056/RDR-057): Home com health strip via REST/polling.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint src"
+  },
+  "dependencies": {
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.2",
+    "vite": "^8.0.0"
+  }
+}

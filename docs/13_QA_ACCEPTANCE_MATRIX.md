@@ -1014,3 +1014,50 @@ live, credencial, publisher real ou envio comercial.
 | Docs/contratos afetados e matriz QA atualizados; limitações e blockers remanescentes explícitos | este documento, `docs/03_DOMAIN_MODEL.md`, `docs/04_DATA_CONTRACTS.md`, `docs/08_WORKFLOW_ENGINE.md`, `docs/09_PUBLISHING.md`, `docs/10_PERSISTENCE_AND_RECOVERY.md`, `docs/ERROR_CATALOG.md`, `docs/RECOVERY_RUNBOOK.md`, `README.md` |
 
 Requirement → Test → Acceptance → Evidence completo para TKT-24. Limitações e blockers remanescentes: o crash é simulado pelo **Fake** (`crash_after_accept`); um encerramento abrupto do processo antes de qualquer registro local depende do publisher real persistir sua intenção de envio (RDR-071/RDR-108) e é homologado em VM por TKT-63; a reconciliação pós-restore (GRILL-003) e a UI de Human Actions (RDR-063/TKT-28) continuam em tickets próprios; a identidade/vínculo do grupo WhatsApp e o serializer canônico pertencem a RDR-104/RDR-105/RDR-107 e #52/#53 (aqui o `destination_id` é referência validada); o publisher real de WA mapeia o caso para `RAD-WA-004`; nenhuma capability foi promovida para AUTO e nenhum teste live/credenciado foi executado.
+
+## UI/Operations traceability, TKT-25 (RDR-056, RDR-057)
+
+Escopo: bootstrap do Control Center React/TypeScript/Vite com REST/polling e
+assets servidos localmente pelo `radar-api`, e a Home health overview que consulta
+o read model `GET /health/overview`; a strip diferencia
+saudável/degradado/indisponível/desconhecido sem inventar capacidade, a UI ausente
+não impede o Core e a fronteira não é exposta publicamente nem vaza secret.
+Camadas `unit`, `contract` e `integration` com SQLite temporário real e build
+Vite/disco local; nenhum teste live, credencial ou side effect comercial.
+
+| Requirement | Test (arquivo::caso) | Acceptance | Evidence |
+|---|---|---|---|
+| RDR-056 bootstrap Control Center | `packages/control-center/src/components/HealthStrip.test.tsx`, `packages/control-center/src/health/api.test.ts`, `tests/test_api_home_health.py::test_control_center_assets_are_served_locally_when_built` | React/TS/Vite com REST/polling e assets servidos localmente | `pnpm --filter @radar/control-center build`; `GET /` e `/assets/app.js` 200 via `radar-api`; `pnpm lint`, `pnpm typecheck`, `pnpm test` |
+| RDR-057 Home health overview | `tests/test_home_health_domain.py` (6 casos), `tests/test_api_home_health.py::test_overview_reports_core_and_database_and_never_invents_capabilities`, `::test_registered_integrations_drive_the_strip_without_inventing` | Home mostra Core/DB reais e dependências por integração, sem inventar capability | `GET /health/overview` 200 com `schema_version=1.0`, capabilities canônicas, `INTEGRATION_NOT_REGISTERED` para não registradas; `core=HEALTHY`, `database` do probe |
+| RDR-057 estados sem inventar capacidade | `tests/test_home_health_domain.py::test_registered_integration_states_map_to_capability_states`, `::test_missing_database_probe_is_unknown`, `::test_unreadable_integration_store_reports_health_unavailable`, `packages/control-center/src/health/strip.test.ts` | Strip diferencia indisponível/desconhecido/saudável e nunca anuncia dependência não comprovada | Mapa `ONLINE→HEALTHY`, `OFFLINE/AUTH_REQUIRED/PAUSED/DISABLED→UNHEALTHY`, `UNKNOWN→UNKNOWN`; agregado fail-closed `DEGRADED`/`UNHEALTHY`; rótulos textuais (não só cor) |
+| UI ausente não impede Core | `tests/test_api_home_health.py::test_core_operates_without_a_control_center_build` | Core/API opera sem build da UI | Sem `dist`: `GET /health`, `/health/overview`, `/version`, `/config` 200; `GET /` 404 |
+| Sem exposição pública; erro acionável e sem secret | `tests/test_api_home_health.py::test_overview_honors_caller_correlation_id_and_local_binding`, `::test_unavailable_database_error_is_actionable_and_does_not_leak_configuration`, `packages/control-center/src/health/api.test.ts` (7 casos) | Bind loopback, sem CORS; erro acionável e sem vazar secret | `LOCAL_HOST=127.0.0.1`; sem `Access-Control-Allow-Origin`; `RAD-DB-003` com `retryable`/`action`; URL/path não ecoados; erro de transporte descarta a causa bruta |
+| Comportamento pela fronteira pública; nenhum teste/guardrail enfraquecido | `tests/test_api_home_health.py` (6), `tests/test_home_health_domain.py` (6), `packages/control-center/src/*.test.{ts,tsx}` (20) | Read model e UI observáveis pela fronteira REST; nenhum teste removido | Suíte total `818 passed` (Python) e `26 passed` (TypeScript); `GET /integrations` continua a fronteira de escrita |
+
+### Acceptance evidence, TKT-25
+
+| Acceptance criterion | Verification |
+|---|---|
+| React/TS/Vite com REST/polling e assets servidos localmente | `packages/control-center` (build Vite) + `tests/test_api_home_health.py::test_control_center_assets_are_served_locally_when_built`; `packages/control-center/src/health/api.test.ts` |
+| Health strip diferencia indisponível/desconhecido/saudável sem inventar capacidade | `tests/test_home_health_domain.py::test_registered_integration_states_map_to_capability_states`, `::test_unregistered_dependencies_are_unknown_and_never_healthy`; `packages/control-center/src/health/strip.test.ts`; `packages/control-center/src/components/HealthStrip.test.tsx` |
+| UI ausente não impede Core operar | `tests/test_api_home_health.py::test_core_operates_without_a_control_center_build` |
+| Sem exposição pública; erro de API é acionável e não vaza secret | `tests/test_api_home_health.py::test_unavailable_database_error_is_actionable_and_does_not_leak_configuration`, `::test_overview_honors_caller_correlation_id_and_local_binding`; `packages/control-center/src/health/api.test.ts` |
+| Comportamento demonstrado pela fronteira pública com evidência rastreável; nenhum teste/guardrail enfraquecido | `GET /health/overview` + `GET /integrations` + assets servidos; suítes acima sem remoção de teste |
+| Docs/contratos afetados e matriz QA atualizados; limitações e blockers remanescentes explícitos | este documento, `docs/04_DATA_CONTRACTS.md`, `docs/11_OPERATIONS_AND_UI.md`, `README.md` |
+
+Requirement → Test → Acceptance → Evidence completo para TKT-25. Limitações e
+blockers remanescentes: `core` reflete o processo que serve o read model
+(radar-api); o heartbeat próprio do `radar-core`/workers e a telemetria de runtime
+pertencem a RDR-044/RDR-064/TKT-28, então o strip só mostra `ONLINE` para uma
+integração quando o operador registra esse estado em `GET /integrations` — sem
+fingir telemetria inexistente. As integrações reais (ML, Shopee, WhatsApp,
+Telegram, AI/Browser, Backup) ainda não existem, logo seus itens ficam `UNKNOWN`
+até os tickets dependentes; nenhum valor foi inventado. As demais telas do Control
+Center (Inbox, Publicações, Ações, Sistema, Configurações) permanecem em
+RDR-058..RDR-067. O mount estático é local (`127.0.0.1`) e same-origin; não há
+CORS, autenticação de UI nem exposição pública (a exposição host↔VM pertence a
+RDR-117/TKT-59). A geração de contratos TS a partir do OpenAPI segue pendente
+(AUT-395) — o parser em `packages/control-center/src/contracts.ts` é um espelho
+até lá. `pnpm-workspace.yaml` ganhou `minimumReleaseAgeExclude` para
+`@vitejs/plugin-react@6.1.2` (política de supply-chain do pnpm). Nenhuma capability
+foi promovida para AUTO e nenhum teste live/credenciado foi executado.

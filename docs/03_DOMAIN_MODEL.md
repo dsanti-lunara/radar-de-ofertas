@@ -431,7 +431,8 @@ Job `NEW`. A fronteira pública (`POST /jobs`, `POST /jobs/claim`,
 lock lógico separado com expiração (RDR-036). Cada transição grava um
 `AuditEvent` com o Correlation ID do pipeline. Retry/backoff, Dead Jobs,
 Scheduler e recuperação pós-crash pertencem a RDR-037/038/039/042 e são tickets
-próprios. Ver `docs/08_WORKFLOW_ENGINE.md` e `docs/04_DATA_CONTRACTS.md`.
+próprios (TKT-14, TKT-15 e TKT-18). Ver `docs/08_WORKFLOW_ENGINE.md` e
+`docs/04_DATA_CONTRACTS.md`.
 
 ## Implementação (TKT-14, RDR-037/038/040)
 
@@ -447,3 +448,19 @@ carrega motivo, impacto e próximos passos. A fronteira pública
 demonstra o fluxo e mantém a ação auditável; a resolução da ação pertence a
 RDR-063. Ver `docs/08_WORKFLOW_ENGINE.md`, `docs/04_DATA_CONTRACTS.md` e
 `docs/10_PERSISTENCE_AND_RECOVERY.md`.
+
+## Implementação (TKT-15, RDR-039)
+
+O `Schedule` é a definição durável que o Scheduler usa para criar Jobs e é
+separado do `Job`: ele guarda a cadência (`INTERVAL` com `interval_seconds`,
+`CRON` com expressão de 5 campos ou `ON_DEMAND`), o `job_type`, a prioridade, o
+`timezone` operacional, as quiet windows (AUT-143), o `lock_name` equivalente e o
+cursor `last_tick_at`. O Scheduler **apenas cria Jobs** `PENDING` (AUT-117): um
+tick nunca executa lógica de negócio e nunca confirma execução. Ticks perdidos são
+coalescidos em um único Job (AUT-134) e um lock equivalente ativo ou uma quiet
+window adiam o tick sem avançar o cursor. A fronteira pública (`POST /schedules`,
+`GET /schedules`, `GET /schedules/{id}`, `POST /schedules/{id}/enable|disable`,
+`POST /schedules/tick`, `POST /schedules/{id}/tick`) demonstra o comportamento e
+cada tick grava `AuditEvent` com o Correlation ID do pipeline. A execução/renovação
+do lock pelo worker e a recuperação pós-crash (RDR-042) são tickets próprios. Ver
+`docs/08_WORKFLOW_ENGINE.md` e `docs/04_DATA_CONTRACTS.md`.

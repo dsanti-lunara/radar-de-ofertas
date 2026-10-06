@@ -875,6 +875,86 @@ transição grava `JOB_RETRY_SCHEDULED`/`JOB_FAILED`/`JOB_DEAD` e
 `HUMAN_ACTION_CREATED` na mesma transação, sempre com o `correlation_id` do
 pipeline. Policy de retry inválida bloqueia a API com `RAD-CFG-010`.
 
+## Scheduler, implementação (TKT-15, RDR-039)
+
+O Scheduler cria Jobs a partir de schedules `INTERVAL`, `CRON` e `ON_DEMAND`
+(`schema_version=1.0`) e **nunca executa lógica de negócio** (AUT-117). `POST
+/schedules` persiste um schedule:
+
+```json
+{
+  "schema_version": "1.0",
+  "status": "CREATED",
+  "schedule_id": "sch_...",
+  "name": "nightly-backup",
+  "type": "INTERVAL",
+  "job_type": "BACKUP_DATABASE",
+  "priority": 3,
+  "max_attempts": 3,
+  "enabled": true,
+  "timezone": "America/Maceio",
+  "interval_seconds": 3600,
+  "cron": null,
+  "quiet_windows": [{"start": "22:00", "end": "07:00", "days": [0, 1]}],
+  "lock_name": "schedule:nightly-backup",
+  "payload": {"scope": "full"},
+  "entity_type": null,
+  "entity_id": null,
+  "last_tick_at": "2026-10-05T12:00:00+00:00",
+  "next_run_at": "2026-10-05T13:00:00+00:00",
+  "created_at": "2026-10-05T12:00:00+00:00",
+  "updated_at": "2026-10-05T12:00:00+00:00"
+}
+```
+
+A cadência é mutuamente exclusiva e falha fechado (`RAD-WF-012`): `INTERVAL` exige
+`interval_seconds>0` e não aceita `cron`; `CRON` exige uma expressão de 5 campos
+(`*`, `a`, `a-b`, `a,b`, `*/n`, `a-b/n`; dom/dow seguem a regra Vixie) e não aceita
+intervalo; `ON_DEMAND` não aceita nenhum dos dois. `timezone` é IANA
+(`America/Maceio` por default) e as quiet windows são `HH:MM` locais com `days`
+opcional (0 = segunda); o payload usa as mesmas regras do Job (JSON, sem campos
+sensíveis).
+
+`POST /schedules/tick` avalia os schedules habilitados devidos; `POST
+/schedules/{id}/tick` força um schedule. Cada resultado é auditável:
+
+```json
+{
+  "schema_version": "1.0",
+  "status": "TICKED",
+  "correlation_id": "cid-1",
+  "ticked_at": "2026-10-05T13:00:00+00:00",
+  "results": [
+    {
+      "schedule_id": "sch_...",
+      "schedule_name": "nightly-backup",
+      "action": "ENQUEUE",
+      "reason": "COALESCED",
+      "occurrence_count": 12,
+      "scheduled_for": "2026-10-05T13:00:00+00:00",
+      "lock_name": "schedule:nightly-backup",
+      "job": {"schema_version": "1.0", "job_id": "job_...", "status": "PENDING", "...": "..."},
+      "correlation_id": "cid-1",
+      "ticked_at": "2026-10-05T13:00:00+00:00"
+    }
+  ]
+}
+```
+
+Um tick devido cria **um único** Job `PENDING` para todo o backlog
+(`occurrence_count` registra os ticks coalescidos), nunca um Job por tick perdido
+(AUT-134). Um lock equivalente ativo (`lock_name`, o lock lógico de RDR-036) ou
+uma quiet window produzem `SKIP_LOCKED`/`SKIP_QUIET_WINDOW`, não criam Job e
+**não** avançam `last_tick_at`, então os ticks adiados coalescem no próximo Job.
+`ON_DEMAND` só enfileira quando forçado. Cada enqueue grava `JOB_ENQUEUED` e
+`SCHEDULE_JOB_ENQUEUED` na mesma transação; um skip grava
+`SCHEDULE_TICK_SKIPPED`. O avanço de `last_tick_at` é um `UPDATE` condicional
+otimista sobre o cursor anterior, então dois ticks concorrentes nunca criam Jobs
+sobrepostos (o perdedor é um no-op). `GET /schedules`/`GET /schedules/{id}`
+retornam `RAD-WF-013` quando o schedule não existe;
+`POST /schedules/{id}/enable|disable` alternam `enabled` e gravam
+`SCHEDULE_UPDATED`.
+
 ## AI Editorial Review input
 
 ```json

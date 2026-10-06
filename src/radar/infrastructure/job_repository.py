@@ -89,7 +89,7 @@ class SqlAlchemyJobRepository:
         """Persist a new ``PENDING`` job and its ``JOB_ENQUEUED`` audit event."""
 
         with Session(self.engine) as session, session.begin():
-            session.add(_job_to_row(job))
+            session.add(job_to_row(job))
             session.flush()
             session.add(
                 _audit_row(
@@ -529,7 +529,9 @@ class SqlAlchemyJobRepository:
             return None if row is None else _lock_from_row(row)
 
 
-def _job_to_row(job: Job) -> JobRow:
+def job_to_row(job: Job) -> JobRow:
+    """Map a domain Job to its persistence row (shared by the Scheduler)."""
+
     return JobRow(
         id=job.id,
         type=job.type.value,
@@ -607,4 +609,5 @@ def _audit_row(
 
 __all__ = [
     "SqlAlchemyJobRepository",
+    "job_to_row",
 ]

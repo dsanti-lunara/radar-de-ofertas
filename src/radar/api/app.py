@@ -28,6 +28,7 @@ from radar.api.jobs import build_job_router
 from radar.api.price_opportunity import build_price_opportunity_router
 from radar.api.purchase_source import build_purchase_source_router
 from radar.api.repost import build_repost_router
+from radar.api.schedules import build_schedule_router
 from radar.api.seller_quality import build_seller_quality_router
 from radar.application.correlation import new_correlation_id
 from radar.bootstrap import build_health_service
@@ -104,6 +105,7 @@ def create_app(
     app.include_router(build_allowed_claims_router(resolved_engine))
     app.include_router(build_repost_router(resolved_engine, resolved_repost))
     app.include_router(build_job_router(resolved_engine, resolved_retry))
+    app.include_router(build_schedule_router(resolved_engine))
     app.include_router(build_human_action_router(resolved_engine))
 
     @app.get("/version")

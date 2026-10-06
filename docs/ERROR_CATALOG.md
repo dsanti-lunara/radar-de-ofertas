@@ -72,6 +72,8 @@ Prefixos sugeridos:
 | RAD-WF-009 JOB_LEASE_NOT_HELD | worker não detém lease válido; não confirma execução alheia nem expirada |
 | RAD-WF-010 JOB_STATE_INVALID | transição de estado de Job inválida |
 | RAD-WF-011 HUMAN_ACTION_NOT_FOUND | HumanAction consultada não existe |
+| RAD-WF-012 SCHEDULE_INPUT_INVALID | input de schedule inválido (schema_version, type, cadência mutuamente exclusiva, cron, timezone, payload, quiet window) |
+| RAD-WF-013 SCHEDULE_NOT_FOUND | schedule consultado não existe |
 
 Implementação TKT-13 (RDR-034..036): `POST /jobs` persiste o job (`PENDING`),
 `POST /jobs/claim` concede um único lease e retorna `RAD-WF-008` quando não há
@@ -91,6 +93,16 @@ backoff configurado), `FAILED` (permanente) ou `DEAD` (exaustão/humano, com
 `RAD-WF-006`. `DEAD`/exaustão cria uma HumanAction consultável por
 `GET /human-actions`/`GET /human-actions/{id}`; ação inexistente retorna
 `RAD-WF-011`. Policy de retry inválida bloqueia a API com `RAD-CFG-010`.
+
+Implementação TKT-15 (RDR-039): `POST /schedules` valida o schedule e retorna
+`RAD-WF-012` para cadência/`type`/cron/timezone/quiet window/payload inválidos
+(payload sensível ou não-JSON incluído), `GET /schedules/{id}` retorna
+`RAD-WF-013` quando o schedule não existe e `POST /schedules/tick`/
+`POST /schedules/{id}/tick` retornam o relatório auditável de enqueue/skip. Um
+tick nunca executa lógica de negócio; um lock equivalente ativo não gera erro,
+gera `SKIP_LOCKED` (retryável por natureza no próximo tick) e os ticks perdidos
+coalescem. Erros usam o mesmo contrato
+`{schema_version, status:"INVALID", correlation_id, error}`.
 
 ## Publishing
 

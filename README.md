@@ -229,4 +229,17 @@ sem recriá-la; `GET /human-actions` e `GET /human-actions/{id}` consultam as a�
 (a resolução pertence ao Human Actions center, RDR-063). Erros usam
 `RAD-WF-009/010/011` e `RAD-CFG-010`; contrato em `docs/04_DATA_CONTRACTS.md`.
 
+Scheduler (TKT-15): `POST /schedules` persiste schedules `INTERVAL`/`CRON`/
+`ON_DEMAND`; `GET /schedules`/`GET /schedules/{id}` consultam e
+`POST /schedules/{id}/enable|disable` alternam o estado. `POST /schedules/tick`
+avalia os schedules habilitados devidos e `POST /schedules/{id}/tick` força um
+schedule; ambos **apenas criam Jobs** `PENDING` (AUT-117) — nunca executam lógica
+de negócio. Ticks perdidos são coalescidos em um único Job (AUT-134): um backlog
+de 12 intervalos gera 1 Job com `scheduled_occurrences=12`, não 12 Jobs. Um lock
+equivalente ativo (`schedule:<name>`, consultado via `POST /locks`) adia o tick
+sem avançar o cursor, e quiet windows são avaliados no `timezone` do schedule
+(AUT-143). Cada tick grava `SCHEDULE_JOB_ENQUEUED`/`SCHEDULE_TICK_SKIPPED` e o Job
+grava `JOB_ENQUEUED` na mesma transação. Erros usam `RAD-WF-012/013`; contrato em
+`docs/04_DATA_CONTRACTS.md`.
+
 Testes live (browser/IA/Telegram/WhatsApp) são opt-in e ficam fora da suíte padrão.

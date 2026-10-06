@@ -371,7 +371,13 @@ def _coerce_job_type(job_type: object) -> JobType:
         ) from exc
 
 
-def _validate_payload(payload: object) -> dict[str, Any]:
+def validate_job_payload(payload: object) -> dict[str, Any]:
+    """Validate a Job payload: a JSON object free of sensitive fields.
+
+    Shared by :func:`create_job` and the Scheduler, so a schedule can never
+    persist a payload that the Job queue would later reject (RAD-WF-006).
+    """
+
     if payload is None:
         return {}
     if not isinstance(payload, Mapping):
@@ -464,7 +470,7 @@ def create_job(
         entity_type=resolved_entity_type,
         entity_id=resolved_entity_id,
         correlation_id=require_correlation_id(correlation_id),
-        payload=_validate_payload(payload),
+        payload=validate_job_payload(payload),
         created_at=reference,
         updated_at=reference,
     )
@@ -547,4 +553,5 @@ __all__ = [
     "require_lease_seconds",
     "require_worker_id",
     "start_job",
+    "validate_job_payload",
 ]

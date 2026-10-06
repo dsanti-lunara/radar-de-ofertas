@@ -26,6 +26,7 @@ from radar.domain.evaluation import EVALUATION_SCHEMA_VERSION
 from radar.domain.job import DEFAULT_MAX_ATTEMPTS, JOB_SCHEMA_VERSION
 from radar.domain.purchase_source import PURCHASE_SOURCE_SCHEMA_VERSION
 from radar.domain.repost import REPOST_SCHEMA_VERSION, RepostEvidenceType
+from radar.domain.schedule import SCHEDULE_SCHEMA_VERSION
 from radar.domain.taxonomy import Brand
 
 #: Request/response header carrying the pipeline Correlation ID (AUT-040).
@@ -369,3 +370,55 @@ class LockAcquireContract(_StrictContract):
     name: str = Field(min_length=1, max_length=128)
     owner: str = Field(min_length=1, max_length=128)
     ttl_seconds: int | None = Field(default=None, gt=0, strict=True)
+
+
+class QuietWindowContract(_StrictContract):
+    """One recurring local-time quiet window (RDR-039, AUT-143)."""
+
+    start: str = Field(min_length=5, max_length=5)
+    end: str = Field(min_length=5, max_length=5)
+    days: list[int] = Field(default_factory=list)
+
+
+class ScheduleCreateContract(_StrictContract):
+    """Versioned input to create a Schedule (RDR-039).
+
+    ``type`` and ``job_type`` stay plain strings so the domain owns the enum
+    validation and rejects an unknown cadence/domain state with ``RAD-WF-012``.
+    """
+
+    schema_version: str = SCHEDULE_SCHEMA_VERSION
+    name: str = Field(min_length=1, max_length=128)
+    type: str = Field(min_length=1, max_length=16)
+    job_type: str = Field(min_length=1, max_length=48)
+    priority: int = Field(default=0, strict=True)
+    max_attempts: int = Field(default=DEFAULT_MAX_ATTEMPTS, ge=1, strict=True)
+    enabled: bool = True
+    timezone: str | None = Field(default=None, max_length=64)
+    interval_seconds: int | None = Field(default=None, gt=0, strict=True)
+    cron: str | None = Field(default=None, max_length=128)
+    quiet_windows: list[QuietWindowContract] = Field(default_factory=list)
+    lock_name: str | None = Field(default=None, max_length=128)
+    payload: dict[str, Any] = Field(default_factory=dict)
+    entity_type: str | None = Field(default=None, max_length=32)
+    entity_id: str | None = Field(default=None, max_length=64)
+
+    @field_validator("schema_version")
+    @classmethod
+    def _validate_schema_version(cls, value: str) -> str:
+        if value != SCHEDULE_SCHEMA_VERSION:
+            raise ValueError("schema_version de schedule não suportada")
+        return value
+
+    @model_validator(mode="before")
+    @classmethod
+    def _reject_sensitive_fields(cls, data: Any) -> Any:
+        if isinstance(data, Mapping):
+            hits = find_sensitive_fields(data)
+            if hits:
+                raise PydanticCustomError(
+                    SENSITIVE_FIELD_ERROR_TYPE,
+                    "Campos sensíveis não são aceitos no schedule",
+                    {"fields": list(hits)},
+                )
+        return data

@@ -48,6 +48,7 @@ from radar.domain.job import (
 from radar.domain.price_opportunity import PRICE_OPPORTUNITY_INPUT_INVALID
 from radar.domain.purchase_source import PURCHASE_SOURCE_INPUT_INVALID
 from radar.domain.repost import REPOST_INPUT_INVALID
+from radar.domain.schedule import SCHEDULE_INPUT_INVALID, SCHEDULE_NOT_FOUND
 from radar.domain.seller_quality import SELLER_QUALITY_INPUT_INVALID
 from radar.domain.taxonomy import (
     CLASSIFICATION_INPUT_INVALID,
@@ -69,6 +70,7 @@ def _error_status(error_code: str) -> int:
         EVALUATION_NOT_FOUND,
         HUMAN_ACTION_NOT_FOUND,
         JOB_NOT_FOUND,
+        SCHEDULE_NOT_FOUND,
     ):
         return 404
     if error_code in (
@@ -90,6 +92,7 @@ def _error_status(error_code: str) -> int:
         PRICE_OPPORTUNITY_INPUT_INVALID,
         PURCHASE_SOURCE_INPUT_INVALID,
         REPOST_INPUT_INVALID,
+        SCHEDULE_INPUT_INVALID,
         SELLER_QUALITY_INPUT_INVALID,
         TAXONOMY_VERSION_MISMATCH,
     ):
@@ -114,31 +117,42 @@ def _error_response(request: Request, error: RadarError, *, status_code: int) ->
 #: Job/lock/human-action paths whose validation failures use the Workflow code.
 _JOB_PATH_PREFIXES = ("/jobs", "/locks", "/human-actions")
 
+#: Scheduler paths whose validation failures use the Schedule Workflow code.
+_SCHEDULE_PATH_PREFIXES = ("/schedules",)
+
 
 def _is_job_path(request: Request) -> bool:
     return request.url.path.startswith(_JOB_PATH_PREFIXES)
 
 
+def _is_schedule_path(request: Request) -> bool:
+    return request.url.path.startswith(_SCHEDULE_PATH_PREFIXES)
+
+
 def _validation_error(request: Request, exc: RequestValidationError) -> JSONResponse:
     errors = exc.errors()
     sensitive = [item for item in errors if item.get("type") == SENSITIVE_FIELD_ERROR_TYPE]
+    schedule_path = _is_schedule_path(request)
     job_path = _is_job_path(request)
+    workflow_path = schedule_path or job_path
+    workflow_code = SCHEDULE_INPUT_INVALID if schedule_path else JOB_INPUT_INVALID
+    workflow_label = "schedule" if schedule_path else "job"
     if sensitive:
         fields: list[str] = []
         for item in sensitive:
             context = item.get("ctx") or {}
             fields.extend(str(name) for name in context.get("fields", []))
         error = RadarError(
-            code=JOB_INPUT_INVALID if job_path else CAPTURE_SENSITIVE_FIELD,
+            code=workflow_code if workflow_path else CAPTURE_SENSITIVE_FIELD,
             message=(
-                "Payload de job contém campos sensíveis não permitidos"
-                if job_path
+                f"Payload de {workflow_label} contém campos sensíveis não permitidos"
+                if workflow_path
                 else "Payload contém campos sensíveis não permitidos"
             ),
             retryable=False,
             action=(
-                "Remover os campos sensíveis e reenviar o job"
-                if job_path
+                f"Remover os campos sensíveis e reenviar o {workflow_label}"
+                if workflow_path
                 else "Remover os campos sensíveis e reenviar a captura"
             ),
             context={"fields": sorted(set(fields))},
@@ -146,12 +160,16 @@ def _validation_error(request: Request, exc: RequestValidationError) -> JSONResp
     else:
         fields = [".".join(str(part) for part in item.get("loc", ())) for item in errors]
         error = RadarError(
-            code=JOB_INPUT_INVALID if job_path else CAPTURE_PAYLOAD_INVALID,
-            message="Payload de job inválido" if job_path else "Payload de captura inválido",
+            code=workflow_code if workflow_path else CAPTURE_PAYLOAD_INVALID,
+            message=(
+                f"Payload de {workflow_label} inválido"
+                if workflow_path
+                else "Payload de captura inválido"
+            ),
             retryable=False,
             action=(
-                "Corrigir o payload do job e enviar novamente"
-                if job_path
+                f"Corrigir o payload do {workflow_label} e enviar novamente"
+                if workflow_path
                 else "Corrigir o payload da captura e enviar novamente"
             ),
             context={"fields": fields},

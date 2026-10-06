@@ -85,6 +85,18 @@ recria a entidade. A tabela é mutável apenas como parte da resolução futura
 (RDR-063); a persistência do evento de job (`JOB_RETRY_SCHEDULED`/`JOB_FAILED`/
 `JOB_DEAD`) é append-only em `audit_event`.
 
+Implementação (TKT-15): a migration `0009_schedule` acrescenta a tabela durável
+`schedule` (RDR-039), o índice `ix_schedule_enabled` (`enabled`, `type`) e a
+constraint `uq_schedule_name`, atualiza `schema_version` e **não** altera `job`/
+`job_lock`: o Job criado pelo tick é o mesmo Job de `0007_job` e o lock
+equivalente é o mesmo `job_lock` (RDR-036, AUT-140). O schedule guarda a cadência
+(`interval_seconds`/`cron`), o `job_type`, a prioridade, o `timezone`, as quiet
+windows como JSON e o cursor `last_tick_at`; timestamps em ISO-8601 UTC. O tick
+grava o Job, os `AuditEvent` (`JOB_ENQUEUED`, `SCHEDULE_JOB_ENQUEUED`) e avança o
+cursor na **mesma transação**, então um crash não deixa Job sem cursor nem
+cursor sem Job; um tick adiado por lock/quiet window grava
+`SCHEDULE_TICK_SKIPPED` e não avança o cursor (AUT-134).
+
 ## Append-only
 
 Não sobrescrever:

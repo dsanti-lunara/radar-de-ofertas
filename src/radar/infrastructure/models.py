@@ -341,6 +341,43 @@ class JobLockRow(Base):
     updated_at: Mapped[str] = mapped_column(String(40), nullable=False)
 
 
+class ScheduleRow(Base):
+    """Durable Scheduler definition (RDR-039, AUT-117).
+
+    A schedule persists its cadence (``INTERVAL``/``CRON``/``ON_DEMAND``), the Job
+    it creates, its operational ``timezone`` and quiet windows, and the
+    ``last_tick_at`` cursor used to coalesce missed ticks. The scheduler only
+    creates Jobs; the equivalent logical lock lives in ``job_lock`` and is
+    consulted before a tick enqueues (AUT-134, AUT-140).
+    """
+
+    __tablename__ = "schedule"
+    __table_args__ = (
+        UniqueConstraint("name", name="uq_schedule_name"),
+        Index("ix_schedule_enabled", "enabled", "type"),
+    )
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    name: Mapped[str] = mapped_column(String(128), nullable=False)
+    type: Mapped[str] = mapped_column(String(16), nullable=False)
+    job_type: Mapped[str] = mapped_column(String(48), nullable=False)
+    priority: Mapped[int] = mapped_column(Integer, nullable=False)
+    max_attempts: Mapped[int] = mapped_column(Integer, nullable=False)
+    enabled: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    timezone: Mapped[str] = mapped_column(String(64), nullable=False)
+    interval_seconds: Mapped[int | None] = mapped_column(Integer)
+    cron: Mapped[str | None] = mapped_column(String(128))
+    quiet_windows: Mapped[str] = mapped_column(Text, nullable=False)
+    lock_name: Mapped[str] = mapped_column(String(128), nullable=False)
+    payload: Mapped[str] = mapped_column(Text, nullable=False)
+    entity_type: Mapped[str | None] = mapped_column(String(32))
+    entity_id: Mapped[str | None] = mapped_column(String(64))
+    last_tick_at: Mapped[str | None] = mapped_column(String(40))
+    schema_version: Mapped[str] = mapped_column(String(16), nullable=False)
+    created_at: Mapped[str] = mapped_column(String(40), nullable=False)
+    updated_at: Mapped[str] = mapped_column(String(40), nullable=False)
+
+
 class HumanActionRow(Base):
     """Formal human-intervention record (RDR-040, AUT-126, AUT-244).
 

@@ -187,6 +187,33 @@ pertence ao Human Actions center (RDR-063). O `available_at` de `RETRY_WAIT`
 torna o job claimável de novo pelo claim atômico. Scheduler (RDR-039) e
 recuperação pós-crash (RDR-042) permanecem em seus próprios tickets.
 
+## Implementação (TKT-15, RDR-039)
+
+O Scheduler suporta `INTERVAL`, `CRON` e `ON_DEMAND` e **apenas cria Jobs**
+(AUT-117): um tick nunca executa lógica de negócio, só insere um Job `PENDING`.
+O modelo durável vive em `radar.domain.schedule` (sem FastAPI/SQLAlchemy) e é
+persistido por `radar.infrastructure.schedule_repository` na tabela `schedule`
+(migration `0009_schedule`). O schedule guarda a cadência (`interval_seconds` ou
+`cron`), o `job_type`, a prioridade, o `timezone`, as quiet windows (AUT-143), o
+`lock_name` equivalente e o cursor `last_tick_at`.
+
+A fronteira pública (`POST /schedules`, `GET /schedules`, `GET /schedules/{id}`,
+`POST /schedules/{id}/enable|disable`, `POST /schedules/tick` e
+`POST /schedules/{id}/tick`) demonstra o comportamento. Um tick devido cria
+**um único** Job para todo o backlog — 12 intervalos perdidos viram 1 Job com
+`scheduled_occurrences=12`, nunca 12 Jobs (AUT-134). Um lock equivalente ativo
+(`schedule:<name>`, o mesmo lock lógico de RDR-036) adia o tick sem avançar o
+cursor, de modo que os ticks adiados coalescem no próximo Job; uma quiet window
+faz o mesmo no timezone do schedule. Cada tick grava
+`SCHEDULE_JOB_ENQUEUED`/`SCHEDULE_TICK_SKIPPED` (e `JOB_ENQUEUED` para o Job) na
+mesma transação, sempre com o Correlation ID do pipeline. O avanço do cursor é um
+`UPDATE` condicional otimista sobre o `last_tick_at` anterior, então dois ticks
+concorrentes nunca enfileiram o mesmo tick: um vence e o outro vira no-op.
+
+A execução/renovação do lock equivalente pelo worker e a recuperação pós-crash
+(RDR-042) permanecem em seus próprios tickets; aqui o Scheduler só consulta o
+lock.
+
 ## Aging / TTL
 
 Candidate antigo deve revalidar antes de consumir IA.

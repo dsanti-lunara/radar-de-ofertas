@@ -23,7 +23,7 @@ pytestmark = pytest.mark.integration
 def test_empty_database_migrates_to_head(
     migrated_engine: Engine, migrated_database_url: str
 ) -> None:
-    assert head_revision(migrated_database_url) == "0011_operations_control"
+    assert head_revision(migrated_database_url) == "0012_runtime_state"
     assert current_revision(migrated_engine) == head_revision(migrated_database_url)
 
 
@@ -79,7 +79,7 @@ def test_migration_from_previous_revision_to_head(database_url: str) -> None:
     upgrade_to_head(database_url)
     engine = create_database_engine(database_url)
     try:
-        assert current_revision(engine) == "0011_operations_control"
+        assert current_revision(engine) == "0012_runtime_state"
         tables = set(inspect(engine).get_table_names())
         assert "candidate" in tables
         assert "price_observation" in tables
@@ -93,6 +93,7 @@ def test_migration_from_previous_revision_to_head(database_url: str) -> None:
         assert "opportunity" in tables
         assert "operations_state" in tables
         assert "integration_health" in tables
+        assert "runtime_state" in tables
     finally:
         engine.dispose()
 
@@ -112,7 +113,7 @@ def test_migration_adds_price_observation_from_capture_revision(database_url: st
     upgrade_to_head(database_url)
     engine = create_database_engine(database_url)
     try:
-        assert current_revision(engine) == "0011_operations_control"
+        assert current_revision(engine) == "0012_runtime_state"
         assert "price_observation" in inspect(engine).get_table_names()
     finally:
         engine.dispose()
@@ -133,7 +134,7 @@ def test_migration_adds_evaluation_from_price_history_revision(database_url: str
     upgrade_to_head(database_url)
     engine = create_database_engine(database_url)
     try:
-        assert current_revision(engine) == "0011_operations_control"
+        assert current_revision(engine) == "0012_runtime_state"
         assert "evaluation" in inspect(engine).get_table_names()
         with engine.connect() as connection:
             triggers = set(
@@ -166,7 +167,7 @@ def test_migration_adds_purchase_source_decision_from_evaluation_revision(
     upgrade_to_head(database_url)
     engine = create_database_engine(database_url)
     try:
-        assert current_revision(engine) == "0011_operations_control"
+        assert current_revision(engine) == "0012_runtime_state"
         assert "purchase_source_decision" in inspect(engine).get_table_names()
         with engine.connect() as connection:
             triggers = set(
@@ -202,7 +203,7 @@ def test_migration_adds_repost_decision_from_purchase_source_revision(
     upgrade_to_head(database_url)
     engine = create_database_engine(database_url)
     try:
-        assert current_revision(engine) == "0011_operations_control"
+        assert current_revision(engine) == "0012_runtime_state"
         assert "repost_decision" in inspect(engine).get_table_names()
         with engine.connect() as connection:
             triggers = set(
@@ -238,7 +239,7 @@ def test_migration_adds_job_queue_from_repost_revision(database_url: str) -> Non
     upgrade_to_head(database_url)
     engine = create_database_engine(database_url)
     try:
-        assert current_revision(engine) == "0011_operations_control"
+        assert current_revision(engine) == "0012_runtime_state"
         tables = set(inspect(engine).get_table_names())
         assert "job" in tables
         assert "job_lock" in tables
@@ -263,7 +264,7 @@ def test_migration_adds_human_action_from_job_revision(database_url: str) -> Non
     upgrade_to_head(database_url)
     engine = create_database_engine(database_url)
     try:
-        assert current_revision(engine) == "0011_operations_control"
+        assert current_revision(engine) == "0012_runtime_state"
         assert "human_action" in inspect(engine).get_table_names()
         indexes = {index["name"] for index in inspect(engine).get_indexes("human_action")}
         assert "ix_human_action_status" in indexes
@@ -286,7 +287,7 @@ def test_migration_adds_schedule_from_human_action_revision(database_url: str) -
     upgrade_to_head(database_url)
     engine = create_database_engine(database_url)
     try:
-        assert current_revision(engine) == "0011_operations_control"
+        assert current_revision(engine) == "0012_runtime_state"
         assert "schedule" in inspect(engine).get_table_names()
         indexes = {index["name"] for index in inspect(engine).get_indexes("schedule")}
         assert "ix_schedule_enabled" in indexes
@@ -313,7 +314,7 @@ def test_migration_adds_opportunity_from_schedule_revision(database_url: str) ->
     upgrade_to_head(database_url)
     engine = create_database_engine(database_url)
     try:
-        assert current_revision(engine) == "0011_operations_control"
+        assert current_revision(engine) == "0012_runtime_state"
         assert "opportunity" in inspect(engine).get_table_names()
         indexes = {index["name"] for index in inspect(engine).get_indexes("opportunity")}
         assert "ix_opportunity_candidate" in indexes
@@ -343,12 +344,36 @@ def test_migration_adds_operations_control_from_opportunity_revision(database_ur
     upgrade_to_head(database_url)
     engine = create_database_engine(database_url)
     try:
-        assert current_revision(engine) == "0011_operations_control"
+        assert current_revision(engine) == "0012_runtime_state"
         tables = set(inspect(engine).get_table_names())
         assert "operations_state" in tables
         assert "integration_health" in tables
         indexes = {index["name"] for index in inspect(engine).get_indexes("integration_health")}
         assert "ix_integration_health_state" in indexes
+    finally:
+        engine.dispose()
+
+
+def test_migration_adds_runtime_state_from_operations_revision(database_url: str) -> None:
+    ensure_sqlite_database_directory(database_url)
+    config = make_alembic_config(database_url)
+    command.upgrade(config, "0011_operations_control")
+
+    engine = create_database_engine(database_url)
+    try:
+        assert current_revision(engine) == "0011_operations_control"
+        assert "runtime_state" not in inspect(engine).get_table_names()
+    finally:
+        engine.dispose()
+
+    upgrade_to_head(database_url)
+    engine = create_database_engine(database_url)
+    try:
+        assert current_revision(engine) == "0012_runtime_state"
+        tables = set(inspect(engine).get_table_names())
+        assert "runtime_state" in tables
+        columns = {column["name"] for column in inspect(engine).get_columns("runtime_state")}
+        assert {"clean_shutdown", "recovery_count", "started_at", "shutdown_at"} <= columns
     finally:
         engine.dispose()
 
@@ -375,6 +400,7 @@ def test_downgrade_reverts_capture_schema(database_url: str) -> None:
         assert "opportunity" not in tables
         assert "operations_state" not in tables
         assert "integration_health" not in tables
+        assert "runtime_state" not in tables
         with engine.connect() as connection:
             version = connection.exec_driver_sql(
                 "SELECT version FROM schema_version WHERE component = 'db_schema'"

@@ -31,6 +31,7 @@ from radar.domain.operations import (
     IntegrationState,
 )
 from radar.domain.purchase_source import PURCHASE_SOURCE_SCHEMA_VERSION
+from radar.domain.recovery import RECOVERY_SCHEMA_VERSION
 from radar.domain.repost import REPOST_SCHEMA_VERSION, RepostEvidenceType
 from radar.domain.schedule import SCHEDULE_SCHEMA_VERSION
 from radar.domain.taxonomy import Brand
@@ -525,4 +526,35 @@ class IntegrationHealthContract(_StrictContract):
     def _validate_schema_version(cls, value: str) -> str:
         if value != OPERATIONS_SCHEMA_VERSION:
             raise ValueError("schema_version de operações não suportada")
+        return value
+
+
+class RecoveryRunContract(_StrictContract):
+    """Versioned input to run the startup Recovery Manager (RDR-042).
+
+    ``trigger`` stays a plain string so the domain owns the trigger validation
+    and rejects an unknown origin with ``RAD-WF-019``.
+    """
+
+    schema_version: str = RECOVERY_SCHEMA_VERSION
+    trigger: str | None = Field(default=None, max_length=16)
+
+    @field_validator("schema_version")
+    @classmethod
+    def _validate_schema_version(cls, value: str) -> str:
+        if value != RECOVERY_SCHEMA_VERSION:
+            raise ValueError("schema_version de recovery não suportada")
+        return value
+
+
+class RecoveryShutdownContract(_StrictContract):
+    """Versioned input to record a clean shutdown (RDR-042, AUT-228)."""
+
+    schema_version: str = RECOVERY_SCHEMA_VERSION
+
+    @field_validator("schema_version")
+    @classmethod
+    def _validate_schema_version(cls, value: str) -> str:
+        if value != RECOVERY_SCHEMA_VERSION:
+            raise ValueError("schema_version de recovery não suportada")
         return value

@@ -1064,6 +1064,45 @@ bloqueia o side effect mesmo com aprovação humana (AUT-295). Comandos operacio
 e decisões de side effect geram `AuditEvent` na mesma transação. Erros usam
 `RAD-WF-018`; policy inválida bloqueia a API com `RAD-CFG-012`/`RAD-CFG-013`.
 
+## Recovery, implementação (TKT-18, RDR-042)
+
+`POST /recovery` executa o Recovery Manager e retorna o relatório versionado;
+`GET /recovery` expõe o marcador durável de shutdown; `POST
+/recovery/clean-shutdown` grava o shutdown limpo. `radarctl recover` oferece a
+mesma entrada pela CLI.
+
+```json
+{
+  "schema_version": "1.0",
+  "status": "RECOVERED",
+  "trigger": "STARTUP",
+  "unclean_shutdown": true,
+  "state": {
+    "schema_version": "1.0",
+    "clean_shutdown": false,
+    "started_at": "2026-10-05T12:00:00+00:00",
+    "shutdown_at": null,
+    "last_recovery_at": "2026-10-05T12:00:00+00:00",
+    "recovery_count": 1,
+    "updated_at": "2026-10-05T12:00:00+00:00"
+  },
+  "jobs_requeued": 2,
+  "jobs_blocked": 1,
+  "locks_cleared": 1,
+  "schedules_coalesced": 1,
+  "occurrences_coalesced": 12,
+  "correlation_id": "cid-1",
+  "recovered_at": "2026-10-05T12:00:00+00:00"
+}
+```
+
+Um job interrompido seguro volta a `PENDING` com o lease órfão limpo; um job que
+pode ter produzido side effect externo de resultado desconhecido
+(`GENERATE_AFFILIATE_LINK`, `PUBLISH_TELEGRAM`, `PUBLISH_WHATSAPP`) é bloqueado
+(`DEAD`) e nunca reenviado automaticamente (GRILL-002). Locks órfãos são limpos e
+schedules perdidos são coalescidos em um único Job por schedule. `trigger`
+desconhecido e `schema_version` não suportada retornam `RAD-WF-019`.
+
 ## AI Editorial Review input
 
 ```json

@@ -124,6 +124,20 @@ decisão de autorização de side effect grava `EXTERNAL_ACTION_AUTHORIZED`/
 pipeline; leitura/diagnóstico/recovery nunca dependem de `operations_state`
 (AUT-317). Timestamps em ISO-8601 UTC.
 
+Implementação (TKT-18): a migration `0012_runtime_state` acrescenta a tabela
+`runtime_state` (linha única `id='core'` com `clean_shutdown`, `started_at`,
+`shutdown_at`, `last_recovery_at`, `recovery_count`) e atualiza `schema_version`.
+O Recovery Manager lê/grava o marcador na **mesma transação** do `AuditEvent`
+(`CLEAN_SHUTDOWN_RECORDED`, `UNCLEAN_SHUTDOWN_DETECTED`, `RECOVERY_STARTED`/
+`COMPLETED`), então um crash não deixa estado sem trilha. Jobs interrompidos são
+reconciliados com `UPDATE` condicional atômico + audit
+(`RECOVERY_JOB_REQUEUED`/`RECOVERY_JOB_BLOCKED`) e locks órfãos com
+`RECOVERY_LOCK_CLEARED`; um job de side effect externo de resultado desconhecido
+é bloqueado, nunca reenviado. O startup segue `load config → validate → load
+knowledge → validate → database check → migrations check → recovery → workers`:
+`radarctl recover`/`POST /recovery` executa a etapa de recovery e a fiação
+systemd pertence a RDR-117.
+
 ## Append-only
 
 Não sobrescrever:

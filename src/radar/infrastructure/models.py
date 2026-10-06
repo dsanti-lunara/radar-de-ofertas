@@ -452,6 +452,27 @@ class IntegrationHealthRow(Base):
     updated_at: Mapped[str] = mapped_column(String(40), nullable=False)
 
 
+class RuntimeStateRow(Base):
+    """Single durable runtime/shutdown marker of the Core (RDR-042, AUT-229).
+
+    ``clean_shutdown`` is set only by an explicit clean shutdown, so a startup
+    that reads it unset detects an unclean shutdown and runs recovery. The row
+    also records the recovery counter and the last recovery/start/shutdown
+    instants, so the Recovery Manager is observable from the public boundary.
+    """
+
+    __tablename__ = "runtime_state"
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True)
+    clean_shutdown: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    started_at: Mapped[str | None] = mapped_column(String(40))
+    shutdown_at: Mapped[str | None] = mapped_column(String(40))
+    last_recovery_at: Mapped[str | None] = mapped_column(String(40))
+    recovery_count: Mapped[int] = mapped_column(Integer, nullable=False)
+    schema_version: Mapped[str] = mapped_column(String(16), nullable=False)
+    updated_at: Mapped[str] = mapped_column(String(40), nullable=False)
+
+
 class HumanActionRow(Base):
     """Formal human-intervention record (RDR-040, AUT-126, AUT-244).
 

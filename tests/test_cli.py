@@ -75,6 +75,20 @@ def test_migrate_creates_missing_data_directory(
     assert _payload(capsys)["status"] == "HEALTHY"
 
 
+def test_recover_runs_and_emits_report(
+    migrated_database_url: str,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    monkeypatch.setenv("RADAR_DATABASE_URL", migrated_database_url)
+    assert cli.main(["recover"]) == 0
+    payload = _payload(capsys)
+    assert payload["schema_version"] == "1.0"
+    assert payload["status"] == "RECOVERED"
+    assert payload["unclean_shutdown"] is False
+    assert payload["correlation_id"]
+
+
 def test_migrate_failure_is_blocking(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

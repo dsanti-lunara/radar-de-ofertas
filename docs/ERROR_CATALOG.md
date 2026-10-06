@@ -79,6 +79,7 @@ Prefixos sugeridos:
 | RAD-WF-016 OPPORTUNITY_INPUT_INVALID | input de Opportunity inválido (schema_version, target_state desconhecido, brand/priority) |
 | RAD-WF-017 CANDIDATE_REVIEW_REQUIRED | Candidate com decisão REVIEW exige resolução humana antes de virar Opportunity |
 | RAD-WF-018 OPERATIONS_INPUT_INVALID | input de operações inválido (schema_version, global_mode, action, integration state, reason) |
+| RAD-WF-019 RECOVERY_INPUT_INVALID | input de recovery inválido (schema_version, trigger) |
 
 Implementação TKT-13 (RDR-034..036): `POST /jobs` persiste o job (`PENDING`),
 `POST /jobs/claim` concede um único lease e retorna `RAD-WF-008` quando não há
@@ -132,6 +133,17 @@ retorna `allowed=true/false` com `reason_code` acionável (`SHADOW_NO_COMMERCIAL
 Automation policy inválida bloqueia a API com `RAD-CFG-012` e compliance policy
 inválida com `RAD-CFG-013`. Erros usam o contrato
 `{schema_version, status:"INVALID", correlation_id, error}`.
+
+Implementação TKT-18 (RDR-042): `POST /recovery` executa o Recovery Manager e
+retorna o relatório (`RECOVERED`, com contadores de requeue/block/locks/schedules)
+e `GET /recovery` expõe o marcador durável (`clean_shutdown`, `recovery_count`).
+`POST /recovery/clean-shutdown` grava o marcador de shutdown limpo. Inputs
+inválidos (`schema_version`, `trigger`) retornam `RAD-WF-019` (422). Um shutdown
+não limpo é auditado (`UNCLEAN_SHUTDOWN_DETECTED`); jobs interrompidos seguros são
+reconciliados (`RECOVERY_JOB_REQUEUED`) e jobs de side effect externo de resultado
+desconhecido são bloqueados (`RECOVERY_JOB_BLOCKED`, `UNKNOWN_RESULT`), sem
+reenvio automático. `radarctl recover` oferece a mesma entrada pela CLI. Erros usam
+o contrato `{schema_version, status:"INVALID", correlation_id, error}`.
 
 ## Publishing
 

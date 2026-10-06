@@ -68,6 +68,16 @@ Startup deve:
 - coalescer schedules perdidos;
 - gerar audit event.
 
+Implementação (TKT-18): `radarctl recover` ou `POST /recovery` executa o Recovery
+Manager e retorna o relatório auditável (`GET /recovery` lê o marcador). Um
+shutdown limpo é registrado por `POST /recovery/clean-shutdown`; sem ele o
+startup detecta `UNCLEAN_SHUTDOWN_DETECTED`. Jobs interrompidos seguros voltam a
+`PENDING` (`RECOVERY_JOB_REQUEUED`) e podem ser claimados de novo; jobs de side
+effect externo de resultado desconhecido são bloqueados (`DEAD`,
+`RECOVERY_JOB_BLOCKED`/`UNKNOWN_RESULT`) e **não** são reenviados automaticamente —
+a suspensão de publicação e a revisão humana são integradas em TKT-24. Locks
+órfãos são limpos e schedules perdidos coalescidos em um único Job por schedule.
+
 ## Caso 7, DB integrity failure
 
 1. `STOP_EXTERNAL_ACTIONS`;

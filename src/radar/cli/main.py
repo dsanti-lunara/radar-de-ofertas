@@ -4,6 +4,7 @@ Commands implemented at the foundation stage:
 
 ``radarctl status``   query system health (exit 0 only when operational)
 ``radarctl migrate``  apply migrations up to ``head``
+``radarctl recover``  run the startup Recovery Manager (RDR-042)
 ``radarctl version``  print tool/app versions
 ``radarctl config``   load, validate and display the sanitized configuration
 
@@ -23,7 +24,13 @@ from collections.abc import Sequence
 from typing import Any
 
 from radar import __version__
-from radar.application.correlation import bind_correlation_id, current_correlation_id
+from radar.application.correlation import (
+    bind_correlation_id,
+    current_correlation_id,
+    new_correlation_id,
+)
+from radar.application.recovery_service import RecoveryService
+from radar.application.schedule_service import ScheduleService
 from radar.bootstrap import build_health_service
 from radar.domain.config import ConfigInvalidError, RadarConfig
 from radar.domain.errors import RadarError
@@ -32,6 +39,8 @@ from radar.infrastructure.database import create_database_engine
 from radar.infrastructure.logging import SecretRedactor, configure_logging, get_logger
 from radar.infrastructure.migrations import upgrade_to_head
 from radar.infrastructure.probes import MIGRATION_FAILED
+from radar.infrastructure.recovery_repository import SqlAlchemyRecoveryRepository
+from radar.infrastructure.schedule_repository import SqlAlchemyScheduleRepository
 from radar.infrastructure.secrets import EnvironmentSecretsProvider
 from radar.infrastructure.settings import Settings
 
@@ -92,6 +101,23 @@ def cmd_status(settings: Settings) -> int:
     return 0 if report.is_operational else 1
 
 
+def cmd_recover(settings: Settings) -> int:
+    correlation_id = current_correlation_id() or new_correlation_id()
+    engine = create_database_engine(settings.database_url)
+    try:
+        service = RecoveryService(
+            store=SqlAlchemyRecoveryRepository(engine=engine),
+            schedule_service=ScheduleService(
+                repository=SqlAlchemyScheduleRepository(engine=engine)
+            ),
+        )
+        report = service.run_recovery(correlation_id=correlation_id)
+    finally:
+        engine.dispose()
+    _emit(report.to_contract())
+    return 0
+
+
 def cmd_migrate(settings: Settings) -> int:
     correlation_id = current_correlation_id()
     try:
@@ -141,6 +167,7 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers.add_parser("migrate", help="aplica migrations até head")
     subparsers.add_parser("version", help="mostra versões")
     subparsers.add_parser("config", help="valida e exibe a configuração sanitizada")
+    subparsers.add_parser("recover", help="executa o Recovery Manager na inicialização")
     return parser
 
 
@@ -175,6 +202,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         return cmd_migrate(settings)
     if command == "config":
         return cmd_config(config, redactor)
+    if command == "recover":
+        return cmd_recover(settings)
 
     parser.print_help(sys.stderr)
     return 2

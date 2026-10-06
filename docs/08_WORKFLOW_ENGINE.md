@@ -334,3 +334,32 @@ geram `AuditEvent` na mesma transação (`OPERATIONS_MODE_CHANGED`,
 Policy inválida bloqueia a API com `RAD-CFG-012`/`RAD-CFG-013`. Ver
 `docs/04_DATA_CONTRACTS.md`, `docs/10_PERSISTENCE_AND_RECOVERY.md` e
 `docs/12_SECURITY_AND_COMPLIANCE.md`.
+
+## Implementação (TKT-18, RDR-042)
+
+O Recovery Manager executa na inicialização (AUT-133, AUT-155). O marcador
+durável de shutdown vive em `radar.domain.recovery` (sem FastAPI/SQLAlchemy/
+Chrome) e é persistido por `radar.infrastructure.recovery_repository` na tabela
+`runtime_state` (migration `0012_runtime_state`, linha única `id='core'`).
+
+A fronteira pública (`POST /recovery`, `GET /recovery`, `POST
+/recovery/clean-shutdown`; `radarctl recover`) demonstra o comportamento. Um
+shutdown limpo grava `CLEAN_SHUTDOWN_RECORDED`; um startup que encontra o
+marcador não limpo detecta e audita `UNCLEAN_SHUTDOWN_DETECTED` (AUT-229). Os
+jobs `CLAIMED`/`RUNNING` interrompidos são reconciliados: um job seguro volta a
+`PENDING` com o lease órfão limpo (`RECOVERY_JOB_REQUEUED`) e outro worker pode
+recuperá-lo, enquanto a tentativa anterior nunca confirma a nova execução
+(`RAD-WF-009`/`RAD-WF-010`, AUT-140). Um job que pode ter produzido side effect
+externo de resultado desconhecido (`GENERATE_AFFILIATE_LINK`, `PUBLISH_TELEGRAM`,
+`PUBLISH_WHATSAPP`) **não** é reenviado automaticamente: ele é bloqueado
+(`DEAD`, `RECOVERY_JOB_BLOCKED`, motivo `UNKNOWN_RESULT`), então o recovery nunca
+reenvia um resultado desconhecido (GRILL-002). A suspensão específica de
+publicação e a revisão humana são integradas pelo TKT-24.
+
+Locks órfãos são limpos (`RECOVERY_LOCK_CLEARED`) e os schedules perdidos são
+coalescidos em um único Job por schedule pelo Scheduler (AUT-134), sem executar
+lógica de negócio (AUT-117). Cada escrita é atômica com seu `AuditEvent`; o
+resumo grava `RECOVERY_COMPLETED` com o Correlation ID do pipeline. Recovery não
+executa negócio, não chama IA e não cria link/publicação. Ver
+`docs/04_DATA_CONTRACTS.md`, `docs/10_PERSISTENCE_AND_RECOVERY.md` e
+`docs/RECOVERY_RUNBOOK.md`.

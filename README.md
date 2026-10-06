@@ -61,6 +61,7 @@ Operação local da fundação (TKT-01):
 
 ```bash
 uv run radarctl migrate       # aplica migrations até head (cria o diretório de dados quando necessário)
+uv run radarctl recover       # executa o Recovery Manager na inicialização
 uv run radarctl status        # saúde por CLI; sai != 0 quando não operacional
 uv run radarctl config        # valida e exibe a configuração sanitizada (sem secrets)
 uv run radarctl version
@@ -278,5 +279,23 @@ cada integração, então uma integração indisponível isola apenas o próprio
 (AUT-315). Decisões de side effect e comandos operacionais geram `AuditEvent`.
 Erros usam `RAD-WF-018`; policy inválida bloqueia a API com `RAD-CFG-012/013`.
 Contrato em `docs/04_DATA_CONTRACTS.md`.
+
+Recovery de crash (TKT-18): `POST /recovery` executa o Recovery Manager na
+inicialização, `GET /recovery` expõe o marcador durável de shutdown e `POST
+/recovery/clean-shutdown` grava o shutdown limpo; `radarctl recover` oferece a
+mesma entrada pela CLI. Um shutdown limpo grava o marcador; um startup sem ele
+detecta e audita o **unclean shutdown** (`UNCLEAN_SHUTDOWN_DETECTED`). Jobs
+`CLAIMED`/`RUNNING` interrompidos são reconciliados: um job seguro volta a
+`PENDING` com o lease órfão limpo, então a tentativa anterior nunca confirma a
+nova execução (`RAD-WF-009`/`RAD-WF-010`) e outro worker pode recuperá-lo; um job
+que pode ter produzido side effect externo de resultado desconhecido
+(`GENERATE_AFFILIATE_LINK`, `PUBLISH_TELEGRAM`, `PUBLISH_WHATSAPP`) é bloqueado
+(`DEAD`, `UNKNOWN_RESULT`) e **nunca** reenviado automaticamente (GRILL-002), com
+a suspensão específica de publicação integrada em TKT-24. Locks órfãos são
+limpos (`RECOVERY_LOCK_CLEARED`) e schedules perdidos coalescidos em um único Job
+por schedule (AUT-134), sem executar lógica de negócio. Cada escrita é atômica
+com seu `AuditEvent`; o marcador vive em `runtime_state` (migration
+`0012_runtime_state`). Erros usam `RAD-WF-019`; contrato em
+`docs/04_DATA_CONTRACTS.md`.
 
 Testes live (browser/IA/Telegram/WhatsApp) são opt-in e ficam fora da suíte padrão.

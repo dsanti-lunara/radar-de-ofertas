@@ -29,6 +29,7 @@ from radar.api.operations import build_operations_router
 from radar.api.opportunities import build_opportunity_router
 from radar.api.price_opportunity import build_price_opportunity_router
 from radar.api.purchase_source import build_purchase_source_router
+from radar.api.recovery import build_recovery_router
 from radar.api.repost import build_repost_router
 from radar.api.schedules import build_schedule_router
 from radar.api.seller_quality import build_seller_quality_router
@@ -127,6 +128,7 @@ def create_app(
     app.include_router(
         build_operations_router(resolved_engine, resolved_automation, resolved_compliance)
     )
+    app.include_router(build_recovery_router(resolved_engine))
 
     @app.get("/version")
     def version() -> dict[str, Any]:

@@ -508,3 +508,18 @@ fronteira pública (`GET /operations`, `POST /operations/mode`, `POST`/`DELETE
 side effect e comandos operacionais são auditáveis. Ver
 `docs/08_WORKFLOW_ENGINE.md`, `docs/04_DATA_CONTRACTS.md`,
 `docs/10_PERSISTENCE_AND_RECOVERY.md` e `docs/12_SECURITY_AND_COMPLIANCE.md`.
+
+## Implementação (TKT-18, RDR-042)
+
+O Recovery Manager é uma etapa de startup própria: `RuntimeState` é o marcador
+durável de shutdown limpo (AUT-229) e a reconciliação de `Job`/`Lock`/`Schedule`
+interrompidos vive em `radar.domain.recovery` (sem FastAPI/SQLAlchemy/Chrome). Um
+shutdown limpo grava o marcador; um startup sem marcador detecta e audita o
+unclean shutdown. Jobs interrompidos seguros voltam a `PENDING` com o lease órfão
+limpo; jobs que podem ter produzido side effect externo de resultado desconhecido
+são bloqueados (`DEAD`, `UNKNOWN_RESULT`) e nunca reenviados automaticamente
+(GRILL-002); locks órfãos são limpos e schedules perdidos coalescidos pelo
+Scheduler (AUT-134). A fronteira pública (`POST`/`GET /recovery`, `POST
+/recovery/clean-shutdown`, `radarctl recover`) demonstra o comportamento. A
+suspensão de publicação e a HumanAction de resultado desconhecido pertencem ao
+TKT-24. Ver `docs/08_WORKFLOW_ENGINE.md` e `docs/04_DATA_CONTRACTS.md`.

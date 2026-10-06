@@ -57,6 +57,7 @@ from radar.domain.opportunity import (
 )
 from radar.domain.price_opportunity import PRICE_OPPORTUNITY_INPUT_INVALID
 from radar.domain.purchase_source import PURCHASE_SOURCE_INPUT_INVALID
+from radar.domain.recovery import RECOVERY_INPUT_INVALID
 from radar.domain.repost import REPOST_INPUT_INVALID
 from radar.domain.schedule import SCHEDULE_INPUT_INVALID, SCHEDULE_NOT_FOUND
 from radar.domain.seller_quality import SELLER_QUALITY_INPUT_INVALID
@@ -112,6 +113,7 @@ def _error_status(error_code: str) -> int:
         OPPORTUNITY_INPUT_INVALID,
         PRICE_OPPORTUNITY_INPUT_INVALID,
         PURCHASE_SOURCE_INPUT_INVALID,
+        RECOVERY_INPUT_INVALID,
         REPOST_INPUT_INVALID,
         SCHEDULE_INPUT_INVALID,
         SELLER_QUALITY_INPUT_INVALID,
@@ -148,6 +150,9 @@ _OPPORTUNITY_PATH_PREFIXES = ("/opportunities",)
 #: Operational control paths use the operations input code.
 _OPERATIONS_PATH_PREFIXES = ("/operations", "/integrations")
 
+#: Recovery paths use the recovery input code.
+_RECOVERY_PATH_PREFIXES = ("/recovery",)
+
 
 def _is_job_path(request: Request) -> bool:
     return request.url.path.startswith(_JOB_PATH_PREFIXES)
@@ -166,6 +171,10 @@ def _is_operations_path(request: Request) -> bool:
     return request.url.path.startswith(_OPERATIONS_PATH_PREFIXES)
 
 
+def _is_recovery_path(request: Request) -> bool:
+    return request.url.path.startswith(_RECOVERY_PATH_PREFIXES)
+
+
 def _validation_error(request: Request, exc: RequestValidationError) -> JSONResponse:
     errors = exc.errors()
     sensitive = [item for item in errors if item.get("type") == SENSITIVE_FIELD_ERROR_TYPE]
@@ -173,10 +182,16 @@ def _validation_error(request: Request, exc: RequestValidationError) -> JSONResp
     job_path = _is_job_path(request)
     opportunity_path = _is_opportunity_path(request)
     operations_path = _is_operations_path(request)
-    workflow_path = schedule_path or job_path or opportunity_path or operations_path
+    recovery_path = _is_recovery_path(request)
+    workflow_path = (
+        schedule_path or job_path or opportunity_path or operations_path or recovery_path
+    )
     if operations_path:
         workflow_code = OPERATIONS_INPUT_INVALID
         workflow_label = "operations"
+    elif recovery_path:
+        workflow_code = RECOVERY_INPUT_INVALID
+        workflow_label = "recovery"
     elif opportunity_path:
         workflow_code = OPPORTUNITY_INPUT_INVALID
         workflow_label = "Opportunity"

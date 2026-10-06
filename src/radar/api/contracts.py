@@ -23,6 +23,7 @@ from radar.domain.capture import (
     find_sensitive_fields,
 )
 from radar.domain.evaluation import EVALUATION_SCHEMA_VERSION
+from radar.domain.purchase_source import PURCHASE_SOURCE_SCHEMA_VERSION
 from radar.domain.taxonomy import Brand
 
 #: Request/response header carrying the pipeline Correlation ID (AUT-040).
@@ -156,3 +157,78 @@ class EvaluationRequestContract(_StrictContract):
         if value != EVALUATION_SCHEMA_VERSION:
             raise ValueError("schema_version de Evaluation não suportada")
         return value
+
+
+class PurchaseSourceAlternativeContract(_StrictContract):
+    """One reliable alternative source compared with the affiliate source."""
+
+    source_id: str = Field(min_length=1, max_length=128)
+    marketplace: Marketplace | None = None
+    url: str | None = Field(default=None, max_length=2048)
+    price: str | int
+    shipping_cost: str | int | None = None
+    coupon_state: str | None = None
+    coupon_amount: str | int | None = None
+    coupon_code: str | None = Field(default=None, max_length=128)
+    product_equivalence_id: str | None = Field(default=None, max_length=128)
+    conditions: dict[str, str] = Field(default_factory=dict)
+    affiliate_commission: str | int | None = None
+
+    @field_validator(
+        "price",
+        "shipping_cost",
+        "coupon_amount",
+        "affiliate_commission",
+        mode="before",
+    )
+    @classmethod
+    def _reject_boolean_money(cls, value: object) -> object:
+        if isinstance(value, bool):
+            raise ValueError("Valores monetários devem ser strings decimais")
+        return value
+
+
+class PurchaseSourceRequestContract(_StrictContract):
+    """Versioned input received by the Purchase Source boundary (RDR-031)."""
+
+    schema_version: str = PURCHASE_SOURCE_SCHEMA_VERSION
+    product_equivalence_id: str | None = Field(default=None, max_length=128)
+    conditions: dict[str, str] = Field(default_factory=dict)
+    shipping_cost: str | int | None = None
+    coupon_state: str | None = None
+    coupon_amount: str | int | None = None
+    coupon_code: str | None = Field(default=None, max_length=128)
+    affiliate_commission: str | int | None = None
+    alternatives: list[PurchaseSourceAlternativeContract] = Field(default_factory=list)
+
+    @field_validator(
+        "shipping_cost",
+        "coupon_amount",
+        "affiliate_commission",
+        mode="before",
+    )
+    @classmethod
+    def _reject_boolean_money(cls, value: object) -> object:
+        if isinstance(value, bool):
+            raise ValueError("Valores monetários devem ser strings decimais")
+        return value
+
+    @field_validator("schema_version")
+    @classmethod
+    def _validate_schema_version(cls, value: str) -> str:
+        if value != PURCHASE_SOURCE_SCHEMA_VERSION:
+            raise ValueError("schema_version de Purchase Source não suportada")
+        return value
+
+    @model_validator(mode="before")
+    @classmethod
+    def _reject_sensitive_fields(cls, data: Any) -> Any:
+        if isinstance(data, Mapping):
+            hits = find_sensitive_fields(data)
+            if hits:
+                raise PydanticCustomError(
+                    SENSITIVE_FIELD_ERROR_TYPE,
+                    "Campos sensíveis não são aceitos na comparação",
+                    {"fields": list(hits)},
+                )
+        return data

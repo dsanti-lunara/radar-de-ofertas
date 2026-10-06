@@ -23,16 +23,19 @@ from radar.api.contracts import CORRELATION_HEADER
 from radar.api.demand import build_demand_router
 from radar.api.evaluation import build_evaluation_router
 from radar.api.price_opportunity import build_price_opportunity_router
+from radar.api.purchase_source import build_purchase_source_router
 from radar.api.seller_quality import build_seller_quality_router
 from radar.application.correlation import new_correlation_id
 from radar.bootstrap import build_health_service
 from radar.domain.config import RadarConfig
 from radar.domain.demand import DemandNormalization
+from radar.domain.purchase_source import PurchaseSourcePolicy
 from radar.domain.seller_quality import SellerQualityNormalization
 from radar.domain.taxonomy import BrandTaxonomy
 from radar.infrastructure.config import ConfigLoader
 from radar.infrastructure.database import create_database_engine
 from radar.infrastructure.demand import DemandLoader
+from radar.infrastructure.purchase_source import PurchaseSourcePolicyLoader
 from radar.infrastructure.seller_quality import SellerQualityLoader
 from radar.infrastructure.settings import Settings
 from radar.infrastructure.taxonomy import TaxonomyLoader
@@ -45,12 +48,14 @@ def create_app(
     taxonomy: BrandTaxonomy | None = None,
     seller_quality: SellerQualityNormalization | None = None,
     demand: DemandNormalization | None = None,
+    purchase_source_policy: PurchaseSourcePolicy | None = None,
 ) -> FastAPI:
     # Invalid configuration raises ConfigInvalidError, so the API never serves
     # with a config that failed schema validation (RDR-004). The taxonomy is
     # loaded the same way: an invalid taxonomy file blocks app creation instead
-    # of serving an uncalibrated Brand Fit. Seller Quality and Demand
-    # normalization follow the same fail-closed contract (RDR-024, RDR-025).
+    # of serving an uncalibrated Brand Fit. Seller Quality, Demand and the
+    # Purchase Source policy follow the same fail-closed contract
+    # (RDR-024, RDR-025, RDR-031).
     resolved_config = config or ConfigLoader.from_env().load()
     resolved_settings = settings or Settings(
         database_url=resolved_config.database_url,
@@ -60,6 +65,9 @@ def create_app(
     resolved_taxonomy = taxonomy or TaxonomyLoader.from_env().load()
     resolved_seller_quality = seller_quality or SellerQualityLoader.from_env().load()
     resolved_demand = demand or DemandLoader.from_env().load()
+    resolved_purchase_source = (
+        purchase_source_policy or PurchaseSourcePolicyLoader.from_env().load()
+    )
     health_service = build_health_service(resolved_settings, resolved_engine)
 
     app = FastAPI(title="Radar Engine API", version=__version__)
@@ -69,6 +77,7 @@ def create_app(
     app.state.taxonomy = resolved_taxonomy
     app.state.seller_quality = resolved_seller_quality
     app.state.demand = resolved_demand
+    app.state.purchase_source_policy = resolved_purchase_source
 
     register_capture_error_handlers(app)
     app.include_router(build_capture_router(resolved_engine))
@@ -77,6 +86,7 @@ def create_app(
     app.include_router(build_seller_quality_router(resolved_engine, resolved_seller_quality))
     app.include_router(build_demand_router(resolved_engine, resolved_taxonomy, resolved_demand))
     app.include_router(build_evaluation_router(resolved_engine, resolved_taxonomy))
+    app.include_router(build_purchase_source_router(resolved_engine, resolved_purchase_source))
 
     @app.get("/version")
     def version() -> dict[str, Any]:

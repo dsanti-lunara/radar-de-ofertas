@@ -20,6 +20,9 @@ CAPTURE_RECEIVED = "CAPTURE_RECEIVED"
 #: Event type recorded when an immutable Evaluation is persisted (RDR-016).
 EVALUATION_RECORDED = "EVALUATION_RECORDED"
 
+#: Event type recorded when a purchase source decision is persisted (RDR-031).
+PURCHASE_SOURCE_DECIDED = "PURCHASE_SOURCE_DECIDED"
+
 
 @dataclass(frozen=True, slots=True)
 class AuditEvent:

@@ -39,11 +39,22 @@ rejeitam `UPDATE`/`DELETE` no banco, então uma Evaluation antiga nunca é
 sobrescrita; o `AuditEvent` `EVALUATION_RECORDED` é gravado na mesma transação da
 Evaluation.
 
+Implementação (TKT-10): a migration `0005_purchase_source_decision` acrescenta a
+tabela append-only `purchase_source_decision` (FK para `candidate` e
+`audit_event`, índice `candidate_id + created_at`) e atualiza `schema_version`. A
+tabela guarda a decisão do Purchase Source Guardrail, a fonte afiliada, a melhor
+alternativa, os preços efetivos e a diferença decimal, a policy
+versionada/hasheada, as fontes avaliadas e warnings como JSON. Triggers
+`trg_purchase_source_decision_no_update`/`trg_purchase_source_decision_no_delete`
+rejeitam `UPDATE`/`DELETE` no banco; o `AuditEvent` `PURCHASE_SOURCE_DECIDED` e as
+linhas de `Evidence` são gravados na mesma transação da decisão.
+
 ## Append-only
 
 Não sobrescrever:
 - PriceObservation;
 - Evaluation;
+- PurchaseSourceDecision;
 - AIReview;
 - HumanReview;
 - PublicationEvent;

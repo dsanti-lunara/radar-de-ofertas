@@ -20,6 +20,7 @@ from sqlalchemy.orm import Session
 
 from radar.application.demand_service import CandidateDemandContext
 from radar.application.price_opportunity_service import CandidatePriceContext
+from radar.application.purchase_source_service import CandidatePurchaseContext
 from radar.application.seller_quality_service import CandidateSellerContext
 from radar.domain.audit import AuditEvent
 from radar.domain.capture import (
@@ -288,6 +289,36 @@ class SqlAlchemyCaptureRepository:
                 raw_category=marketplace_product.raw_category,
                 sales_count=offer.sales_count,
                 captured_at=_parse(offer.captured_at),
+            )
+
+    def get_candidate_purchase_context(self, candidate_id: str) -> CandidatePurchaseContext | None:
+        """Read the chosen Offer facts of a Candidate (RDR-031).
+
+        Product equivalence and comparable conditions are not persisted by the
+        manual capture yet, so they are supplied (validated) at decision time and
+        reported as explicit gaps when absent.
+        """
+
+        with Session(self.engine) as session:
+            candidate = session.get(CandidateRow, candidate_id)
+            if candidate is None:
+                return None
+            offer = session.get(OfferRow, candidate.offer_id)
+            if offer is None:
+                return None
+            marketplace_product = session.get(MarketplaceProductRow, offer.marketplace_product_id)
+            if marketplace_product is None:
+                return None
+            coupon = None if offer.coupon is None else Coupon(code=offer.coupon)
+            return CandidatePurchaseContext(
+                candidate_id=candidate.id,
+                marketplace_product_id=marketplace_product.id,
+                marketplace=marketplace_product.marketplace,
+                current_price=Decimal(offer.current_price),
+                captured_at=_parse(offer.captured_at),
+                shipping_cost=_optional_decimal(offer.shipping_cost),
+                coupon=coupon,
+                affiliate_commission=_optional_decimal(offer.affiliate_commission),
             )
 
     def _insert(self, session: Session, aggregate: CaptureAggregate) -> None:

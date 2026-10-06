@@ -366,3 +366,19 @@ Evaluation persiste `deal_score`, `monetization_score`, `confidence`, `decision`
 `GET /candidates/{candidate_id}/evaluations`. Ver
 `docs/05_SCORING_ENGINE.md`, `docs/04_DATA_CONTRACTS.md` e
 `docs/10_PERSISTENCE_AND_RECOVERY.md`.
+
+## Implementação (TKT-10, RDR-031)
+
+A comparação de fonte de compra é um cálculo determinístico que recebe as ofertas
+confiáveis e comparáveis do mesmo Product (equivalência positiva por
+`product_equivalence_id` e condições comerciais iguais) e aplica o Purchase Source
+Guardrail do SDD-05: quando a fonte afiliada escolhida custa materialmente mais
+(`>8%` configurável) que a melhor alternativa confiável, a decisão é `REVIEW` ou
+`SUBSTITUTE` conforme a policy versionada e hasheada. O preço efetivo usa apenas
+frete conhecido e cupom `CONFIRMED`; oferta não identificada como equivalente,
+condições diferentes ou sem preço efetivo confiável é lacuna explícita, nunca
+comparação inventada. Comissão não é entrada e nunca favorece a seleção afiliada
+(AUT-051, AUT-062). Cada decisão é persistida append-only com `Evidence`, um
+`AuditEvent` `PURCHASE_SOURCE_DECIDED` na mesma transação e é consultável pela
+fronteira pública. Ver `docs/05_SCORING_ENGINE.md`,
+`docs/04_DATA_CONTRACTS.md` e `docs/10_PERSISTENCE_AND_RECOVERY.md`.

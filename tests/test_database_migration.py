@@ -23,7 +23,7 @@ pytestmark = pytest.mark.integration
 def test_empty_database_migrates_to_head(
     migrated_engine: Engine, migrated_database_url: str
 ) -> None:
-    assert head_revision(migrated_database_url) == "0004_evaluation"
+    assert head_revision(migrated_database_url) == "0005_purchase_source_decision"
     assert current_revision(migrated_engine) == head_revision(migrated_database_url)
 
 
@@ -79,11 +79,12 @@ def test_migration_from_previous_revision_to_head(database_url: str) -> None:
     upgrade_to_head(database_url)
     engine = create_database_engine(database_url)
     try:
-        assert current_revision(engine) == "0004_evaluation"
+        assert current_revision(engine) == "0005_purchase_source_decision"
         tables = set(inspect(engine).get_table_names())
         assert "candidate" in tables
         assert "price_observation" in tables
         assert "evaluation" in tables
+        assert "purchase_source_decision" in tables
     finally:
         engine.dispose()
 
@@ -103,7 +104,7 @@ def test_migration_adds_price_observation_from_capture_revision(database_url: st
     upgrade_to_head(database_url)
     engine = create_database_engine(database_url)
     try:
-        assert current_revision(engine) == "0004_evaluation"
+        assert current_revision(engine) == "0005_purchase_source_decision"
         assert "price_observation" in inspect(engine).get_table_names()
     finally:
         engine.dispose()
@@ -124,7 +125,7 @@ def test_migration_adds_evaluation_from_price_history_revision(database_url: str
     upgrade_to_head(database_url)
     engine = create_database_engine(database_url)
     try:
-        assert current_revision(engine) == "0004_evaluation"
+        assert current_revision(engine) == "0005_purchase_source_decision"
         assert "evaluation" in inspect(engine).get_table_names()
         with engine.connect() as connection:
             triggers = set(
@@ -136,6 +137,42 @@ def test_migration_adds_evaluation_from_price_history_revision(database_url: str
                 .all()
             )
         assert triggers == {"trg_evaluation_no_update", "trg_evaluation_no_delete"}
+    finally:
+        engine.dispose()
+
+
+def test_migration_adds_purchase_source_decision_from_evaluation_revision(
+    database_url: str,
+) -> None:
+    ensure_sqlite_database_directory(database_url)
+    config = make_alembic_config(database_url)
+    command.upgrade(config, "0004_evaluation")
+
+    engine = create_database_engine(database_url)
+    try:
+        assert current_revision(engine) == "0004_evaluation"
+        assert "purchase_source_decision" not in inspect(engine).get_table_names()
+    finally:
+        engine.dispose()
+
+    upgrade_to_head(database_url)
+    engine = create_database_engine(database_url)
+    try:
+        assert current_revision(engine) == "0005_purchase_source_decision"
+        assert "purchase_source_decision" in inspect(engine).get_table_names()
+        with engine.connect() as connection:
+            triggers = set(
+                connection.exec_driver_sql(
+                    "SELECT name FROM sqlite_master WHERE type = 'trigger' "
+                    "AND tbl_name = 'purchase_source_decision'"
+                )
+                .scalars()
+                .all()
+            )
+        assert triggers == {
+            "trg_purchase_source_decision_no_update",
+            "trg_purchase_source_decision_no_delete",
+        }
     finally:
         engine.dispose()
 
@@ -153,6 +190,7 @@ def test_downgrade_reverts_capture_schema(database_url: str) -> None:
         assert "marketplace_product" not in tables
         assert "price_observation" not in tables
         assert "evaluation" not in tables
+        assert "purchase_source_decision" not in tables
         with engine.connect() as connection:
             version = connection.exec_driver_sql(
                 "SELECT version FROM schema_version WHERE component = 'db_schema'"

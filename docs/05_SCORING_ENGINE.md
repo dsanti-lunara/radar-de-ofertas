@@ -274,6 +274,31 @@ Se uma opção afiliada escolhida custar materialmente mais que outra opção co
 
 Threshold inicial de referência: diferença >8%, configurável.
 
+Implementação (TKT-10, RDR-031): a comparação é exposta por
+`POST /candidates/{candidate_id}/purchase-source` (`schema_version=1.0`) e
+`GET /candidates/{candidate_id}/purchase-source`. O domínio é determinístico e
+livre de framework (`radar.domain.purchase_source`) e a policy é configuração
+versionada e hasheada (`config/purchase-source.json`, opcional; use
+`config/purchase-source.example.json`; `RADAR_PURCHASE_SOURCE_FILE` força um
+arquivo) com o threshold congelado (`8`, diferença estritamente `>`) e a ação
+`REVIEW`/`SUBSTITUTE`. O baseline aprovado usa `REVIEW`; `SUBSTITUTE` é uma
+configuração explícita do operador e nenhuma capability é promovida para AUTO
+(AUT-257).
+
+A comparação só usa fontes **confiáveis e comparáveis**: equivalência de Product
+positivamente identificada (`PURCHASE_SOURCE_NOT_EQUIVALENT`,
+`PURCHASE_SOURCE_PRODUCT_NOT_IDENTIFIED`), condições comerciais iguais
+(`PURCHASE_SOURCE_CONDITIONS_NOT_COMPARABLE`) e preço efetivo
+`preço + frete - cupom CONFIRMED` (`PURCHASE_SOURCE_UNRELIABLE_PRICE` quando o
+frete é desconhecido). Ausência de referência confiável é lacuna explícita
+(`PURCHASE_SOURCE_NO_RELIABLE_COMPARISON`), nunca comparação inventada.
+**Comissão nunca é entrada**: a decisão é idêntica para qualquer comissão da fonte
+afiliada (`commission_considered=false`, `PURCHASE_SOURCE_COMMISSION_IGNORED`),
+garantindo que a monetização não contorne o guardrail (AUT-051, AUT-062). Cada
+decisão é persistida append-only com `Evidence` e um `AuditEvent`
+`PURCHASE_SOURCE_DECIDED` na mesma transação. Ver
+`docs/04_DATA_CONTRACTS.md` e `docs/10_PERSISTENCE_AND_RECOVERY.md`.
+
 ## Opportunity Priority
 
 Somente ordenação operacional:

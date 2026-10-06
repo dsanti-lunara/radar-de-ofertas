@@ -210,3 +210,42 @@ class EvaluationRow(Base):
     )
     correlation_id: Mapped[str] = mapped_column(String(64), nullable=False)
     created_at: Mapped[str] = mapped_column(String(40), nullable=False)
+
+
+class PurchaseSourceDecisionRow(Base):
+    """Append-only purchase source decision (RDR-031, AUT-029).
+
+    SQLite triggers installed by migration ``0005_purchase_source_decision``
+    reject any UPDATE or DELETE, so a recorded decision is never overwritten. The
+    evaluated sources and warnings are stored as JSON and the effective prices as
+    decimal strings, so the guardrail stays reproducible and auditable
+    (AUT-231, AUT-232).
+    """
+
+    __tablename__ = "purchase_source_decision"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    candidate_id: Mapped[str] = mapped_column(
+        String(64), ForeignKey("candidate.id"), nullable=False
+    )
+    decision: Mapped[str] = mapped_column(String(16), nullable=False)
+    chosen_source_id: Mapped[str] = mapped_column(String(128), nullable=False)
+    best_alternative_source_id: Mapped[str | None] = mapped_column(String(128))
+    substituted_source_id: Mapped[str | None] = mapped_column(String(128))
+    chosen_effective_price: Mapped[str | None] = mapped_column(String(40))
+    alternative_effective_price: Mapped[str | None] = mapped_column(String(40))
+    difference_percent: Mapped[str | None] = mapped_column(String(40))
+    material: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    threshold_percent: Mapped[str] = mapped_column(String(40), nullable=False)
+    commission_considered: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    policy_version: Mapped[str] = mapped_column(String(64), nullable=False)
+    policy_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    policy_action: Mapped[str] = mapped_column(String(16), nullable=False)
+    sources: Mapped[str] = mapped_column(Text, nullable=False)
+    warnings: Mapped[str] = mapped_column(Text, nullable=False)
+    as_of: Mapped[str] = mapped_column(String(40), nullable=False)
+    audit_event_id: Mapped[str] = mapped_column(
+        String(64), ForeignKey("audit_event.id"), nullable=False
+    )
+    correlation_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    created_at: Mapped[str] = mapped_column(String(40), nullable=False)

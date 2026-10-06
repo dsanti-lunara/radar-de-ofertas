@@ -1,0 +1,6 @@
+{
+  "schema_version": "1.0",
+  "policy_version": "purchase-source-policy-operator",
+  "reference_difference_percent": "8",
+  "on_material_difference": "REVIEW"
+}

@@ -479,6 +479,96 @@ snapshot e scoring versions; reavaliar cria nova versão. Erros usam
 (Candidate inexistente) e `RAD-CAP-011` (componente fora de `0..100` ou Hard Rule
 desconhecida).
 
+## Purchase Source comparison, implementação (TKT-10, RDR-031)
+
+`POST /candidates/{candidate_id}/purchase-source` (`schema_version=1.0`) compara a
+oferta afiliada persistida do Candidate com as alternativas confiáveis informadas
+e persiste uma decisão append-only com `Evidence`; `GET
+/candidates/{candidate_id}/purchase-source` retorna as decisões em ordem
+cronológica. A entrada carrega a equivalência de Product
+(`product_equivalence_id`), as condições comparáveis (`conditions`), o frete/cupom
+que a captura manual ainda não persiste (override validado) e as `alternatives`. A
+comissão afiliada pode ser informada, mas é registrada como ignorada
+(`commission_considered=false`) e nunca altera a decisão.
+
+```json
+{
+  "schema_version": "1.0",
+  "product_equivalence_id": "product-1",
+  "conditions": {"variant": "100ml"},
+  "shipping_cost": "0",
+  "coupon_state": "CONFIRMED",
+  "coupon_amount": "5",
+  "affiliate_commission": "50",
+  "alternatives": [
+    {
+      "source_id": "shopee:1",
+      "marketplace": "SHOPEE",
+      "price": "90",
+      "shipping_cost": "0",
+      "product_equivalence_id": "product-1",
+      "conditions": {"variant": "100ml"}
+    }
+  ]
+}
+```
+
+Resposta (`201`):
+
+```json
+{
+  "schema_version": "1.0",
+  "status": "DECIDED",
+  "scoring_version": "purchase-source-1.0",
+  "candidate_id": "cand_...",
+  "decision": "REVIEW",
+  "chosen_source_id": "candidate:cand_...",
+  "best_alternative_source_id": "shopee:1",
+  "substituted_source_id": null,
+  "chosen_effective_price": "95",
+  "alternative_effective_price": "90",
+  "difference_percent": "5.5556",
+  "material": false,
+  "reference_difference_percent": "8",
+  "commission_considered": false,
+  "policy": {
+    "policy_version": "purchase-source-policy-1.0",
+    "policy_hash": "sha256...",
+    "reference_difference_percent": "8",
+    "on_material_difference": "REVIEW"
+  },
+  "sources": [
+    {"source_id": "candidate:cand_...", "role": "chosen", "effective_price": "95", "product_equivalent": true, "conditions_comparable": true, "eligible": true, "reason": "chosen"},
+    {"source_id": "shopee:1", "role": "alternative", "effective_price": "90", "product_equivalent": true, "conditions_comparable": true, "eligible": true, "reason": "ok"}
+  ],
+  "warnings": [],
+  "as_of": "2026-10-05T12:00:00+00:00",
+  "decision_id": "psd_...",
+  "correlation_id": "cid-1",
+  "audit_event_id": "aud_...",
+  "created_at": "2026-10-05T12:00:00+00:00",
+  "evidence": [
+    {"evidence_id": "evd_...", "field": "chosen_effective_price", "value": "95", "source_type": "purchase_source_comparison"}
+  ]
+}
+```
+
+O preço efetivo é `preço + frete - cupom CONFIRMED` e só existe com frete
+conhecido; cupom `LIKELY`/`UNKNOWN`/`NOT_APPLICABLE` nunca reduz o preço efetivo.
+A diferença é o quanto a fonte afiliada está acima da melhor alternativa
+equivalente; quando `> reference_difference_percent`, a decisão é a
+`on_material_difference` da policy (`REVIEW` no baseline, `SUBSTITUTE` quando
+configurado, com `substituted_source_id`). Lacunas explícitas:
+`PURCHASE_SOURCE_PRODUCT_NOT_IDENTIFIED`, `PURCHASE_SOURCE_NOT_EQUIVALENT`,
+`PURCHASE_SOURCE_CONDITIONS_NOT_COMPARABLE`, `PURCHASE_SOURCE_UNRELIABLE_PRICE`,
+`PURCHASE_SOURCE_NO_RELIABLE_COMPARISON`,
+`PURCHASE_SOURCE_MATERIAL_DIFFERENCE` e `PURCHASE_SOURCE_COMMISSION_IGNORED`.
+Comissão não é entrada, então a decisão nunca favorece a fonte afiliada. A decisão
+é append-only (triggers no banco) e cada gravação cria `Evidence` e um
+`AuditEvent` `PURCHASE_SOURCE_DECIDED` na mesma transação. Erros usam
+`{schema_version, status:"INVALID", correlation_id, error}` com `RAD-CAP-004`
+(Candidate inexistente) e `RAD-CAP-012` (oferta/fonte inválida).
+
 ## AI Editorial Review input
 
 ```json

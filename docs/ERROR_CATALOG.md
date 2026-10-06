@@ -116,6 +116,7 @@ Prefixos sugeridos:
 | RAD-CFG-005 TAXONOMY_INVALID | taxonomia de marcas ausente de schema/semântica válidos (versão, brand, categoria, prioridade, Brand Fit, alias) | no |
 | RAD-CFG-006 SELLER_QUALITY_INVALID | normalização de Seller Quality ausente de schema/semântica válidos (versão, score 0..100, bandas sobrepostas, label/chave inválida) | no |
 | RAD-CFG-007 DEMAND_INVALID | normalização de Demand ausente de schema/semântica válidos (versão, categoria canônica, sinal, peso/score 0..100, bandas sobrepostas, label/chave inválida) | no |
+| RAD-CFG-008 PURCHASE_SOURCE_POLICY_INVALID | policy de Purchase Source ausente de schema/semântica válidos (versão, threshold finito `>=0`, ação `REVIEW`/`SUBSTITUTE`) | no |
 
 ## Capture / Domain
 
@@ -147,6 +148,13 @@ a avaliação de Candidate retorna `RAD-CAP-004` quando o Candidate não existe 
 `RAD-CAP-011` quando um componente de score está fora de `0..100` ou uma Hard Rule
 declarada é desconhecida; Hard Rules violadas e dado obrigatório ausente não são
 erros de transporte, são `failed_rules`/warnings explícitos que forçam `REJECT`.
+Implementação TKT-10 (RDR-031): a comparação de fonte de compra retorna
+`RAD-CAP-004` quando o Candidate não existe e `RAD-CAP-012` quando uma oferta/fonte
+informada é inválida (source_id vazio/duplicado, preço não positivo, condição
+malformada); produto não identificado como equivalente, condições não comparáveis,
+frete/cupom não confiáveis e ausência de referência confiável não são erros, são
+warnings explícitos no contrato; policy inválida bloqueia a criação da API com
+`RAD-CFG-008`.
 Erros são
 retornados no contrato `{schema_version, status, correlation_id, error}`.
 
@@ -163,6 +171,7 @@ retornados no contrato `{schema_version, status, correlation_id, error}`.
 | RAD-CAP-009 SELLER_QUALITY_INPUT_INVALID | sinal de Seller Quality malformado na avaliação (reputation, rating, sales_count, trusted) | no |
 | RAD-CAP-010 DEMAND_INPUT_INVALID | sinal de Demand malformado na avaliação (rating_count, trend, affiliate_portal, badges) | no |
 | RAD-CAP-011 EVALUATION_INPUT_INVALID | componente de Evaluation fora de `0..100` ou Hard Rule declarada desconhecida | no |
+| RAD-CAP-012 PURCHASE_SOURCE_INPUT_INVALID | oferta/fonte de Purchase Source inválida (source_id vazio/duplicado, preço não positivo, condição malformada) | no |
 
 
 Config inválida bloqueia a inicialização de CLI/API antes de qualquer comando

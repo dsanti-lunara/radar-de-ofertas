@@ -160,4 +160,19 @@ que rejeitam `UPDATE`/`DELETE` e um `AuditEvent` `EVALUATION_RECORDED` é gravad
 mesma transação. `auto_eligible=true` é apenas elegibilidade, nunca promoção para
 AUTO. Erros usam `RAD-CAP-004/011`. Contrato em `docs/04_DATA_CONTRACTS.md`.
 
+Comparação de fonte de compra (TKT-10): `POST /candidates/{id}/purchase-source`
+compara a oferta afiliada persistida com alternativas confiáveis e
+`GET /candidates/{id}/purchase-source` consulta as decisões append-only. O
+Purchase Source Guardrail usa o threshold congelado `>8%` (configurável em
+`config/purchase-source.json`, opcional; use `config/purchase-source.example.json`)
+e a ação `REVIEW`/`SUBSTITUTE` da policy versionada/hasheada. Só entram fontes
+confiáveis e comparáveis: equivalência de Product identificada e condições iguais;
+o preço efetivo é `preço + frete - cupom CONFIRMED` e exige frete conhecido.
+Produto não equivalente, condições diferentes e frete desconhecido são lacunas
+explícitas. **Comissão não é entrada** (`commission_considered=false`), então a
+monetização nunca favorece a fonte afiliada (AUT-051, AUT-062). Cada decisão
+persiste `Evidence` e um `AuditEvent` `PURCHASE_SOURCE_DECIDED` na mesma transação.
+Erros usam `RAD-CAP-004/012` e policy inválida bloqueia a API com `RAD-CFG-008`.
+Contrato em `docs/04_DATA_CONTRACTS.md`.
+
 Testes live (browser/IA/Telegram/WhatsApp) são opt-in e ficam fora da suíte padrão.

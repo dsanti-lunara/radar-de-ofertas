@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 
+import { ActionsScreen } from "./actions/ActionsScreen";
 import { HealthStrip } from "./components/HealthStrip";
 import { loadHomeHealth, type HomeHealthState } from "./health/poller";
 import { describeHealthState, unknownStrip } from "./health/strip";
@@ -8,12 +9,14 @@ import type { ReviewSubmission } from "./review/HumanReviewForm";
 import { ReviewApiError, submitHumanReview } from "./review/api";
 import { ReviewWorkspace } from "./review/ReviewWorkspace";
 import { loadDetail, loadInbox, type DetailState, type InboxState } from "./review/state";
+import { SettingsScreen } from "./settings/SettingsScreen";
+import { SystemScreen } from "./system/SystemScreen";
 
 const OVERVIEW_URL = "/health/overview";
 const INBOX_URL = "/review/inbox";
 const POLL_INTERVAL_MS = 10_000;
 
-type View = "home" | "review" | "publications";
+type View = "home" | "review" | "publications" | "actions" | "system" | "settings";
 
 export function App() {
   const [view, setView] = useState<View>("home");
@@ -112,6 +115,27 @@ export function App() {
           >
             Publicações
           </button>
+          <button
+            type="button"
+            onClick={() => setView("actions")}
+            aria-current={view === "actions"}
+          >
+            Ações
+          </button>
+          <button
+            type="button"
+            onClick={() => setView("system")}
+            aria-current={view === "system"}
+          >
+            Sistema
+          </button>
+          <button
+            type="button"
+            onClick={() => setView("settings")}
+            aria-current={view === "settings"}
+          >
+            Configurações
+          </button>
         </nav>
       </header>
 
@@ -146,8 +170,14 @@ export function App() {
           feedback={feedback}
           error={error}
         />
-      ) : (
+      ) : view === "publications" ? (
         <PublicationsScreen />
+      ) : view === "actions" ? (
+        <ActionsScreen />
+      ) : view === "system" ? (
+        <SystemScreen />
+      ) : (
+        <SettingsScreen />
       )}
     </main>
   );

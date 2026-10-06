@@ -18,6 +18,14 @@ export default defineConfig({
     host: "127.0.0.1",
     proxy: {
       "/health": "http://127.0.0.1:8000",
+      "/review": "http://127.0.0.1:8000",
+      "/publications": "http://127.0.0.1:8000",
+      "/opportunities": "http://127.0.0.1:8000",
+      "/human-actions": "http://127.0.0.1:8000",
+      "/integrations": "http://127.0.0.1:8000",
+      "/operations": "http://127.0.0.1:8000",
+      "/jobs": "http://127.0.0.1:8000",
+      "/settings": "http://127.0.0.1:8000",
     },
   },
 });

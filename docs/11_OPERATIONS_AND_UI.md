@@ -274,3 +274,34 @@ cor). O parser fica em
 `.../api.ts` e o estado assíncrono é testável sem DOM (`.../state.ts`).
 
 As telas de Ações, Sistema e Configurações seguem em RDR-063..RDR-067.
+
+## Implementação (TKT-28, RDR-063..RDR-067)
+
+O Control Center ganha a navegação **Ações / Sistema / Configurações**, todas
+consumindo a fronteira pública por polling REST same-origin, sem criar
+capability que a API não possui.
+
+- **Ações** consome `GET /human-actions`/`GET /human-actions/{id}` e
+  `POST /human-actions/{id}/resolve`. A lista mostra tipo, status, entidade,
+  motivo e impacto; o detail mostra impacto/próximos passos e a orientação de
+  resolução. O formulário de resolução exige motivo e uma confirmação explícita
+  (otimista-zero) e só aparece para ação `OPERATOR_ACK` aberta; uma ação
+  delegada (`CANDIDATE_REVIEW`/`PUBLICATION_RESOLUTION`) nunca aparece
+  executável aqui e explica o fluxo correto (acceptance #5).
+- **Sistema** consome `GET /integrations`/`PUT /integrations/{name}` e
+  `GET /jobs`. Integrações usam o estado padronizado e um controle habilitar/
+  desabilitar/pausar com confirmação; Jobs/Dead Jobs usam o status real com o
+  filtro "Somente Dead Jobs" (`status=DEAD`).
+- **Configurações** consome `GET /settings` (read model read-only) e os
+  controles operacionais `POST /operations/mode` e `POST`/`DELETE
+  /operations/stop-external-actions`. Mostra as políticas efetivas
+  versionadas/hasheadas, a elegibilidade AUTO critério a critério e o kill
+  switch. Toda mudança perigosa exige confirmação e é auditada pelo `radar-api`;
+  a UI **nunca promove** uma capability para AUTO (AUT-256, AUT-257, AUT-258).
+
+O parser de cada tela fica em `packages/control-center/src/{actions,system,settings}/contracts.ts`,
+o cliente REST em `.../api.ts` e o estado assíncrono é testável sem DOM em
+`.../state.ts`. Estados loading/vazio/erro têm feedback textual (rótulo, nunca
+só cor). Como as políticas avançadas seguem em arquivo versionado
+(`config/*.json`), a tela reflete o snapshot efetivo e não introduz um segundo
+fonte de verdade. A geração TS a partir do OpenAPI segue pendente (AUT-395).

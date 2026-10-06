@@ -90,6 +90,28 @@ def build_job_router(
         job = service.claim(worker_id=payload.worker_id, lease_seconds=payload.lease_seconds)
         return _job_response(job, correlation_id=correlation_id)
 
+    @router.get("/jobs")
+    def list_jobs(
+        request: Request,
+        status: str | None = None,
+        limit: int = 100,
+    ) -> JSONResponse:
+        """List persisted Jobs/Dead Jobs for the System screen (RDR-065)."""
+
+        correlation_id = bind_correlation_id(resolve_correlation_id(request))
+        jobs = service.list_jobs(status=status, limit=limit)
+        return JSONResponse(
+            status_code=200,
+            content={
+                "schema_version": JOB_SCHEMA_VERSION,
+                "status": "OK",
+                "count": len(jobs),
+                "jobs": [job.to_contract() for job in jobs],
+                "correlation_id": correlation_id,
+            },
+            headers={CORRELATION_HEADER: correlation_id, "Cache-Control": "no-store"},
+        )
+
     @router.get("/jobs/{job_id}")
     def get_job(job_id: str, request: Request) -> JSONResponse:
         correlation_id = bind_correlation_id(resolve_correlation_id(request))

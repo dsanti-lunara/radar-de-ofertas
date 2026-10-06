@@ -102,6 +102,7 @@ Prefixos sugeridos:
 | RAD-WF-017 CANDIDATE_REVIEW_REQUIRED | Candidate com decisão REVIEW exige resolução humana antes de virar Opportunity |
 | RAD-WF-018 OPERATIONS_INPUT_INVALID | input de operações inválido (schema_version, global_mode, action, integration state, reason) |
 | RAD-WF-019 RECOVERY_INPUT_INVALID | input de recovery inválido (schema_version, trigger) |
+| RAD-WF-020 HUMAN_ACTION_RESOLUTION_NOT_AVAILABLE | resolução da HumanAction pertence a outro fluxo guardado (revisão de Candidate, resolução de publicação com evidência); bloqueante |
 
 Implementação TKT-13 (RDR-034..036): `POST /jobs` persiste o job (`PENDING`),
 `POST /jobs/claim` concede um único lease e retorna `RAD-WF-008` quando não há
@@ -121,6 +122,15 @@ backoff configurado), `FAILED` (permanente) ou `DEAD` (exaustão/humano, com
 `RAD-WF-006`. `DEAD`/exaustão cria uma HumanAction consultável por
 `GET /human-actions`/`GET /human-actions/{id}`; ação inexistente retorna
 `RAD-WF-011`. Policy de retry inválida bloqueia a API com `RAD-CFG-010`.
+
+Implementação TKT-28 (RDR-063/RDR-064/RDR-065/RDR-066/RDR-067): `GET /jobs`
+(listing opcional por `status`, usado pela visão de Jobs/Dead Jobs) retorna
+`RAD-WF-006` para `status`/`limit` inválidos; `POST /human-actions/{id}/resolve`
+fecha uma intervenção `OPERATOR_ACK` com motivo auditado (`HUMAN_ACTION_RESOLVED`),
+é idempotente e retorna `RAD-WF-011` para ação inexistente e `RAD-WF-020` (409)
+quando a resolução pertence a outro fluxo guardado. `GET /settings` é o read
+model read-only de configurações efetivas e elegibilidade AUTO: não muda estado,
+nunca promove capability para AUTO e não introduz código de erro próprio.
 
 Implementação TKT-15 (RDR-039): `POST /schedules` valida o schedule e retorna
 `RAD-WF-012` para cadência/`type`/cron/timezone/quiet window/payload inválidos

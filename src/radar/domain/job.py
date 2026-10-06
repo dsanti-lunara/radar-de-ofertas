@@ -45,6 +45,9 @@ DEFAULT_LEASE_SECONDS = 60
 #: Conservative initial attempt budget; retry/backoff belongs to RDR-037.
 DEFAULT_MAX_ATTEMPTS = 3
 
+#: Maximum page size of the public Job listing (RDR-065).
+MAX_JOB_LIST_LIMIT = 500
+
 #: Error codes (see ``docs/ERROR_CATALOG.md``).
 JOB_INPUT_INVALID = "RAD-WF-006"
 JOB_NOT_FOUND = "RAD-WF-007"
@@ -371,6 +374,37 @@ def _coerce_job_type(job_type: object) -> JobType:
         ) from exc
 
 
+def coerce_job_status(value: object) -> str | None:
+    """Validate an optional Job status filter (RDR-065).
+
+    ``None``/absent means "no filter"; an unknown status fails closed with
+    ``RAD-WF-006`` instead of silently returning an empty page.
+    """
+
+    if value is None:
+        return None
+    if isinstance(value, JobStatus):
+        return value.value
+    try:
+        return JobStatus(str(value)).value
+    except ValueError as exc:
+        raise job_input_invalid_error(
+            "status de job inválido",
+            context={"field": "status", "allowed": [item.value for item in JobStatus]},
+        ) from exc
+
+
+def require_job_list_limit(value: object, *, maximum: int = MAX_JOB_LIST_LIMIT) -> int:
+    """Validate the page size of a Job listing (1..``maximum``)."""
+
+    if isinstance(value, bool) or not isinstance(value, int) or value < 1 or value > maximum:
+        raise job_input_invalid_error(
+            "limit deve ser um inteiro entre 1 e o máximo",
+            context={"field": "limit", "maximum": maximum},
+        )
+    return value
+
+
 def validate_job_payload(payload: object) -> dict[str, Any]:
     """Validate a Job payload: a JSON object free of sensitive fields.
 
@@ -535,12 +569,14 @@ __all__ = [
     "JOB_SCHEMA_VERSION",
     "JOB_STATE_INVALID",
     "LOCK_UNAVAILABLE",
+    "MAX_JOB_LIST_LIMIT",
     "IdFactory",
     "Job",
     "JobError",
     "JobStatus",
     "JobType",
     "Lock",
+    "coerce_job_status",
     "complete_job",
     "create_job",
     "job_input_invalid_error",
@@ -550,6 +586,7 @@ __all__ = [
     "job_state_invalid_error",
     "lock_unavailable_error",
     "require_correlation_id",
+    "require_job_list_limit",
     "require_lease_seconds",
     "require_worker_id",
     "start_job",

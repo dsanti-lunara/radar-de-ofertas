@@ -1809,3 +1809,74 @@ recusam o envio (`SHADOW_NO_COMMERCIAL_SEND`/`PUBLICATION_APPROVAL_REQUIRED`)
 mesmo após aprovar o Candidate (GRILL-001). A migration `0018_human_review`
 cria a tabela append-only com FKs reais para `candidate`/`ai_review`/
 `audit_event`.
+
+## Human Actions, Jobs/Dead Jobs e Configurações, implementação (TKT-28, RDR-063..RDR-067)
+
+A central de **Ações**, a tela **Sistema** e a tela **Configurações** do Control
+Center consomem a fronteira pública; nenhuma delas cria capability que a API não
+possui nem promove automação.
+
+`GET /human-actions`/`GET /human-actions/{id}` (RDR-063) acrescentam ao contrato
+da HumanAction um bloco `resolution` determinístico:
+
+```json
+{
+  "resolution": {
+    "mode": "OPERATOR_ACK",
+    "resolvable_via_center": true,
+    "delegated_to": null,
+    "guidance": "Corrigir a causa, reprocessar o job e registrar a resolução."
+  }
+}
+```
+
+`mode` é `OPERATOR_ACK` (fechável aqui), `CANDIDATE_REVIEW` ou
+`PUBLICATION_RESOLUTION` (delegados). `POST /human-actions/{id}/resolve`
+(`schema_version=1.0`, corpo `{reason}` obrigatório) fecha uma ação
+`OPERATOR_ACK` e é idempotente; a linha e o `AuditEvent HUMAN_ACTION_RESOLVED`
+são gravados na mesma transação. Uma ação delegada — incluindo
+`REVIEW_PUBLICATION`/`SEND_RESULT_UNKNOWN`, cuja resolução exige evidência
+(ADR 0001) — retorna 409 `RAD-WF-020` e permanece `OPEN`; ação inexistente
+retorna 404 `RAD-WF-011`. `reason` vazio/`schema_version` não suportada retornam
+`RAD-WF-006` (422). A resolução é bookkeeping auditável: ela não executa side
+effect.
+
+`GET /jobs` (RDR-065, `schema_version=1.0`) devolve
+`{status, count, jobs[], correlation_id}` com `status` opcional
+(`PENDING`/`CLAIMED`/`RUNNING`/`RETRY_WAIT`/`SUCCESS`/`FAILED`/`CANCELLED`/`DEAD`)
+e `limit` (1..500, default 100). A visão de Dead Jobs é o mesmo read model com
+`status=DEAD`. `status`/`limit` inválidos retornam `RAD-WF-006` (422).
+
+`GET /settings` (RDR-067, `schema_version=1.0`) é o read model **read-only** das
+configurações efetivas: `operations` (modo global/kill switch), `automation_policy`,
+`compliance_policy` e `publication_policy` (cada uma com `policy_version` e
+`policy_hash`), `integrations` (estado padronizado) e `auto_eligibility`:
+
+```json
+{
+  "auto_eligibility": {
+    "eligible": false,
+    "promotes_automatically": false,
+    "requires_human_decision": true,
+    "criteria": [
+      {"criterion": "compliance_policy", "state": "MET", "detail": "..."},
+      {"criterion": "integration_health", "state": "NOT_MET", "detail": "..."},
+      {"criterion": "open_human_actions", "state": "MET", "detail": "..."},
+      {"criterion": "shadow_samples", "state": "UNAVAILABLE", "detail": "..."}
+    ]
+  }
+}
+```
+
+Cada critério é `MET`/`NOT_MET`/`UNAVAILABLE`. `compliance_policy`,
+`integration_health` e `open_human_actions` usam dados reais; os critérios que
+dependem de calibração ainda não coletada (`shadow_samples`, `human_agreement`,
+`p0_p1_open`, `validation_failures`) são `UNAVAILABLE`, nunca inventados. O
+agregado é `eligible` apenas quando **todos** os critérios estão `MET`, então
+uma lacuna de calibração mantém a resposta fail-closed; `promotes_automatically`
+é sempre `false` e `requires_human_decision` é sempre `true` (AUT-257,
+AUT-258). A promoção continua sendo uma decisão humana por
+`config/automation-policy.json`; esta tela apenas mostra readiness. As mudanças
+frequentes (modo global, kill switch, integração) continuam usando suas
+fronteiras auditadas (`POST /operations/mode`, `POST`/`DELETE
+/operations/stop-external-actions`, `PUT /integrations/{name}`).

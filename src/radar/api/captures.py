@@ -63,7 +63,10 @@ from radar.domain.content import (
 from radar.domain.demand import DEMAND_INPUT_INVALID
 from radar.domain.errors import RadarError, RadarException
 from radar.domain.evaluation import EVALUATION_INPUT_INVALID
-from radar.domain.human_action import HUMAN_ACTION_NOT_FOUND
+from radar.domain.human_action import (
+    HUMAN_ACTION_NOT_FOUND,
+    HUMAN_ACTION_RESOLUTION_NOT_AVAILABLE,
+)
 from radar.domain.human_review import (
     HUMAN_REVIEW_INPUT_INVALID,
     HUMAN_REVIEW_NOT_FOUND,
@@ -171,6 +174,7 @@ def _error_status(error_code: str) -> int:
         PUBLICATION_BLOCKED,
         PUBLICATION_RESULT_UNKNOWN,
         PUBLICATION_RESOLUTION_BLOCKED,
+        HUMAN_ACTION_RESOLUTION_NOT_AVAILABLE,
     ):
         return 409
     if error_code in (

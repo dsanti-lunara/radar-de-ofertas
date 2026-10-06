@@ -44,6 +44,7 @@ from radar.api.repost import build_repost_router
 from radar.api.reviews import build_review_router
 from radar.api.schedules import build_schedule_router
 from radar.api.seller_quality import build_seller_quality_router
+from radar.api.settings import build_settings_router
 from radar.application.correlation import new_correlation_id
 from radar.bootstrap import build_health_service
 from radar.domain.affiliate_link import AffiliateLinkProvider
@@ -211,6 +212,14 @@ def create_app(
     app.include_router(build_opportunity_router(resolved_engine, resolved_workflow))
     app.include_router(
         build_operations_router(resolved_engine, resolved_automation, resolved_compliance)
+    )
+    app.include_router(
+        build_settings_router(
+            resolved_engine,
+            resolved_automation,
+            resolved_compliance,
+            resolved_publication_policy,
+        )
     )
     app.include_router(
         build_review_router(resolved_engine, resolved_automation, resolved_compliance)

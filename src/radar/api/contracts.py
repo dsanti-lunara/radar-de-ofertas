@@ -26,6 +26,7 @@ from radar.domain.capture import (
 )
 from radar.domain.content import CONTENT_SCHEMA_VERSION
 from radar.domain.evaluation import EVALUATION_SCHEMA_VERSION
+from radar.domain.human_action import HUMAN_ACTION_SCHEMA_VERSION
 from radar.domain.human_review import HUMAN_REVIEW_SCHEMA_VERSION
 from radar.domain.job import DEFAULT_MAX_ATTEMPTS, JOB_SCHEMA_VERSION
 from radar.domain.knowledge import Channel
@@ -841,3 +842,22 @@ class HumanReviewRequestContract(_StrictContract):
                     {"fields": list(hits)},
                 )
         return data
+
+
+class HumanActionResolveContract(_StrictContract):
+    """Versioned input to resolve a HumanAction from the center (RDR-063).
+
+    ``reason`` is mandatory: resolving records *how* the operator handled the
+    intervention. Delegated/guarded kinds are rejected by the domain with
+    ``RAD-WF-020`` before any write, so the center never bypasses evidence.
+    """
+
+    schema_version: str = HUMAN_ACTION_SCHEMA_VERSION
+    reason: str = Field(min_length=1, max_length=512)
+
+    @field_validator("schema_version")
+    @classmethod
+    def _validate_schema_version(cls, value: str) -> str:
+        if value != HUMAN_ACTION_SCHEMA_VERSION:
+            raise ValueError("schema_version de HumanAction não suportada")
+        return value

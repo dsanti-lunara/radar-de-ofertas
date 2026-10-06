@@ -1150,3 +1150,54 @@ fornecida pelo operador. A geração TS a partir do OpenAPI segue pendente (AUT-
 o parser em `packages/control-center/src/publications/contracts.ts` é um espelho.
 Nenhuma capability foi promovida para AUTO e nenhum teste live/credenciado foi
 executado.
+
+## UI/Operations traceability, TKT-28 (RDR-063, RDR-064, RDR-065, RDR-066, RDR-067)
+
+Escopo: central de HumanActions com resolução auditada, integrações padronizadas,
+Jobs/Dead Jobs reais, controles operacionais e read model de Configurações com
+elegibilidade AUTO read-only. Camadas `contract`, `integration` e `unit` com
+SQLite temporário real e UI testável sem DOM; nenhum teste live, credencial ou
+side effect comercial.
+
+| Requirement | Test (arquivo::caso) | Acceptance | Evidence |
+|---|---|---|---|
+| RDR-063 Human Actions center | `tests/test_api_human_actions.py` (3), `packages/control-center/src/actions/*.test.{ts,tsx}` | Resolver ação sem SQL, com impacto/próximos passos e resolução auditada | `GET /human-actions` com bloco `resolution`; `POST /human-actions/{id}/resolve` 200 `RESOLVED`; `AuditEvent HUMAN_ACTION_RESOLVED` |
+| Ação indisponível não é executável | `tests/test_api_human_actions.py::test_delegated_publication_action_cannot_be_closed_from_the_center`; `.../actions/ActionsWorkspace.test.tsx` | Ação delegada falha fechado e não aparece como executável | 409 `RAD-WF-020`; ação permanece `OPEN`; UI não oferece "Resolver ação" |
+| RDR-064 Integration health | `tests/test_api_settings.py::test_registered_integration_drives_the_health_criterion`; `.../system/SystemWorkspace.test.tsx` | Integrações usam o estado padronizado real | `GET /integrations` estado/`operational`; controle habilitar/desabilitar confirma |
+| RDR-065 Jobs/Dead Jobs | `tests/test_api_jobs_listing.py` (3); `.../system/SystemWorkspace.test.tsx` | Jobs/Dead Jobs usam status reais | `GET /jobs` com `RETRY_WAIT`/`DEAD`/`PENDING`; `status=DEAD` filtra; `status`/`limit` inválidos → `RAD-WF-006` |
+| RDR-066 Operational controls | `packages/control-center/src/settings/*.test.{ts,tsx}` | Modo/kill switch exigem confirmação | `POST /operations/mode`; `POST`/`DELETE /operations/stop-external-actions`; UI exige confirmação |
+| RDR-067 Settings + versionamento | `tests/test_api_settings.py` (4); `tests/test_settings_domain.py` (3); `.../settings/contracts.test.ts` | Config efetiva versionada/hasheada e inválida falha fechado | `automation_policy`/`compliance_policy`/`publication_policy` com `policy_version`+`policy_hash`; `RAD-CFG-012/013/016` (TKT-17/TKT-23) continuam bloqueando política inválida |
+| UI mostra elegibilidade AUTO sem promover | `tests/test_settings_domain.py` (3); `tests/test_api_settings.py::test_settings_expose_versioned_policies_and_never_promote_auto`; `.../settings/SettingsWorkspace.test.tsx` | Elegibilidade read-only, fail-closed | `eligible` só com todos `MET`; `promotes_automatically=false`; `requires_human_decision=true`; critérios sem calibração `UNAVAILABLE` |
+| Comportamento pela fronteira pública; nenhum teste/guardrail enfraquecido | suíte completa `871 passed` (Python) + `137 passed` (TypeScript) | Ações/estados observáveis pela fronteira sem remover testes | `pytest`; `pnpm lint`; `pnpm typecheck`; `pnpm test`; `pnpm --filter @radar/control-center build` |
+
+### Acceptance evidence, TKT-28
+
+| Acceptance criterion | Verification |
+|---|---|
+| Jobs/Dead Jobs/integrações usam status reais e HumanActions explicam impacto | `tests/test_api_jobs_listing.py`, `tests/test_api_settings.py::test_registered_integration_drives_the_health_criterion`, `tests/test_api_human_actions.py`; `.../system/*.test.{ts,tsx}`, `.../actions/*.test.{ts,tsx}` |
+| Mudanças perigosas exigem confirmação e auditoria | `.../actions/HumanActionResolveForm.tsx`, `.../system/IntegrationControl.tsx`, `.../settings/OperationalControls.tsx` (checkbox de confirmação); `HUMAN_ACTION_RESOLVED`/`INTEGRATION_HEALTH_CHANGED`/`OPERATIONS_MODE_CHANGED` persistidos |
+| Config inválida é rejeitada; thresholds/caps/modes válidos têm snapshot/versionamento | `tests/test_api_settings.py` (políticas com `policy_version`/`policy_hash`); loaders de política continuam falhando fechado (`RAD-CFG-012/013/016`) |
+| UI mostra elegibilidade AUTO mas nunca promove sozinha | `tests/test_settings_domain.py`, `tests/test_api_settings.py`, `.../settings/SettingsWorkspace.test.tsx` |
+| Ações indisponíveis não aparecem executáveis como capacidades inventadas | `tests/test_api_human_actions.py::test_delegated_publication_action_cannot_be_closed_from_the_center`, `.../actions/ActionsWorkspace.test.tsx`, `.../system/SystemWorkspace.test.tsx` |
+| Comportamento demonstrado pela fronteira pública com evidência rastreável; nenhum teste/guardrail enfraquecido | endpoints `/human-actions*`, `/jobs`, `/integrations`, `/settings`; suítes acima sem remoção de teste |
+| Docs/contratos afetados e matriz QA atualizados; limitações e blockers remanescentes explícitos | este documento, `docs/04_DATA_CONTRACTS.md`, `docs/11_OPERATIONS_AND_UI.md`, `docs/ERROR_CATALOG.md`, `docs/08_WORKFLOW_ENGINE.md` |
+
+Requirement → Test → Acceptance → Evidence completo para TKT-28. Limitações e
+blockers remanescentes: a resolução de HumanAction é **bookkeeping auditável**
+para as ações `OPERATOR_ACK`; as ações delegadas (`REVIEW_CANDIDATE`,
+`REVIEW_PUBLICATION`/`SEND_RESULT_UNKNOWN`) continuam pertencendo aos fluxos
+guardados (revisão de Candidate e resolução de publicação com evidência, ADR
+0001) e não são fechadas pela central. A `severity` INFO/ATTENTION/CRITICAL
+mencionada no SDD-11 não foi adicionada porque o SDD não a calibra por
+`action_type`; a UI usa o impacto textual. A elegibilidade AUTO é fail-closed:
+`samples`/`agreement`/`P0/P1`/`validation failures` são `UNAVAILABLE` até os
+tickets de calibração/analytics fornecerem dados, então `eligible` permanece
+`false` neste nó — nenhum valor foi inventado. A tela de Configurações reflete
+as políticas versionadas em arquivo (o snapshot efetivo); um override mutável de
+caps/modes pela UI não foi introduzido para não criar um segundo fonte de
+verdade — a promoção para AUTO continua por decisão humana sobre
+`config/automation-policy.json`. `GET /settings` é read-only. A geração TS a
+partir do OpenAPI segue pendente (AUT-395): os parsers em
+`packages/control-center/src/{actions,system,settings}/contracts.ts` são
+espelhos. Nenhum teste live/credenciado foi executado e nenhuma capability foi
+promovida para AUTO.

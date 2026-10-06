@@ -24,8 +24,10 @@ from radar.domain.job import (
     JOB_SCHEMA_VERSION,
     Job,
     Lock,
+    coerce_job_status,
     create_job,
     job_not_found_error,
+    require_job_list_limit,
     require_lease_seconds,
     require_worker_id,
 )
@@ -47,6 +49,8 @@ class JobStore(Protocol):
     def enqueue(self, job: Job) -> Job: ...
 
     def get(self, job_id: str) -> Job | None: ...
+
+    def list(self, *, status: str | None = None, limit: int = 100) -> list[Job]: ...
 
     def claim(self, *, worker_id: str, lease_seconds: int, now: datetime) -> Job: ...
 
@@ -163,6 +167,14 @@ class JobService:
         if job is None:
             raise job_not_found_error(job_id)
         return job
+
+    def list_jobs(self, *, status: object = None, limit: object = 100) -> list[Job]:
+        """Return persisted jobs, optionally filtered by status (RDR-065)."""
+
+        return self.repository.list(
+            status=coerce_job_status(status),
+            limit=require_job_list_limit(limit),
+        )
 
     def acquire_lock(
         self,

@@ -413,4 +413,17 @@ revalidação. As ações auditadas `POST
 e bloqueado em `UNKNOWN`; cancelar é soft, `DELETED`, e bloqueia `PUBLISHED`). O
 parser/cliente da UI ficam em `packages/control-center/src/publications/`.
 
+Operação na UI (TKT-28, RDR-063..RDR-067): as abas Ações, Sistema e
+Configurações consomem `GET /human-actions`/`GET /human-actions/{id}` e
+`POST /human-actions/{id}/resolve` (resolução `OPERATOR_ACK` auditada; ação
+delegada retorna 409 `RAD-WF-020`), `GET /jobs` (listing com status real para
+Jobs/Dead Jobs), `GET /integrations`/`PUT /integrations/{name}` e
+`GET /settings`. O read model `GET /settings` expõe as políticas efetivas
+versionadas/hasheadas e a elegibilidade AUTO como read-only: `eligible` é
+fail-closed (critérios sem calibração ficam `UNAVAILABLE`),
+`promotes_automatically` é sempre `false` e a promoção para AUTO continua humana.
+Mudanças perigosas (modo, kill switch, integração, resolução) exigem confirmação
+e são auditadas. O parser/cliente de cada tela ficam em
+`packages/control-center/src/{actions,system,settings}/`.
+
 Testes live (browser/IA/Telegram/WhatsApp) são opt-in e ficam fora da suíte padrão.

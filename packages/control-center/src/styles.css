@@ -166,6 +166,37 @@ body {
   color: #15602e;
 }
 
+.actions-workspace,
+.system-workspace,
+.settings-workspace {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.system-workspace > section,
+.settings-workspace > section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.review-form select,
+.review-form input:not([type="checkbox"]) {
+  display: block;
+  width: 100%;
+}
+
+.review-form .checkbox {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+}
+
+.review-form .checkbox input {
+  width: auto;
+}
+
 @media (prefers-color-scheme: dark) {
   body {
     background: #14171c;

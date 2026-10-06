@@ -183,7 +183,11 @@ referenciando a entidade existente (nunca a recriando), com `impact`/
 `next_steps` determinísticos, e grava `JOB_RETRY_SCHEDULED`/`JOB_FAILED`/
 `JOB_DEAD` + `HUMAN_ACTION_CREATED` no `audit_event` na mesma transação. As ações
 são consultáveis por `GET /human-actions`/`GET /human-actions/{id}`; a resolução
-pertence ao Human Actions center (RDR-063). O `available_at` de `RETRY_WAIT`
+`OPERATOR_ACK` é feita pelo Human Actions center (RDR-063) via
+`POST /human-actions/{id}/resolve` (auditando `HUMAN_ACTION_RESOLVED`), enquanto
+as ações delegadas (`REVIEW_CANDIDATE`, `REVIEW_PUBLICATION`/`SEND_RESULT_UNKNOWN`)
+continuam nos fluxos guardados e retornam `RAD-WF-020` aqui. `GET /jobs` expõe o
+queue e a Dead Job Queue (RDR-065) por status real. O `available_at` de `RETRY_WAIT`
 torna o job claimável de novo pelo claim atômico. Scheduler (RDR-039) e
 recuperação pós-crash (RDR-042) permanecem em seus próprios tickets.
 

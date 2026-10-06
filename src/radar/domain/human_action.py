@@ -15,7 +15,7 @@ the dependent ticket can evolve it without a contract rewrite.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Any
@@ -32,6 +32,13 @@ HUMAN_ACTION_SCHEMA_VERSION = "1.0"
 
 #: Error code for a HumanAction query that found no record.
 HUMAN_ACTION_NOT_FOUND = "RAD-WF-011"
+
+#: Error code for resolving a HumanAction whose intervention is delegated to
+#: another guarded flow (RDR-063). Resolving it here could bypass evidence.
+HUMAN_ACTION_RESOLUTION_NOT_AVAILABLE = "RAD-WF-020"
+
+#: Provenance source recorded on HumanAction audit events.
+AUDIT_SOURCE_HUMAN_ACTION = "human_action"
 
 #: Maximum length of the free-form action fields.
 MAX_HUMAN_ACTION_TEXT_LENGTH = 512
@@ -61,6 +68,104 @@ class HumanActionStatus(StrEnum):
     RESOLVED = "RESOLVED"
 
 
+class HumanActionResolutionMode(StrEnum):
+    """How one intervention can actually be closed (RDR-063, AUT-244).
+
+    ``OPERATOR_ACK`` is the Human Actions center's own action: the operator
+    performed the intervention and records the resolution. The delegated modes
+    belong to a guarded flow (Candidate review, Publication resolution with
+    evidence) and must **not** be closed from here, so the center can never
+    bypass an evidence/authorization gate (AUT-263, ADR 0001).
+    """
+
+    OPERATOR_ACK = "OPERATOR_ACK"
+    CANDIDATE_REVIEW = "CANDIDATE_REVIEW"
+    PUBLICATION_RESOLUTION = "PUBLICATION_RESOLUTION"
+
+
+@dataclass(frozen=True, slots=True)
+class HumanActionResolution:
+    """Observable resolution guidance for one HumanAction kind (RDR-063)."""
+
+    mode: HumanActionResolutionMode
+    resolvable_via_center: bool
+    delegated_to: str | None
+    guidance: str
+
+    def to_contract(self) -> dict[str, Any]:
+        return {
+            "mode": self.mode.value,
+            "resolvable_via_center": self.resolvable_via_center,
+            "delegated_to": self.delegated_to,
+            "guidance": self.guidance,
+        }
+
+
+#: Deterministic resolution guidance per intervention kind. Delegated flows are
+#: never executable from the Human Actions center (acceptance #5).
+_RESOLUTION_GUIDANCE: dict[HumanActionType, HumanActionResolution] = {
+    HumanActionType.AUTHENTICATE_MARKETPLACE: HumanActionResolution(
+        mode=HumanActionResolutionMode.OPERATOR_ACK,
+        resolvable_via_center=True,
+        delegated_to=None,
+        guidance="Autenticar no fluxo oficial do marketplace e registrar a resolução.",
+    ),
+    HumanActionType.REVIEW_CANDIDATE: HumanActionResolution(
+        mode=HumanActionResolutionMode.CANDIDATE_REVIEW,
+        resolvable_via_center=False,
+        delegated_to="review",
+        guidance="Resolver pela revisão do Candidate em Oportunidades, com motivo.",
+    ),
+    HumanActionType.REVIEW_PUBLICATION: HumanActionResolution(
+        mode=HumanActionResolutionMode.PUBLICATION_RESOLUTION,
+        resolvable_via_center=False,
+        delegated_to="publications",
+        guidance=(
+            "Resolver pela resolução da publicação, que exige evidência; "
+            "uma autorização sem corroboração não prova o resultado (ADR 0001)."
+        ),
+    ),
+    HumanActionType.RESOLVE_DATA_CONFLICT: HumanActionResolution(
+        mode=HumanActionResolutionMode.OPERATOR_ACK,
+        resolvable_via_center=True,
+        delegated_to=None,
+        guidance="Escolher o fato correto pela proveniência e registrar a resolução.",
+    ),
+    HumanActionType.BROWSER_DOM_CHANGED: HumanActionResolution(
+        mode=HumanActionResolutionMode.OPERATOR_ACK,
+        resolvable_via_center=True,
+        delegated_to=None,
+        guidance=(
+            "Atualizar fixtures/selectors via Browser Reconnaissance e registrar a resolução."
+        ),
+    ),
+    HumanActionType.RESTORE_AI_AUTH: HumanActionResolution(
+        mode=HumanActionResolutionMode.OPERATOR_ACK,
+        resolvable_via_center=True,
+        delegated_to=None,
+        guidance="Restaurar a autenticação do provider de IA e registrar a resolução.",
+    ),
+    HumanActionType.BACKUP_FAILURE: HumanActionResolution(
+        mode=HumanActionResolutionMode.OPERATOR_ACK,
+        resolvable_via_center=True,
+        delegated_to=None,
+        guidance="Corrigir disco/permissões, executar o backup e registrar a resolução.",
+    ),
+    HumanActionType.DEAD_JOB_REVIEW: HumanActionResolution(
+        mode=HumanActionResolutionMode.OPERATOR_ACK,
+        resolvable_via_center=True,
+        delegated_to=None,
+        guidance="Corrigir a causa, reprocessar o job e registrar a resolução.",
+    ),
+}
+
+
+def human_action_resolution_for(action_type: HumanActionType) -> HumanActionResolution:
+    """Return the resolution guidance for one intervention kind."""
+
+    return _RESOLUTION_GUIDANCE[action_type]
+
+
 class HumanActionError(RadarException):
     """Base error raised when a HumanAction operation cannot be completed."""
 
@@ -75,6 +180,26 @@ def human_action_not_found_error(human_action_id: str) -> HumanActionError:
             retryable=False,
             action="Verificar o human_action_id informado",
             context={"human_action_id": human_action_id},
+        )
+    )
+
+
+def human_action_resolution_not_available_error(
+    human_action_id: str, resolution: HumanActionResolution
+) -> HumanActionError:
+    """Build the structured error for a delegated/guarded intervention."""
+
+    return HumanActionError(
+        RadarError(
+            code=HUMAN_ACTION_RESOLUTION_NOT_AVAILABLE,
+            message="Resolução desta HumanAction pertence a outro fluxo guardado",
+            retryable=False,
+            action=resolution.guidance,
+            context={
+                "human_action_id": human_action_id,
+                "mode": resolution.mode.value,
+                "delegated_to": resolution.delegated_to,
+            },
         )
     )
 
@@ -149,6 +274,7 @@ class HumanAction:
             "error_code": self.error_code,
             "impact": self.impact,
             "next_steps": self.next_steps,
+            "resolution": human_action_resolution_for(self.action_type).to_contract(),
             "correlation_id": self.correlation_id,
             "created_at": _to_utc(self.created_at).isoformat(),
             "updated_at": _to_utc(self.updated_at).isoformat(),
@@ -256,14 +382,40 @@ def build_human_action(
     )
 
 
+def resolve_human_action(action: HumanAction, *, reason: object, now: datetime) -> HumanAction:
+    """Resolve an ``OPERATOR_ACK`` intervention, recording the operator reason.
+
+    Resolution is auditable bookkeeping: it performs no external side effect. A
+    delegated/guarded intervention (Candidate review, Publication resolution)
+    and an already-resolved action fail closed: the former raises
+    ``RAD-WF-020`` because closing it here would bypass evidence/authorization,
+    the latter is a no-op so retries stay idempotent (RDR-063, AUT-263).
+    """
+
+    if action.status is HumanActionStatus.RESOLVED:
+        return action
+    resolution = human_action_resolution_for(action.action_type)
+    if not resolution.resolvable_via_center:
+        raise human_action_resolution_not_available_error(action.id, resolution)
+    _require_clean_text(reason, field_name="reason", max_length=MAX_HUMAN_ACTION_TEXT_LENGTH)
+    return replace(action, status=HumanActionStatus.RESOLVED, updated_at=_to_utc(now))
+
+
 __all__ = [
+    "AUDIT_SOURCE_HUMAN_ACTION",
     "HUMAN_ACTION_NOT_FOUND",
+    "HUMAN_ACTION_RESOLUTION_NOT_AVAILABLE",
     "HUMAN_ACTION_SCHEMA_VERSION",
     "MAX_HUMAN_ACTION_TEXT_LENGTH",
     "HumanAction",
     "HumanActionError",
+    "HumanActionResolution",
+    "HumanActionResolutionMode",
     "HumanActionStatus",
     "HumanActionType",
     "build_human_action",
     "human_action_not_found_error",
+    "human_action_resolution_for",
+    "human_action_resolution_not_available_error",
+    "resolve_human_action",
 ]

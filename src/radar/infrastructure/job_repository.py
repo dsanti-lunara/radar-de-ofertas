@@ -115,6 +115,20 @@ class SqlAlchemyJobRepository:
             row = session.get(JobRow, job_id)
             return None if row is None else _job_from_row(row)
 
+    def list(self, *, status: str | None = None, limit: int = 100) -> list[Job]:
+        """Return persisted jobs, optionally filtered by status (RDR-065).
+
+        Oldest first so the operator sees the queue in arrival order; the
+        status filter drives both the Jobs and the Dead Jobs views.
+        """
+
+        statement = select(JobRow).order_by(JobRow.created_at.asc(), JobRow.id.asc()).limit(limit)
+        if status is not None:
+            statement = statement.where(JobRow.status == status)
+        with Session(self.engine) as session:
+            rows = session.execute(statement).scalars().all()
+        return [_job_from_row(row) for row in rows]
+
     def claim(self, *, worker_id: str, lease_seconds: int, now: datetime) -> Job:
         """Atomically claim the highest-priority claimable job for one worker.
 

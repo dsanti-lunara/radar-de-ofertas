@@ -350,6 +350,18 @@ class JobWorkerContract(_StrictContract):
     worker_id: str = Field(min_length=1, max_length=128)
 
 
+class JobFailContract(_StrictContract):
+    """Versioned input to report a Job failure (RDR-037/038).
+
+    The failure class is derived from the structured ``error_code`` by the domain,
+    so a caller cannot report an authentication/permanent error as retryable.
+    """
+
+    schema_version: str = JOB_SCHEMA_VERSION
+    worker_id: str = Field(min_length=1, max_length=128)
+    error_code: str = Field(min_length=1, max_length=64)
+
+
 class LockAcquireContract(_StrictContract):
     """Versioned input to acquire a logical lock (RDR-036)."""
 

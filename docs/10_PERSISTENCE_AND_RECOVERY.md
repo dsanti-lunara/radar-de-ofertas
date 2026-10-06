@@ -72,6 +72,19 @@ mutável por desenho (PENDING → CLAIMED → RUNNING → SUCCESS): o claim é u
 por job (AUT-121, AUT-140). Jobs e locks com timestamps em ISO-8601 UTC; o
 histórico de transições é auditável por `AuditEvent` na mesma transação.
 
+Implementação (TKT-14): a migration `0008_human_action` acrescenta a tabela
+`human_action` (RDR-040) e o índice `ix_human_action_status` (`status`,
+`created_at`), atualiza `schema_version` e **não** altera a tabela `job`: as
+transições de retry/Dead reutilizam `status`, `attempts`, `available_at` e o lease
+já persistidos por `0007_job`. O fluxo de falha classifica o `error_code`
+(AUT-129), persiste `RETRY_WAIT` com backoff configurado, `FAILED` (permanente)
+ou `DEAD` (exaustão/humano) e, quando exige intervenção, grava a `human_action` e
+o `AuditEvent` `HUMAN_ACTION_CREATED` na **mesma transação** do job; a
+`HumanAction` referencia a entidade existente (`entity_type`/`entity_id`) e nunca
+recria a entidade. A tabela é mutável apenas como parte da resolução futura
+(RDR-063); a persistência do evento de job (`JOB_RETRY_SCHEDULED`/`JOB_FAILED`/
+`JOB_DEAD`) é append-only em `audit_event`.
+
 ## Append-only
 
 Não sobrescrever:

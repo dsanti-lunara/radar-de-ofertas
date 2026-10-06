@@ -36,6 +36,7 @@ from radar.domain.capture import (
 from radar.domain.demand import DEMAND_INPUT_INVALID
 from radar.domain.errors import RadarError, RadarException
 from radar.domain.evaluation import EVALUATION_INPUT_INVALID
+from radar.domain.human_action import HUMAN_ACTION_NOT_FOUND
 from radar.domain.job import (
     JOB_INPUT_INVALID,
     JOB_LEASE_NOT_HELD,
@@ -66,6 +67,7 @@ def _error_status(error_code: str) -> int:
         CANDIDATE_NOT_FOUND,
         MARKETPLACE_PRODUCT_NOT_FOUND,
         EVALUATION_NOT_FOUND,
+        HUMAN_ACTION_NOT_FOUND,
         JOB_NOT_FOUND,
     ):
         return 404
@@ -109,8 +111,8 @@ def _error_response(request: Request, error: RadarError, *, status_code: int) ->
     )
 
 
-#: Job/lock public paths whose validation failures use the Workflow error code.
-_JOB_PATH_PREFIXES = ("/jobs", "/locks")
+#: Job/lock/human-action paths whose validation failures use the Workflow code.
+_JOB_PATH_PREFIXES = ("/jobs", "/locks", "/human-actions")
 
 
 def _is_job_path(request: Request) -> bool:

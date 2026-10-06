@@ -24,14 +24,19 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from radar.domain.audit import (
+    HUMAN_ACTION_CREATED,
     JOB_CLAIMED,
+    JOB_DEAD,
     JOB_ENQUEUED,
+    JOB_FAILED,
+    JOB_RETRY_SCHEDULED,
     JOB_STARTED,
     JOB_SUCCEEDED,
     LOCK_ACQUIRED,
     LOCK_RELEASED,
 )
 from radar.domain.capture import IdFactory, default_id_factory
+from radar.domain.human_action import build_human_action
 from radar.domain.job import (
     AUDIT_SOURCE_JOB,
     ENTITY_JOB,
@@ -46,6 +51,14 @@ from radar.domain.job import (
     lock_unavailable_error,
     start_job,
 )
+from radar.domain.retry import (
+    FailureAction,
+    JobFailureResult,
+    RetryPolicy,
+    apply_failure,
+    resolve_failure,
+)
+from radar.infrastructure.human_action_repository import human_action_to_row
 from radar.infrastructure.models import AuditEventRow, JobLockRow, JobRow
 
 
@@ -119,7 +132,7 @@ class SqlAlchemyJobRepository:
             .where(
                 or_(
                     and_(
-                        JobRow.status == JobStatus.PENDING.value,
+                        JobRow.status.in_([JobStatus.PENDING.value, JobStatus.RETRY_WAIT.value]),
                         JobRow.available_at <= now_iso,
                     ),
                     and_(
@@ -270,6 +283,118 @@ class SqlAlchemyJobRepository:
                 )
             )
         return transitioned
+
+    def fail(
+        self,
+        job_id: str,
+        *,
+        worker_id: str,
+        error_code: str,
+        policy: RetryPolicy,
+        now: datetime,
+    ) -> JobFailureResult:
+        """Classify a reported failure and persist retry/Dead/Failed atomically.
+
+        The worker must hold the current lease (AUT-140). ``TRANSIENT`` schedules
+        a retry with the configured backoff until the attempt budget is
+        exhausted; ``PERMANENT`` fails without retry; ``HUMAN_REQUIRED`` and
+        exhaustion route to ``DEAD`` and create an auditable HumanAction in the
+        **same transaction** as the job transition, referencing the existing
+        entity and never recreating it (RDR-037, RDR-038, RDR-040).
+        """
+
+        now_utc = _utc(now)
+        with Session(self.engine) as session, session.begin():
+            row = session.get(JobRow, job_id)
+            if row is None:
+                raise job_not_found_error(job_id)
+            job = _job_from_row(row)
+            resolution = resolve_failure(job, error_code=error_code, now=now_utc, policy=policy)
+            transitioned = apply_failure(job, resolution, worker_id=worker_id, now=now_utc)
+            updated_id = session.execute(
+                update(JobRow)
+                .where(
+                    JobRow.id == job_id,
+                    JobRow.locked_by == worker_id,
+                    JobRow.status == job.status.value,
+                    JobRow.lease_expires_at == row.lease_expires_at,
+                )
+                .values(
+                    status=transitioned.status.value,
+                    available_at=_iso(transitioned.available_at),
+                    locked_by=None,
+                    locked_at=None,
+                    lease_expires_at=None,
+                    updated_at=_iso(now_utc),
+                )
+                .returning(JobRow.id)
+            ).scalar_one_or_none()
+            if updated_id is None:
+                raise job_lease_not_held_error(
+                    job_id,
+                    worker_id=worker_id,
+                    reason="lease_changed",
+                    holder=row.locked_by,
+                )
+            human_action = None
+            if resolution.human_action_type is not None:
+                human_action = build_human_action(
+                    action_type=resolution.human_action_type,
+                    entity_type=job.entity_type or ENTITY_JOB,
+                    entity_id=job.entity_id or job.id,
+                    reason=resolution.reason,
+                    error_code=error_code,
+                    correlation_id=job.correlation_id,
+                    now=now_utc,
+                    id_factory=self.id_factory,
+                )
+                session.add(human_action_to_row(human_action))
+                session.add(
+                    _audit_row(
+                        job_id=human_action.id,
+                        event_type=HUMAN_ACTION_CREATED,
+                        correlation_id=job.correlation_id,
+                        recorded_at=now_utc,
+                        payload={
+                            "action_type": human_action.action_type.value,
+                            "reason": human_action.reason,
+                            "entity_type": human_action.entity_type,
+                            "entity_id": human_action.entity_id,
+                        },
+                        entity_type="human_action",
+                        id_factory=self.id_factory,
+                    )
+                )
+            event_type = {
+                FailureAction.RETRY_WAIT: JOB_RETRY_SCHEDULED,
+                FailureAction.DEAD: JOB_DEAD,
+                FailureAction.FAILED: JOB_FAILED,
+            }[resolution.action]
+            payload = {
+                "worker_id": worker_id,
+                "error_code": error_code,
+                "failure_class": resolution.failure_class.value,
+                "reason": resolution.reason,
+                "attempts": transitioned.attempts,
+            }
+            if resolution.delay_seconds is not None:
+                payload["delay_seconds"] = resolution.delay_seconds
+            session.add(
+                _audit_row(
+                    job_id=job_id,
+                    event_type=event_type,
+                    correlation_id=job.correlation_id,
+                    recorded_at=now_utc,
+                    payload=payload,
+                    id_factory=self.id_factory,
+                )
+            )
+        return JobFailureResult(
+            job=transitioned,
+            resolution=resolution,
+            error_code=error_code,
+            human_action=human_action,
+        )
 
     # -- Locks --------------------------------------------------------------
 

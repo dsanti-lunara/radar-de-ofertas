@@ -164,6 +164,29 @@ lease sob concorrência; workers inválidos não confirmam execução alheia e o
 lease expirado permite recuperação (AUT-133, AUT-140). Retry/backoff, Dead Jobs,
 Scheduler e recuperação pós-crash permanecem em seus próprios tickets.
 
+## Implementação (TKT-14, RDR-037/038/040)
+
+A falha de um job é reportada pela fronteira pública
+(`POST /jobs/{id}/fail`) pelo worker que detém o lease, com um `error_code`
+estruturado; o domínio classifica a falha em `TRANSIENT`, `PERMANENT` ou
+`HUMAN_REQUIRED` (AUT-129), sempre a partir do código, nunca de texto do
+operador. `TRANSIENT` agenda `RETRY_WAIT` com o **backoff configurado**
+(`config/retry-policy.json`, opcional; baseline aprovado 30s/2m/10m/30m,
+AUT-130) enquanto `attempts < max_attempts`; ao esgotar o orçamento vira `DEAD`.
+`PERMANENT` vira `FAILED` sem retry. `HUMAN_REQUIRED` — incluindo
+`AUTH_REQUIRED` (`RAD-AI-001`, `RAD-WA-001`, `RAD-SP-002`) — vira `DEAD`
+imediatamente, **sem** `RETRY_WAIT`, então nunca entra em loop (AUT-125). Um
+`error_code` desconhecido falha fechado como `PERMANENT`.
+
+`DEAD`/exaustão cria uma `HumanAction` (`RDR-040`, AUT-126/AUT-244)
+referenciando a entidade existente (nunca a recriando), com `impact`/
+`next_steps` determinísticos, e grava `JOB_RETRY_SCHEDULED`/`JOB_FAILED`/
+`JOB_DEAD` + `HUMAN_ACTION_CREATED` no `audit_event` na mesma transação. As ações
+são consultáveis por `GET /human-actions`/`GET /human-actions/{id}`; a resolução
+pertence ao Human Actions center (RDR-063). O `available_at` de `RETRY_WAIT`
+torna o job claimável de novo pelo claim atômico. Scheduler (RDR-039) e
+recuperação pós-crash (RDR-042) permanecem em seus próprios tickets.
+
 ## Aging / TTL
 
 Candidate antigo deve revalidar antes de consumir IA.

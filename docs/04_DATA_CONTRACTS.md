@@ -807,6 +807,74 @@ libera. Cada transição de Job e cada aquisição/liberação de lock grava um
 `correlation_id` do pipeline. Retry/backoff, Dead Jobs, Scheduler e recuperação
 pós-crash são tickets próprios e permanecem fora deste contrato.
 
+## Retry, Dead Job e HumanAction, implementação (TKT-14, RDR-037/038/040)
+
+`POST /jobs/{id}/fail` (`worker_id`, `error_code`) é reportado pelo worker que
+detém o lease do job `CLAIMED`/`RUNNING`. O domínio classifica o `error_code`
+(`TRANSIENT`, `PERMANENT`, `HUMAN_REQUIRED`; AUT-129) e o `error_code`
+desconhecido falha fechado como `PERMANENT`. Worker inválido/lease expirado
+retorna `RAD-WF-009`, estado inválido `RAD-WF-010` e `error_code`
+ausente/inválido `RAD-WF-006`. O resultado é o contrato do job mais `failure` e
+`human_action`:
+
+```json
+{
+  "schema_version": "1.0",
+  "status": "RETRY_WAIT",
+  "job_id": "job_...",
+  "attempts": 1,
+  "max_attempts": 3,
+  "available_at": "2026-10-05T12:00:30+00:00",
+  "correlation_id": "cid-1",
+  "failure": {
+    "error_code": "RAD-WF-001",
+    "failure_class": "TRANSIENT",
+    "action": "RETRY_WAIT",
+    "retryable": true,
+    "reason": "RETRY_SCHEDULED",
+    "delay_seconds": 30,
+    "available_at": "2026-10-05T12:00:30+00:00",
+    "human_action_type": null,
+    "resolution_code": null
+  },
+  "human_action": null
+}
+```
+
+`TRANSIENT` usa o backoff configurado (`config/retry-policy.json`, opcional; use
+`config/retry-policy.example.json`; `RADAR_RETRY_FILE` força um arquivo; baseline
+aprovado 30s/2m/10m/30m) enquanto `attempts < max_attempts`; ao esgotar, o job
+vira `DEAD` e `failure.resolution_code` é `RAD-WF-003`. `PERMANENT` vira `FAILED`
+sem retry. `HUMAN_REQUIRED` — incluindo `AUTH_REQUIRED` (`RAD-AI-001`,
+`RAD-WA-001`, `RAD-SP-002`) — vira `DEAD` **sem** `RETRY_WAIT`, então não entra
+em loop. `DEAD`/exaustão cria uma `HumanAction` auditável que referencia a
+entidade existente sem recriá-la; o `attempts` não avança nessa transição.
+
+```json
+{
+  "schema_version": "1.0",
+  "human_action_id": "ha_...",
+  "action_type": "DEAD_JOB_REVIEW",
+  "status": "OPEN",
+  "entity_type": "job",
+  "entity_id": "job_...",
+  "reason": "RETRIES_EXHAUSTED",
+  "error_code": "RAD-WF-001",
+  "impact": "...",
+  "next_steps": "...",
+  "correlation_id": "cid-1",
+  "created_at": "2026-10-05T12:00:00+00:00",
+  "updated_at": "2026-10-05T12:00:00+00:00"
+}
+```
+
+`GET /human-actions` (filtro opcional `status=OPEN|RESOLVED`) e
+`GET /human-actions/{id}` consultam as ações; inexistente retorna `RAD-WF-011`.
+A resolução/mutação da ação pertence ao Human Actions center (RDR-063). Cada
+transição grava `JOB_RETRY_SCHEDULED`/`JOB_FAILED`/`JOB_DEAD` e
+`HUMAN_ACTION_CREATED` na mesma transação, sempre com o `correlation_id` do
+pipeline. Policy de retry inválida bloqueia a API com `RAD-CFG-010`.
+
 ## AI Editorial Review input
 
 ```json

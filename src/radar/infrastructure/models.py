@@ -339,3 +339,31 @@ class JobLockRow(Base):
     expires_at: Mapped[str] = mapped_column(String(40), nullable=False)
     correlation_id: Mapped[str | None] = mapped_column(String(64))
     updated_at: Mapped[str] = mapped_column(String(40), nullable=False)
+
+
+class HumanActionRow(Base):
+    """Formal human-intervention record (RDR-040, AUT-126, AUT-244).
+
+    A HumanAction references the existing entity (``entity_type``/``entity_id``)
+    instead of recreating it, carries the Correlation ID of the pipeline that
+    raised it and explains impact/next steps so an operator can act. This ticket
+    only creates ``OPEN`` actions; resolution belongs to the Human Actions
+    center (RDR-063).
+    """
+
+    __tablename__ = "human_action"
+    __table_args__ = (Index("ix_human_action_status", "status", "created_at"),)
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    action_type: Mapped[str] = mapped_column(String(48), nullable=False)
+    status: Mapped[str] = mapped_column(String(16), nullable=False)
+    entity_type: Mapped[str] = mapped_column(String(32), nullable=False)
+    entity_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    reason: Mapped[str] = mapped_column(String(48), nullable=False)
+    error_code: Mapped[str] = mapped_column(String(64), nullable=False)
+    impact: Mapped[str] = mapped_column(Text, nullable=False)
+    next_steps: Mapped[str] = mapped_column(Text, nullable=False)
+    correlation_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    schema_version: Mapped[str] = mapped_column(String(16), nullable=False)
+    created_at: Mapped[str] = mapped_column(String(40), nullable=False)
+    updated_at: Mapped[str] = mapped_column(String(40), nullable=False)

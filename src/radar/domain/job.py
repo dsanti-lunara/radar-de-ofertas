@@ -249,11 +249,12 @@ class Job:
     def is_claimable(self, now: datetime) -> bool:
         """True when a worker may claim this job at ``now``.
 
-        A ``PENDING`` job is claimable once available; a ``CLAIMED``/``RUNNING``
-        job with an expired lease is recoverable by another worker (AUT-133).
+        A ``PENDING`` or ``RETRY_WAIT`` job is claimable once available; a
+        ``CLAIMED``/``RUNNING`` job with an expired lease is recoverable by
+        another worker (AUT-133).
         """
 
-        if self.status is JobStatus.PENDING:
+        if self.status in (JobStatus.PENDING, JobStatus.RETRY_WAIT):
             return _to_utc(self.available_at) <= _to_utc(now)
         if self.status in (JobStatus.CLAIMED, JobStatus.RUNNING):
             return self.lease_expires_at is not None and _to_utc(self.lease_expires_at) <= _to_utc(

@@ -217,4 +217,16 @@ independente do estado de domínio (AUT-118): `type="NEW"` é rejeitado com
 Scheduler e recovery são tickets próprios. Erros em `docs/ERROR_CATALOG.md`;
 contrato em `docs/04_DATA_CONTRACTS.md`.
 
+Retry, Dead Job e HumanAction (TKT-14): `POST /jobs/{id}/fail` reporta a falha
+pelo worker que detém o lease e o domínio classifica o `error_code` em
+`TRANSIENT` (retry com o backoff configurado em `config/retry-policy.json`,
+opcional; use `config/retry-policy.example.json`; baseline aprovado
+30s/2m/10m/30m), `PERMANENT` (`FAILED`, sem retry) ou `HUMAN_REQUIRED`/
+`AUTH_REQUIRED` (`DEAD`, **sem** loop). Ao esgotar as tentativas o job vira
+`DEAD` e uma `HumanAction` auditável (`DEAD_JOB_REVIEW`/`AUTHENTICATE_MARKETPLACE`/
+`RESTORE_AI_AUTH`) é criada na mesma transação, referenciando a entidade existente
+sem recriá-la; `GET /human-actions` e `GET /human-actions/{id}` consultam as ações
+(a resolução pertence ao Human Actions center, RDR-063). Erros usam
+`RAD-WF-009/010/011` e `RAD-CFG-010`; contrato em `docs/04_DATA_CONTRACTS.md`.
+
 Testes live (browser/IA/Telegram/WhatsApp) são opt-in e ficam fora da suíte padrão.

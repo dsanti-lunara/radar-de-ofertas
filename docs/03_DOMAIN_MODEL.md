@@ -432,3 +432,18 @@ lock lógico separado com expiração (RDR-036). Cada transição grava um
 `AuditEvent` com o Correlation ID do pipeline. Retry/backoff, Dead Jobs,
 Scheduler e recuperação pós-crash pertencem a RDR-037/038/039/042 e são tickets
 próprios. Ver `docs/08_WORKFLOW_ENGINE.md` e `docs/04_DATA_CONTRACTS.md`.
+
+## Implementação (TKT-14, RDR-037/038/040)
+
+A falha de um job é classificada em `TRANSIENT`, `PERMANENT` ou `HUMAN_REQUIRED`
+(AUT-129) a partir do `error_code` estruturado; um código desconhecido falha
+fechado como `PERMANENT`. `TRANSIENT` agenda `RETRY_WAIT` com o backoff
+configurado (AUT-130) enquanto há orçamento de tentativas, depois vira `DEAD`;
+`PERMANENT` vira `FAILED` sem retry; `HUMAN_REQUIRED`/`AUTH_REQUIRED` vira `DEAD`
+imediatamente, sem loop (AUT-125). `DEAD`/exaustão materializa uma `HumanAction`
+formal (AUT-126, AUT-244) que referencia a entidade existente sem recriá-la e
+carrega motivo, impacto e próximos passos. A fronteira pública
+(`POST /jobs/{id}/fail`, `GET /human-actions`, `GET /human-actions/{id}`)
+demonstra o fluxo e mantém a ação auditável; a resolução da ação pertence a
+RDR-063. Ver `docs/08_WORKFLOW_ENGINE.md`, `docs/04_DATA_CONTRACTS.md` e
+`docs/10_PERSISTENCE_AND_RECOVERY.md`.

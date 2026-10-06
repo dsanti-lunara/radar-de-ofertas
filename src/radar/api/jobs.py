@@ -22,12 +22,14 @@ from radar.api.contracts import (
     CORRELATION_HEADER,
     JobClaimContract,
     JobEnqueueContract,
+    JobFailContract,
     JobWorkerContract,
     LockAcquireContract,
 )
 from radar.application.correlation import bind_correlation_id
 from radar.application.job_service import JobService
 from radar.domain.job import JOB_SCHEMA_VERSION, Job, Lock
+from radar.domain.retry import APPROVED_RETRY_POLICY, JobFailureResult, RetryPolicy
 from radar.infrastructure.job_repository import SqlAlchemyJobRepository
 
 
@@ -35,6 +37,14 @@ def _job_response(job: Job, *, correlation_id: str, status_code: int = 200) -> J
     return JSONResponse(
         status_code=status_code,
         content=job.to_contract(),
+        headers={CORRELATION_HEADER: correlation_id, "Cache-Control": "no-store"},
+    )
+
+
+def _failure_response(result: JobFailureResult, *, correlation_id: str) -> JSONResponse:
+    return JSONResponse(
+        status_code=200,
+        content=result.to_contract(),
         headers={CORRELATION_HEADER: correlation_id, "Cache-Control": "no-store"},
     )
 
@@ -47,11 +57,16 @@ def _lock_response(lock: Lock, *, correlation_id: str, status_code: int = 201) -
     )
 
 
-def build_job_router(engine: Engine) -> APIRouter:
+def build_job_router(
+    engine: Engine,
+    retry_policy: RetryPolicy = APPROVED_RETRY_POLICY,
+) -> APIRouter:
     """Build the Job/lock router wired to the SQLite repository."""
 
     router = APIRouter(tags=["jobs"])
-    service = JobService(repository=SqlAlchemyJobRepository(engine=engine))
+    service = JobService(
+        repository=SqlAlchemyJobRepository(engine=engine), retry_policy=retry_policy
+    )
 
     @router.post("/jobs", status_code=201)
     def enqueue_job(payload: JobEnqueueContract, request: Request) -> JSONResponse:
@@ -92,6 +107,12 @@ def build_job_router(engine: Engine) -> APIRouter:
         correlation_id = bind_correlation_id(resolve_correlation_id(request))
         job = service.complete(job_id, worker_id=payload.worker_id)
         return _job_response(job, correlation_id=correlation_id)
+
+    @router.post("/jobs/{job_id}/fail")
+    def fail_job(job_id: str, payload: JobFailContract, request: Request) -> JSONResponse:
+        correlation_id = bind_correlation_id(resolve_correlation_id(request))
+        result = service.fail(job_id, worker_id=payload.worker_id, error_code=payload.error_code)
+        return _failure_response(result, correlation_id=correlation_id)
 
     @router.post("/locks", status_code=201)
     def acquire_lock(payload: LockAcquireContract, request: Request) -> JSONResponse:

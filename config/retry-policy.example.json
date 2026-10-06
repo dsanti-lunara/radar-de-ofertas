@@ -1,0 +1,5 @@
+{
+  "schema_version": "1.0",
+  "policy_version": "retry-policy-operator",
+  "backoff_seconds": [30, 120, 600, 1800]
+}

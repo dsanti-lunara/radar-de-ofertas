@@ -71,6 +71,7 @@ Prefixos sugeridos:
 | RAD-WF-008 JOB_NOT_CLAIMABLE | nenhum job disponível para claim (ou lease perdido na corrida); retryable |
 | RAD-WF-009 JOB_LEASE_NOT_HELD | worker não detém lease válido; não confirma execução alheia nem expirada |
 | RAD-WF-010 JOB_STATE_INVALID | transição de estado de Job inválida |
+| RAD-WF-011 HUMAN_ACTION_NOT_FOUND | HumanAction consultada não existe |
 
 Implementação TKT-13 (RDR-034..036): `POST /jobs` persiste o job (`PENDING`),
 `POST /jobs/claim` concede um único lease e retorna `RAD-WF-008` quando não há
@@ -81,6 +82,15 @@ inválida) e `GET /jobs/{id}` retorna `RAD-WF-007` quando o job não existe.
 inválidos (schema_version, `type`/estado de domínio, prioridade, payload
 não-JSON/sensível, worker, lease) retornam `RAD-WF-006`; erros usam o contrato
 `{schema_version, status:"INVALID", correlation_id, error}`.
+
+Implementação TKT-14 (RDR-037/RDR-038/RDR-040): `POST /jobs/{id}/fail` classifica
+o `error_code` e retorna `RETRY_WAIT` (com `delay_seconds`/`available_at` do
+backoff configurado), `FAILED` (permanente) ou `DEAD` (exaustão/humano, com
+`resolution_code` `RAD-WF-003` na exaustão). Worker sem lease retorna
+`RAD-WF-009`, estado inválido `RAD-WF-010`, `error_code` ausente/inválido
+`RAD-WF-006`. `DEAD`/exaustão cria uma HumanAction consultável por
+`GET /human-actions`/`GET /human-actions/{id}`; ação inexistente retorna
+`RAD-WF-011`. Policy de retry inválida bloqueia a API com `RAD-CFG-010`.
 
 ## Publishing
 
@@ -133,6 +143,7 @@ não-JSON/sensível, worker, lease) retornam `RAD-WF-006`; erros usam o contrato
 | RAD-CFG-007 DEMAND_INVALID | normalização de Demand ausente de schema/semântica válidos (versão, categoria canônica, sinal, peso/score 0..100, bandas sobrepostas, label/chave inválida) | no |
 | RAD-CFG-008 PURCHASE_SOURCE_POLICY_INVALID | policy de Purchase Source ausente de schema/semântica válidos (versão, threshold finito `>=0`, ação `REVIEW`/`SUBSTITUTE`) | no |
 | RAD-CFG-009 REPOST_POLICY_INVALID | policy de repost ausente de schema/semântica válidos (versão, cooldown inteiro `>0`, queda finita `>=0`, piso de Deal `0..100`) | no |
+| RAD-CFG-010 RETRY_POLICY_INVALID | policy de retry ausente de schema/semântica válidos (versão, schedule de backoff em segundos inteiros `>0`) | no |
 
 ## Capture / Domain
 

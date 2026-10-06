@@ -29,6 +29,12 @@ from radar.domain.job import (
     require_lease_seconds,
     require_worker_id,
 )
+from radar.domain.retry import (
+    APPROVED_RETRY_POLICY,
+    JobFailureResult,
+    RetryPolicy,
+    require_error_code,
+)
 
 
 def _utcnow() -> datetime:
@@ -47,6 +53,16 @@ class JobStore(Protocol):
     def start(self, job_id: str, *, worker_id: str, now: datetime) -> Job: ...
 
     def complete(self, job_id: str, *, worker_id: str, now: datetime) -> Job: ...
+
+    def fail(
+        self,
+        job_id: str,
+        *,
+        worker_id: str,
+        error_code: str,
+        policy: RetryPolicy,
+        now: datetime,
+    ) -> JobFailureResult: ...
 
     def acquire_lock(
         self,
@@ -71,6 +87,7 @@ class JobService:
     clock: Callable[[], datetime] = _utcnow
     id_factory: IdFactory = default_id_factory
     default_lease_seconds: int = DEFAULT_LEASE_SECONDS
+    retry_policy: RetryPolicy = APPROVED_RETRY_POLICY
 
     def enqueue(
         self,
@@ -126,6 +143,17 @@ class JobService:
 
         return self.repository.complete(
             job_id, worker_id=require_worker_id(worker_id), now=self.clock()
+        )
+
+    def fail(self, job_id: str, *, worker_id: object, error_code: object) -> JobFailureResult:
+        """Report a job failure and classify it into retry/Dead/Failed (RDR-037/038)."""
+
+        return self.repository.fail(
+            job_id,
+            worker_id=require_worker_id(worker_id),
+            error_code=require_error_code(error_code),
+            policy=self.retry_policy,
+            now=self.clock(),
         )
 
     def get(self, job_id: str) -> Job:

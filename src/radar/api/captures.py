@@ -45,6 +45,11 @@ from radar.domain.job import (
     JOB_STATE_INVALID,
     LOCK_UNAVAILABLE,
 )
+from radar.domain.operations import (
+    AUTOMATION_POLICY_INVALID,
+    COMPLIANCE_POLICY_INVALID,
+    OPERATIONS_INPUT_INVALID,
+)
 from radar.domain.opportunity import (
     OPPORTUNITY_INPUT_INVALID,
     OPPORTUNITY_NOT_FOUND,
@@ -101,6 +106,9 @@ def _error_status(error_code: str) -> int:
         DEMAND_INPUT_INVALID,
         EVALUATION_INPUT_INVALID,
         JOB_INPUT_INVALID,
+        OPERATIONS_INPUT_INVALID,
+        AUTOMATION_POLICY_INVALID,
+        COMPLIANCE_POLICY_INVALID,
         OPPORTUNITY_INPUT_INVALID,
         PRICE_OPPORTUNITY_INPUT_INVALID,
         PURCHASE_SOURCE_INPUT_INVALID,
@@ -137,6 +145,9 @@ _SCHEDULE_PATH_PREFIXES = ("/schedules",)
 #: Opportunity paths (including ``/candidates/{id}/opportunities``) use their code.
 _OPPORTUNITY_PATH_PREFIXES = ("/opportunities",)
 
+#: Operational control paths use the operations input code.
+_OPERATIONS_PATH_PREFIXES = ("/operations", "/integrations")
+
 
 def _is_job_path(request: Request) -> bool:
     return request.url.path.startswith(_JOB_PATH_PREFIXES)
@@ -151,14 +162,22 @@ def _is_opportunity_path(request: Request) -> bool:
     return path.startswith(_OPPORTUNITY_PATH_PREFIXES) or path.endswith("/opportunities")
 
 
+def _is_operations_path(request: Request) -> bool:
+    return request.url.path.startswith(_OPERATIONS_PATH_PREFIXES)
+
+
 def _validation_error(request: Request, exc: RequestValidationError) -> JSONResponse:
     errors = exc.errors()
     sensitive = [item for item in errors if item.get("type") == SENSITIVE_FIELD_ERROR_TYPE]
     schedule_path = _is_schedule_path(request)
     job_path = _is_job_path(request)
     opportunity_path = _is_opportunity_path(request)
-    workflow_path = schedule_path or job_path or opportunity_path
-    if opportunity_path:
+    operations_path = _is_operations_path(request)
+    workflow_path = schedule_path or job_path or opportunity_path or operations_path
+    if operations_path:
+        workflow_code = OPERATIONS_INPUT_INVALID
+        workflow_label = "operations"
+    elif opportunity_path:
         workflow_code = OPPORTUNITY_INPUT_INVALID
         workflow_label = "Opportunity"
     elif schedule_path:

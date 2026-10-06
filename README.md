@@ -258,4 +258,25 @@ inexistente). Candidate envelhecido além do TTL configurado exige revalidação
 policy inválida bloqueia a API com `RAD-CFG-011`. Contrato em
 `docs/04_DATA_CONTRACTS.md`.
 
+Controles operacionais (TKT-17): `GET /operations` expõe o estado global
+(`RUNNING`/`PAUSED`/`DRAINING`/`MAINTENANCE`), o kill switch
+`STOP_EXTERNAL_ACTIONS`, a automation policy e a compliance policy vigentes.
+`POST /operations/mode` muda o modo global, `POST`/`DELETE
+/operations/stop-external-actions` engatilha/libera o kill switch e
+`POST /operations/authorize` decide permissão ou bloqueio de uma ação
+(`PUBLISH`/`BROWSER`/`AUTHENTICATED_LINK` são side effects; `READ`/`DIAGNOSTIC`/
+`RECOVERY` continuam disponíveis sob STOP). SHADOW nunca envia comercialmente —
+mesmo com aprovação de Candidate/publicação; ASSISTED exige aprovação humana
+explícita da publicação (aprovar Candidate é insuficiente); a compliance policy é
+versionada/hasheada e `UNKNOWN`/vencida/`BLOCKED`/`REVIEW_REQUIRED` bloqueiam o
+side effect mesmo com aprovação humana. A automation policy é versionada/hasheada
+(`config/automation-policy.json`, opcional; use
+`config/automation-policy.example.json`) e a compliance policy em
+`config/channel-compliance.json` (use `config/channel-compliance.example.json`).
+`GET /integrations` e `PUT /integrations/{name}` registram a saúde padronizada de
+cada integração, então uma integração indisponível isola apenas o próprio escopo
+(AUT-315). Decisões de side effect e comandos operacionais geram `AuditEvent`.
+Erros usam `RAD-WF-018`; policy inválida bloqueia a API com `RAD-CFG-012/013`.
+Contrato em `docs/04_DATA_CONTRACTS.md`.
+
 Testes live (browser/IA/Telegram/WhatsApp) são opt-in e ficam fora da suíte padrão.

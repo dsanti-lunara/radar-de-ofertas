@@ -294,3 +294,43 @@ etapa dependente (`RAD-WF-005`, AUT-135/AUT-144); o TTL é policy versionada e
 hasheada (`config/opportunity-workflow.json`, opcional) e o baseline não inventa
 valor (o SDD não aprova um TTL numérico). Ver `docs/04_DATA_CONTRACTS.md` e
 `docs/10_PERSISTENCE_AND_RECOVERY.md`.
+
+## Implementação (TKT-17, RDR-043/044)
+
+Os controles operacionais centralizam a autonomia e a interrupção externa. O
+modelo framework-free vive em `radar.domain.operations`:
+
+- `AutomationMode` (`MANUAL`/`SHADOW`/`ASSISTED`/`AUTO`) é resolvido por uma
+  **automation policy versionada/hasheada** para o slice brand × marketplace ×
+  channel × capability (AUT-127, AUT-128); o baseline aprovado é `SHADOW` e não
+  inventa regra;
+- `GlobalMode` (`RUNNING`/`PAUSED`/`DRAINING`/`MAINTENANCE`) é o estado global
+  (AUT-149); `DRAINING` bloqueia **novos** side effects e mantém o trabalho
+  seguro (leitura/diagnóstico/recovery) disponível;
+- `STOP_EXTERNAL_ACTIONS` é um kill switch persistido que bloqueia publicação,
+  ações de browser e geração autenticada de link, mas mantém UI, diagnóstico,
+  leitura e recovery (AUT-317, SDD-12);
+- `ChannelCompliancePolicy` é versionada/hasheada e **bloqueante**: `BLOCKED`,
+  `UNKNOWN`, `REVIEW_REQUIRED`, vencida (`review_due_at`) ou ainda não vigente
+  nunca libera side effect, mesmo com aprovação humana (AUT-293, AUT-294,
+  AUT-295);
+- `IntegrationHealth` registra o estado padronizado por integração
+  (`ONLINE`/`DEGRADED`/`OFFLINE`/`AUTH_REQUIRED`/`PAUSED`/`DISABLED`/`UNKNOWN`),
+  então uma integração não operacional isola somente a própria capability
+  (AUT-139, AUT-315).
+
+A fronteira pública demonstra o comportamento: `GET /operations`,
+`POST /operations/mode`, `POST`/`DELETE /operations/stop-external-actions`,
+`POST /operations/authorize`, `GET /integrations` e `PUT /integrations/{name}`.
+`POST /operations/authorize` aplica, nesta ordem, kill switch → modo global →
+compliance → integração → modo de automação: SHADOW nunca envia comercialmente
+(mesmo com aprovação de publicação), ASSISTED exige aprovação humana explícita da
+publicação (aprovação de Candidate é insuficiente) e AUTO só passa com compliance
+vigente e integração operacional. Comandos operacionais e decisões de side effect
+geram `AuditEvent` na mesma transação (`OPERATIONS_MODE_CHANGED`,
+`EXTERNAL_ACTIONS_STOPPED`/`RESUMED`, `INTEGRATION_HEALTH_CHANGED`,
+`EXTERNAL_ACTION_AUTHORIZED`/`BLOCKED`). O estado e a saúde são persistidos em
+`operations_state`/`integration_health` (migration `0011_operations_control`).
+Policy inválida bloqueia a API com `RAD-CFG-012`/`RAD-CFG-013`. Ver
+`docs/04_DATA_CONTRACTS.md`, `docs/10_PERSISTENCE_AND_RECOVERY.md` e
+`docs/12_SECURITY_AND_COMPLIANCE.md`.

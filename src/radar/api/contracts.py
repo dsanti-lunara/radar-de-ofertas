@@ -24,6 +24,12 @@ from radar.domain.capture import (
 )
 from radar.domain.evaluation import EVALUATION_SCHEMA_VERSION
 from radar.domain.job import DEFAULT_MAX_ATTEMPTS, JOB_SCHEMA_VERSION
+from radar.domain.operations import (
+    OPERATIONS_SCHEMA_VERSION,
+    ExternalAction,
+    GlobalMode,
+    IntegrationState,
+)
 from radar.domain.purchase_source import PURCHASE_SOURCE_SCHEMA_VERSION
 from radar.domain.repost import REPOST_SCHEMA_VERSION, RepostEvidenceType
 from radar.domain.schedule import SCHEDULE_SCHEMA_VERSION
@@ -455,4 +461,68 @@ class OpportunityTransitionContract(_StrictContract):
     def _validate_schema_version(cls, value: str) -> str:
         if value != WORKFLOW_SCHEMA_VERSION:
             raise ValueError("schema_version de Opportunity não suportada")
+        return value
+
+
+class OperationsModeContract(_StrictContract):
+    """Versioned input to change the global operational mode (RDR-043)."""
+
+    schema_version: str = OPERATIONS_SCHEMA_VERSION
+    mode: GlobalMode
+    reason: str | None = Field(default=None, max_length=512)
+
+    @field_validator("schema_version")
+    @classmethod
+    def _validate_schema_version(cls, value: str) -> str:
+        if value != OPERATIONS_SCHEMA_VERSION:
+            raise ValueError("schema_version de operações não suportada")
+        return value
+
+
+class StopExternalActionsContract(_StrictContract):
+    """Versioned input to engage/release the kill switch (RDR-043)."""
+
+    schema_version: str = OPERATIONS_SCHEMA_VERSION
+    reason: str | None = Field(default=None, max_length=512)
+
+    @field_validator("schema_version")
+    @classmethod
+    def _validate_schema_version(cls, value: str) -> str:
+        if value != OPERATIONS_SCHEMA_VERSION:
+            raise ValueError("schema_version de operações não suportada")
+        return value
+
+
+class ExternalActionAuthorizationContract(_StrictContract):
+    """Versioned input to authorize or block one external action (RDR-043)."""
+
+    schema_version: str = OPERATIONS_SCHEMA_VERSION
+    action: ExternalAction
+    brand: Brand | None = None
+    marketplace: str | None = Field(default=None, max_length=32)
+    channel: str | None = Field(default=None, max_length=32)
+    capability: str | None = Field(default=None, max_length=64)
+    integration: str | None = Field(default=None, max_length=32)
+    publication_approved: bool = False
+
+    @field_validator("schema_version")
+    @classmethod
+    def _validate_schema_version(cls, value: str) -> str:
+        if value != OPERATIONS_SCHEMA_VERSION:
+            raise ValueError("schema_version de operações não suportada")
+        return value
+
+
+class IntegrationHealthContract(_StrictContract):
+    """Versioned input to update one integration health (RDR-044)."""
+
+    schema_version: str = OPERATIONS_SCHEMA_VERSION
+    state: IntegrationState
+    summary: str | None = Field(default=None, max_length=512)
+
+    @field_validator("schema_version")
+    @classmethod
+    def _validate_schema_version(cls, value: str) -> str:
+        if value != OPERATIONS_SCHEMA_VERSION:
+            raise ValueError("schema_version de operações não suportada")
         return value

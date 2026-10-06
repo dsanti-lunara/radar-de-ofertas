@@ -1,0 +1,9 @@
+{
+  "schema_version": "1.0",
+  "policy_version": "compliance-policy-operator",
+  "status": "ACTIVE",
+  "effective_from": "2026-10-02T00:00:00+00:00",
+  "last_reviewed_at": "2026-10-02T00:00:00+00:00",
+  "review_due_at": "2026-12-31T23:59:59+00:00",
+  "source_reference": "docs/12_SECURITY_AND_COMPLIANCE.md"
+}

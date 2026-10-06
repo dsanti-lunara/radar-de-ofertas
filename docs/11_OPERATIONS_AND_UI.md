@@ -190,3 +190,17 @@ Métricas comerciais só aparecem quando houver atribuição real.
 - status não dependem só de cor;
 - acessibilidade básica;
 - polling, não WebSocket, na V1.
+
+## Implementação (TKT-17, RDR-043/044)
+
+Os controles operacionais são a fronteira pública que a Home/Settings consumirão:
+`GET /operations` (modo global, kill switch, automation/compliance policy),
+`POST /operations/mode` (pause/drain/resume/maintenance),
+`POST`/`DELETE /operations/stop-external-actions`, `POST /operations/authorize`
+(permissão/bloqueio de uma ação) e `GET /integrations`/`PUT /integrations/{name}`
+(saúde padronizada por integração). `DRAINING` bloqueia novos side effects e
+mantém leitura/diagnóstico/recovery; uma integração não operacional isola apenas o
+próprio escopo (AUT-315). Comandos e decisões de side effect são auditáveis e
+carregam Correlation ID. Esta fatia é demonstrável pela API; a UI dedicada
+permanece nos tickets de Control Center (RDR-057/RDR-064/RDR-066). Ver
+`docs/08_WORKFLOW_ENGINE.md` e `docs/04_DATA_CONTRACTS.md`.

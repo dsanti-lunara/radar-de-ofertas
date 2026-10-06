@@ -161,6 +161,15 @@ mas mantém:
 - leitura;
 - recovery.
 
+Implementação (TKT-17, RDR-043): o kill switch e o modo global são persistidos em
+`operations_state` e aplicados por `POST /operations/authorize`, que resolve a
+automation policy do slice brand × marketplace × channel × capability e checa a
+compliance policy (versionada/hasheada, bloqueante) e a saúde da integração antes
+de permitir o side effect. `READ`/`DIAGNOSTIC`/`RECOVERY` continuam disponíveis
+sob STOP/PAUSED/DRAINING. Compliance `UNKNOWN`/vencida/`BLOCKED`/`REVIEW_REQUIRED`
+nunca é liberada por aprovação humana (AUT-295). Ver
+`docs/08_WORKFLOW_ENGINE.md` e `docs/04_DATA_CONTRACTS.md`.
+
 ## Security events
 
 Exemplos:

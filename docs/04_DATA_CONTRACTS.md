@@ -1018,6 +1018,52 @@ policy versionada e hasheada (`config/opportunity-workflow.json`, opcional; use
 arquivo) e o baseline aprovado deixa o TTL ausente porque os SDDs não aprovam um
 valor numérico. Policy inválida bloqueia a API com `RAD-CFG-011`.
 
+## Controles operacionais, implementação (TKT-17, RDR-043/044)
+
+`GET /operations` expõe o estado global, a automation policy e a compliance policy
+vigentes. `POST /operations/mode` muda o `global_mode`
+(`RUNNING`/`PAUSED`/`DRAINING`/`MAINTENANCE`) e `POST`/`DELETE
+/operations/stop-external-actions` engatilha/libera `STOP_EXTERNAL_ACTIONS`.
+`POST /operations/authorize` decide permissão ou bloqueio de uma ação
+(`PUBLISH`/`BROWSER`/`AUTHENTICATED_LINK` são side effects; `READ`/`DIAGNOSTIC`/
+`RECOVERY` continuam disponíveis sob STOP). `GET /integrations` e
+`PUT /integrations/{name}` registram a saúde padronizada por integração.
+
+```json
+{
+  "schema_version": "1.0",
+  "allowed": false,
+  "action": "PUBLISH",
+  "external": true,
+  "reason_code": "PUBLICATION_APPROVAL_REQUIRED",
+  "message": "ASSISTED exige aprovação humana explícita da publicação; ...",
+  "automation_mode": "ASSISTED",
+  "compliance_status": "ACTIVE",
+  "global_mode": "RUNNING",
+  "stop_external_actions": false,
+  "automation_policy_version": "automation-policy-1.0",
+  "compliance_policy_version": "compliance-policy-1.0",
+  "integration": "telegram",
+  "integration_state": "ONLINE",
+  "correlation_id": "cid-1",
+  "decided_at": "2026-10-05T12:00:00+00:00"
+}
+```
+
+A decisão aplica, nesta ordem, kill switch → modo global → compliance →
+integração → modo de automação. SHADOW nunca envia comercialmente (mesmo com
+aprovação de publicação); ASSISTED exige aprovação humana explícita da publicação
+(aprovar Candidate é insuficiente); AUTO só passa com compliance vigente e
+integração operacional. A automation policy é versionada/hasheada
+(`config/automation-policy.json`, opcional; use
+`config/automation-policy.example.json`; `RADAR_AUTOMATION_POLICY_FILE` força um
+arquivo) e a compliance policy em `config/channel-compliance.json` (opcional; use
+`config/channel-compliance.example.json`; `RADAR_COMPLIANCE_POLICY_FILE` força um
+arquivo). Compliance `UNKNOWN`/`BLOCKED`/`REVIEW_REQUIRED`/vencida/não vigente
+bloqueia o side effect mesmo com aprovação humana (AUT-295). Comandos operacionais
+e decisões de side effect geram `AuditEvent` na mesma transação. Erros usam
+`RAD-WF-018`; policy inválida bloqueia a API com `RAD-CFG-012`/`RAD-CFG-013`.
+
 ## AI Editorial Review input
 
 ```json
@@ -1131,6 +1177,35 @@ AutomationMode:
 - SHADOW
 - ASSISTED
 - AUTO
+
+GlobalMode (TKT-17, RDR-043):
+- RUNNING
+- PAUSED
+- DRAINING
+- MAINTENANCE
+
+ExternalAction (TKT-17, RDR-043):
+- PUBLISH
+- BROWSER
+- AUTHENTICATED_LINK
+- READ
+- DIAGNOSTIC
+- RECOVERY
+
+ComplianceStatus (TKT-17, RDR-043):
+- ACTIVE
+- REVIEW_REQUIRED
+- BLOCKED
+- UNKNOWN
+
+IntegrationState (TKT-17, RDR-044):
+- ONLINE
+- DEGRADED
+- OFFLINE
+- AUTH_REQUIRED
+- PAUSED
+- DISABLED
+- UNKNOWN
 
 ## Configuration contract
 

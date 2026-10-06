@@ -413,6 +413,45 @@ class OpportunityRow(Base):
     updated_at: Mapped[str] = mapped_column(String(40), nullable=False)
 
 
+class OperationsStateRow(Base):
+    """Single durable row with the global operational state (RDR-043, AUT-149).
+
+    ``global_mode`` and ``stop_external_actions`` are the operator commands that
+    gate every external side effect; safe reading/diagnostic/recovery never depend
+    on this row (AUT-317). The row is upserted atomically with its audit event so
+    the command is observable from the public boundary.
+    """
+
+    __tablename__ = "operations_state"
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True)
+    global_mode: Mapped[str] = mapped_column(String(16), nullable=False)
+    stop_external_actions: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    reason: Mapped[str | None] = mapped_column(Text)
+    correlation_id: Mapped[str | None] = mapped_column(String(64))
+    schema_version: Mapped[str] = mapped_column(String(16), nullable=False)
+    updated_at: Mapped[str] = mapped_column(String(40), nullable=False)
+
+
+class IntegrationHealthRow(Base):
+    """Standardized health of one external integration (RDR-044, AUT-139).
+
+    Each integration keeps its own state, so one unhealthy integration isolates
+    its own scope instead of the whole node (AUT-315). ``name`` is the primary key
+    and the row is upserted atomically with its audit event.
+    """
+
+    __tablename__ = "integration_health"
+    __table_args__ = (Index("ix_integration_health_state", "state", "updated_at"),)
+
+    name: Mapped[str] = mapped_column(String(32), primary_key=True)
+    state: Mapped[str] = mapped_column(String(16), nullable=False)
+    summary: Mapped[str] = mapped_column(Text, nullable=False)
+    correlation_id: Mapped[str | None] = mapped_column(String(64))
+    schema_version: Mapped[str] = mapped_column(String(16), nullable=False)
+    updated_at: Mapped[str] = mapped_column(String(40), nullable=False)
+
+
 class HumanActionRow(Base):
     """Formal human-intervention record (RDR-040, AUT-126, AUT-244).
 

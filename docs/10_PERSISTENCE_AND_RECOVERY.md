@@ -110,6 +110,20 @@ Opportunity sem próximo Job; uma transição válida atualiza a linha com um `U
 condicional otimista e uma transição inválida grava
 `OPPORTUNITY_TRANSITION_REJECTED` antes de retornar o erro (AUT-010, AUT-141).
 
+Implementação (TKT-17): a migration `0011_operations_control` acrescenta as tabelas
+`operations_state` (linha única `id='global'` com `global_mode`,
+`stop_external_actions`, motivo e `correlation_id`) e `integration_health` (uma
+linha por integração, `name` como PK, `state`, `summary`), o índice
+`ix_integration_health_state` (`state`, `updated_at`) e atualiza `schema_version`.
+Diferente das tabelas append-only, ambas são mutáveis por desenho: o comando do
+operador é um upsert gravado na **mesma transação** do `AuditEvent`
+(`OPERATIONS_MODE_CHANGED`, `EXTERNAL_ACTIONS_STOPPED`/`RESUMED`,
+`INTEGRATION_HEALTH_CHANGED`), então um crash não deixa estado sem trilha. A
+decisão de autorização de side effect grava `EXTERNAL_ACTION_AUTHORIZED`/
+`EXTERNAL_ACTION_BLOCKED` no `audit_event` (append-only) com o Correlation ID do
+pipeline; leitura/diagnóstico/recovery nunca dependem de `operations_state`
+(AUT-317). Timestamps em ISO-8601 UTC.
+
 ## Append-only
 
 Não sobrescrever:

@@ -25,6 +25,7 @@ from radar.api.demand import build_demand_router
 from radar.api.evaluation import build_evaluation_router
 from radar.api.human_actions import build_human_action_router
 from radar.api.jobs import build_job_router
+from radar.api.operations import build_operations_router
 from radar.api.opportunities import build_opportunity_router
 from radar.api.price_opportunity import build_price_opportunity_router
 from radar.api.purchase_source import build_purchase_source_router
@@ -35,12 +36,15 @@ from radar.application.correlation import new_correlation_id
 from radar.bootstrap import build_health_service
 from radar.domain.config import RadarConfig
 from radar.domain.demand import DemandNormalization
+from radar.domain.operations import AutomationPolicy, ChannelCompliancePolicy
 from radar.domain.purchase_source import PurchaseSourcePolicy
 from radar.domain.repost import RepostPolicy
 from radar.domain.retry import RetryPolicy
 from radar.domain.seller_quality import SellerQualityNormalization
 from radar.domain.taxonomy import BrandTaxonomy
 from radar.domain.workflow import WorkflowPolicy
+from radar.infrastructure.automation_policy import AutomationPolicyLoader
+from radar.infrastructure.compliance_policy import CompliancePolicyLoader
 from radar.infrastructure.config import ConfigLoader
 from radar.infrastructure.database import create_database_engine
 from radar.infrastructure.demand import DemandLoader
@@ -64,6 +68,8 @@ def create_app(
     repost_policy: RepostPolicy | None = None,
     retry_policy: RetryPolicy | None = None,
     workflow_policy: WorkflowPolicy | None = None,
+    automation_policy: AutomationPolicy | None = None,
+    compliance_policy: ChannelCompliancePolicy | None = None,
 ) -> FastAPI:
     # Invalid configuration raises ConfigInvalidError, so the API never serves
     # with a config that failed schema validation (RDR-004). The taxonomy is
@@ -86,6 +92,8 @@ def create_app(
     resolved_repost = repost_policy or RepostPolicyLoader.from_env().load()
     resolved_retry = retry_policy or RetryPolicyLoader.from_env().load()
     resolved_workflow = workflow_policy or WorkflowPolicyLoader.from_env().load()
+    resolved_automation = automation_policy or AutomationPolicyLoader.from_env().load()
+    resolved_compliance = compliance_policy or CompliancePolicyLoader.from_env().load()
     health_service = build_health_service(resolved_settings, resolved_engine)
 
     app = FastAPI(title="Radar Engine API", version=__version__)
@@ -99,6 +107,8 @@ def create_app(
     app.state.repost_policy = resolved_repost
     app.state.retry_policy = resolved_retry
     app.state.workflow_policy = resolved_workflow
+    app.state.automation_policy = resolved_automation
+    app.state.compliance_policy = resolved_compliance
 
     register_capture_error_handlers(app)
     app.include_router(build_capture_router(resolved_engine))
@@ -114,6 +124,9 @@ def create_app(
     app.include_router(build_schedule_router(resolved_engine))
     app.include_router(build_human_action_router(resolved_engine))
     app.include_router(build_opportunity_router(resolved_engine, resolved_workflow))
+    app.include_router(
+        build_operations_router(resolved_engine, resolved_automation, resolved_compliance)
+    )
 
     @app.get("/version")
     def version() -> dict[str, Any]:

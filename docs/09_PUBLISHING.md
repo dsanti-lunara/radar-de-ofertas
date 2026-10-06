@@ -4,6 +4,15 @@
 
 SHADOW registra avaliações e previews, sem envio comercial. Em ASSISTED, o envio exige aprovação humana explícita da publicação; a aprovação do Candidate não autoriza enviar. Toda autorização permanece sujeita à revalidação, compliance e Publishing Policy.
 
+Implementação (TKT-17, RDR-043): o gate de autorização vive em
+`POST /operations/authorize` e resolve a automation policy do slice brand ×
+marketplace × channel × capability; SHADOW nunca envia (mesmo com aprovação de
+publicação), ASSISTED exige `publication_approved=true` e AUTO só passa com
+compliance vigente e integração operacional. `STOP_EXTERNAL_ACTIONS` bloqueia
+publicação/browser/link autenticado mantendo leitura/diagnóstico/recovery. Os
+publishers reais (RDR-071/RDR-108) consumirão esse gate; nenhum envio é feito
+aqui. Ver `docs/08_WORKFLOW_ENGINE.md` e `docs/12_SECURITY_AND_COMPLIANCE.md`.
+
 Se o resultado remoto de um envio for desconhecido, registrar essa condição, suspender a publicação afetada, bloquear reenvio automático e criar HumanAction de revisão. Não classificar a ausência de confirmação como falha confirmada. Concluir ou autorizar nova tentativa exige evidência suficiente; a oferta pode expirar durante a revisão. Ver `adr/0001-unknown-publication-result.md`.
 
 ## Publishers

@@ -78,6 +78,7 @@ Prefixos sugeridos:
 | RAD-WF-015 OPPORTUNITY_TRANSITION_INVALID | transição de estado de Opportunity inválida (rejeitada e auditada) |
 | RAD-WF-016 OPPORTUNITY_INPUT_INVALID | input de Opportunity inválido (schema_version, target_state desconhecido, brand/priority) |
 | RAD-WF-017 CANDIDATE_REVIEW_REQUIRED | Candidate com decisão REVIEW exige resolução humana antes de virar Opportunity |
+| RAD-WF-018 OPERATIONS_INPUT_INVALID | input de operações inválido (schema_version, global_mode, action, integration state, reason) |
 
 Implementação TKT-13 (RDR-034..036): `POST /jobs` persiste o job (`PENDING`),
 `POST /jobs/claim` concede um único lease e retorna `RAD-WF-008` quando não há
@@ -118,6 +119,19 @@ quando a Opportunity não existe; `POST /opportunities/{id}/transitions` retorna
 `OPPORTUNITY_TRANSITION_REJECTED` antes da resposta — e `RAD-WF-016` (422) para um
 `target_state` desconhecido. Policy do workflow inválida bloqueia a API com
 `RAD-CFG-011`.
+
+Implementação TKT-17 (RDR-043/RDR-044): `GET /operations` expõe o estado global, o
+kill switch e as policies vigentes; `POST /operations/mode`,
+`POST`/`DELETE /operations/stop-external-actions` e `PUT /integrations/{name}`
+validam o input e retornam `RAD-WF-018` (422) para `schema_version`/`global_mode`/
+`action`/`integration state`/`reason` inválidos. `POST /operations/authorize`
+retorna `allowed=true/false` com `reason_code` acionável (`SHADOW_NO_COMMERCIAL_SEND`,
+`PUBLICATION_APPROVAL_REQUIRED`, `STOP_EXTERNAL_ACTIONS`, `GLOBAL_MODE_*`,
+`POLICY_BLOCK`/`POLICY_UNKNOWN`/`POLICY_EXPIRED`/`POLICY_REVIEW_REQUIRED`/
+`POLICY_NOT_EFFECTIVE`, `INTEGRATION_UNAVAILABLE`, `MANUAL_MODE`, `ALLOWED`).
+Automation policy inválida bloqueia a API com `RAD-CFG-012` e compliance policy
+inválida com `RAD-CFG-013`. Erros usam o contrato
+`{schema_version, status:"INVALID", correlation_id, error}`.
 
 ## Publishing
 
@@ -172,6 +186,8 @@ quando a Opportunity não existe; `POST /opportunities/{id}/transitions` retorna
 | RAD-CFG-009 REPOST_POLICY_INVALID | policy de repost ausente de schema/semântica válidos (versão, cooldown inteiro `>0`, queda finita `>=0`, piso de Deal `0..100`) | no |
 | RAD-CFG-010 RETRY_POLICY_INVALID | policy de retry ausente de schema/semântica válidos (versão, schedule de backoff em segundos inteiros `>0`) | no |
 | RAD-CFG-011 WORKFLOW_POLICY_INVALID | policy do workflow ausente de schema/semântica válidos (versão, TTL inteiro `>0` ou nulo) | no |
+| RAD-CFG-012 AUTOMATION_POLICY_INVALID | automation policy ausente de schema/semântica válidos (versão, `default_mode`, rule com matcher, mode/brand válidos) | no |
+| RAD-CFG-013 COMPLIANCE_POLICY_INVALID | compliance policy ausente de schema/semântica válidos (versão, status, timestamps ISO-8601) | no |
 
 ## Capture / Domain
 

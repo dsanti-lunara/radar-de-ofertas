@@ -1,0 +1,15 @@
+{
+  "schema_version": "1.0",
+  "policy_version": "automation-policy-operator",
+  "default_mode": "SHADOW",
+  "rules": [
+    {
+      "mode": "ASSISTED",
+      "channel": "TELEGRAM"
+    },
+    {
+      "mode": "ASSISTED",
+      "channel": "WHATSAPP"
+    }
+  ]
+}

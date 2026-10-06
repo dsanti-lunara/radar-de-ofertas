@@ -488,3 +488,23 @@ baseline deixa o TTL explicitamente ausente e o gate é configuração versionad
 hasheada (`config/opportunity-workflow.json`, opcional). Ver
 `docs/08_WORKFLOW_ENGINE.md`, `docs/04_DATA_CONTRACTS.md` e
 `docs/10_PERSISTENCE_AND_RECOVERY.md`.
+
+## Implementação (TKT-17, RDR-043/044)
+
+A autonomia e a interrupção externa são entidades próprias e explícitas. A
+`AutomationPolicy` (versionada/hasheada, `config/automation-policy.json` opcional)
+resolve um `AutomationMode` (`MANUAL`/`SHADOW`/`ASSISTED`/`AUTO`) para o slice
+brand × marketplace × channel × capability; o baseline aprovado é `SHADOW`. O
+`OperationalState` persistido guarda o `GlobalMode`
+(`RUNNING`/`PAUSED`/`DRAINING`/`MAINTENANCE`) e o kill switch
+`STOP_EXTERNAL_ACTIONS`. A `ChannelCompliancePolicy` (versionada/hasheada,
+`config/channel-compliance.json` opcional) é bloqueante: `UNKNOWN`/`BLOCKED`/
+`REVIEW_REQUIRED`/vencida/não vigente nunca liberam side effect, mesmo com
+aprovação humana (AUT-295). O `IntegrationHealth` registra o estado padronizado
+por integração, isolando o escopo da integração indisponível (AUT-315). A
+fronteira pública (`GET /operations`, `POST /operations/mode`, `POST`/`DELETE
+/operations/stop-external-actions`, `POST /operations/authorize`, `GET
+/integrations`, `PUT /integrations/{name}`) demonstra o comportamento; decisões de
+side effect e comandos operacionais são auditáveis. Ver
+`docs/08_WORKFLOW_ENGINE.md`, `docs/04_DATA_CONTRACTS.md`,
+`docs/10_PERSISTENCE_AND_RECOVERY.md` e `docs/12_SECURITY_AND_COMPLIANCE.md`.

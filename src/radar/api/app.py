@@ -23,6 +23,7 @@ from radar.api.classification import build_classification_router
 from radar.api.contracts import CORRELATION_HEADER
 from radar.api.demand import build_demand_router
 from radar.api.evaluation import build_evaluation_router
+from radar.api.jobs import build_job_router
 from radar.api.price_opportunity import build_price_opportunity_router
 from radar.api.purchase_source import build_purchase_source_router
 from radar.api.repost import build_repost_router
@@ -96,6 +97,7 @@ def create_app(
     app.include_router(build_purchase_source_router(resolved_engine, resolved_purchase_source))
     app.include_router(build_allowed_claims_router(resolved_engine))
     app.include_router(build_repost_router(resolved_engine, resolved_repost))
+    app.include_router(build_job_router(resolved_engine))
 
     @app.get("/version")
     def version() -> dict[str, Any]:

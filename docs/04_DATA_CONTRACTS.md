@@ -740,6 +740,73 @@ persiste `Evidence` e um `AuditEvent` `REPOST_DECIDED` na mesma transação. Err
 usam `RAD-CAP-004` (Candidate inexistente) e `RAD-CAP-015` (preço/publicação
 inválidos); policy inválida bloqueia a API com `RAD-CFG-009`.
 
+## Job persistente, claim/lease e locks, implementação (TKT-13, RDR-034/035/036)
+
+O Workflow Engine enfileira trabalho pela fronteira pública
+(`schema_version=1.0`). `POST /jobs` persiste um Job `PENDING` com `priority`,
+`available_at`, `attempts`/`max_attempts` e o `correlation_id` do pipeline
+(AUT-040, AUT-121); o Job é a unidade de trabalho e o seu estado (`JobStatus`) é
+independente do estado de domínio (AUT-118) — um estado como `NEW` de Candidate é
+recusado com `RAD-WF-006`, nunca convertido em estado de Job.
+
+```json
+{
+  "schema_version": "1.0",
+  "status": "PENDING",
+  "job_id": "job_...",
+  "type": "NORMALIZE_CAPTURE",
+  "entity_type": "candidate",
+  "entity_id": "cand_...",
+  "priority": 9,
+  "attempts": 0,
+  "max_attempts": 3,
+  "available_at": "2026-10-05T12:00:00+00:00",
+  "locked_by": null,
+  "locked_at": null,
+  "lease_expires_at": null,
+  "correlation_id": "cid-1",
+  "payload": {"offer_id": "off_..."},
+  "created_at": "2026-10-05T12:00:00+00:00",
+  "updated_at": "2026-10-05T12:00:00+00:00"
+}
+```
+
+`POST /jobs/claim` (`worker_id`, `lease_seconds` opcional) concede um **único**
+lease ao worker: o claim é um `UPDATE` atômico com subquery e `RETURNING`, então
+duas tentativas concorrentes nunca recebem o mesmo lease (o perdedor recebe
+`RAD-WF-008` retryable). O claim incrementa `attempts` e grava
+`locked_by`/`locked_at`/`lease_expires_at`; um Job `PENDING` só é claimável a
+partir de `available_at` e um Job `CLAIMED`/`RUNNING` com lease expirado é
+recuperável por outro worker (AUT-133, AUT-140). `POST /jobs/{id}/start` move
+`CLAIMED → RUNNING` e `POST /jobs/{id}/complete` move `CLAIMED/RUNNING → SUCCESS`;
+ambos exigem o lease do próprio worker e falham fechado com `RAD-WF-009` para
+worker inválido ou lease expirado, de modo que um worker nunca confirma a
+execução de outro. O `type` aceita apenas os Jobs V1 de `docs/08_WORKFLOW_ENGINE.md`.
+`GET /jobs/{job_id}` consulta o resultado persistido (`RAD-WF-007` quando
+inexistente).
+
+```json
+{
+  "schema_version": "1.0",
+  "status": "CLAIMED",
+  "job_id": "job_...",
+  "attempts": 1,
+  "locked_by": "worker-a",
+  "locked_at": "2026-10-05T12:00:00+00:00",
+  "lease_expires_at": "2026-10-05T12:01:00+00:00",
+  "correlation_id": "cid-1"
+}
+```
+
+`POST /locks` / `DELETE /locks/{name}` implementam o lock lógico com expiração
+(RDR-036). Um lock ativo de outro `owner` retorna `RAD-WF-004` (retryable); o
+mesmo `owner` renova o TTL; um lock expirado pode ser retomado; só o owner
+libera. Cada transição de Job e cada aquisição/liberação de lock grava um
+`AuditEvent` (`JOB_ENQUEUED`, `JOB_CLAIMED`, `JOB_STARTED`, `JOB_SUCCEEDED`,
+`LOCK_ACQUIRED`, `LOCK_RELEASED`) na mesma transação, sempre com o
+`correlation_id` do pipeline. Retry/backoff, Dead Jobs, Scheduler e recuperação
+pós-crash são tickets próprios e permanecem fora deste contrato.
+
 ## AI Editorial Review input
 
 ```json

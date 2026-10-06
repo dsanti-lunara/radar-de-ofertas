@@ -36,6 +36,14 @@ from radar.domain.capture import (
 from radar.domain.demand import DEMAND_INPUT_INVALID
 from radar.domain.errors import RadarError, RadarException
 from radar.domain.evaluation import EVALUATION_INPUT_INVALID
+from radar.domain.job import (
+    JOB_INPUT_INVALID,
+    JOB_LEASE_NOT_HELD,
+    JOB_NOT_CLAIMABLE,
+    JOB_NOT_FOUND,
+    JOB_STATE_INVALID,
+    LOCK_UNAVAILABLE,
+)
 from radar.domain.price_opportunity import PRICE_OPPORTUNITY_INPUT_INVALID
 from radar.domain.purchase_source import PURCHASE_SOURCE_INPUT_INVALID
 from radar.domain.repost import REPOST_INPUT_INVALID
@@ -54,9 +62,20 @@ def resolve_correlation_id(request: Request) -> str:
 
 
 def _error_status(error_code: str) -> int:
-    if error_code in (CANDIDATE_NOT_FOUND, MARKETPLACE_PRODUCT_NOT_FOUND, EVALUATION_NOT_FOUND):
+    if error_code in (
+        CANDIDATE_NOT_FOUND,
+        MARKETPLACE_PRODUCT_NOT_FOUND,
+        EVALUATION_NOT_FOUND,
+        JOB_NOT_FOUND,
+    ):
         return 404
-    if error_code == CAPTURE_IDENTITY_CONFLICT:
+    if error_code in (
+        CAPTURE_IDENTITY_CONFLICT,
+        JOB_LEASE_NOT_HELD,
+        JOB_NOT_CLAIMABLE,
+        JOB_STATE_INVALID,
+        LOCK_UNAVAILABLE,
+    ):
         return 409
     if error_code in (
         ALLOWED_CLAIMS_INPUT_INVALID,
@@ -65,6 +84,7 @@ def _error_status(error_code: str) -> int:
         CLASSIFICATION_INPUT_INVALID,
         DEMAND_INPUT_INVALID,
         EVALUATION_INPUT_INVALID,
+        JOB_INPUT_INVALID,
         PRICE_OPPORTUNITY_INPUT_INVALID,
         PURCHASE_SOURCE_INPUT_INVALID,
         REPOST_INPUT_INVALID,
@@ -89,28 +109,49 @@ def _error_response(request: Request, error: RadarError, *, status_code: int) ->
     )
 
 
+#: Job/lock public paths whose validation failures use the Workflow error code.
+_JOB_PATH_PREFIXES = ("/jobs", "/locks")
+
+
+def _is_job_path(request: Request) -> bool:
+    return request.url.path.startswith(_JOB_PATH_PREFIXES)
+
+
 def _validation_error(request: Request, exc: RequestValidationError) -> JSONResponse:
     errors = exc.errors()
     sensitive = [item for item in errors if item.get("type") == SENSITIVE_FIELD_ERROR_TYPE]
+    job_path = _is_job_path(request)
     if sensitive:
         fields: list[str] = []
         for item in sensitive:
             context = item.get("ctx") or {}
             fields.extend(str(name) for name in context.get("fields", []))
         error = RadarError(
-            code=CAPTURE_SENSITIVE_FIELD,
-            message="Payload contém campos sensíveis não permitidos",
+            code=JOB_INPUT_INVALID if job_path else CAPTURE_SENSITIVE_FIELD,
+            message=(
+                "Payload de job contém campos sensíveis não permitidos"
+                if job_path
+                else "Payload contém campos sensíveis não permitidos"
+            ),
             retryable=False,
-            action="Remover os campos sensíveis e reenviar a captura",
+            action=(
+                "Remover os campos sensíveis e reenviar o job"
+                if job_path
+                else "Remover os campos sensíveis e reenviar a captura"
+            ),
             context={"fields": sorted(set(fields))},
         )
     else:
         fields = [".".join(str(part) for part in item.get("loc", ())) for item in errors]
         error = RadarError(
-            code=CAPTURE_PAYLOAD_INVALID,
-            message="Payload de captura inválido",
+            code=JOB_INPUT_INVALID if job_path else CAPTURE_PAYLOAD_INVALID,
+            message="Payload de job inválido" if job_path else "Payload de captura inválido",
             retryable=False,
-            action="Corrigir o payload da captura e enviar novamente",
+            action=(
+                "Corrigir o payload do job e enviar novamente"
+                if job_path
+                else "Corrigir o payload da captura e enviar novamente"
+            ),
             context={"fields": fields},
         )
     return _error_response(request, error, status_code=422)

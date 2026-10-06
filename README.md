@@ -204,4 +204,17 @@ Cada decisão persiste `Evidence` e um `AuditEvent` `REPOST_DECIDED` na mesma
 transação. Erros usam `RAD-CAP-004/015` e policy inválida bloqueia a API com
 `RAD-CFG-009`. Contrato em `docs/04_DATA_CONTRACTS.md`.
 
+Fila de jobs com claim e lease (TKT-13): `POST /jobs` persiste um Job `PENDING`
+com `priority`, `available_at`, `attempts`/`max_attempts` e `correlation_id`;
+`POST /jobs/claim` concede um **único** lease expirável (claim atômico), então
+workers concorrentes nunca compartilham o mesmo lease. `POST /jobs/{id}/start` e
+`POST /jobs/{id}/complete` exigem o lease do próprio worker: um worker inválido
+não inicia/confirma execução alheia (`RAD-WF-009`) e um lease expirado permite
+que outro worker recupere o job (AUT-133, AUT-140). O estado de Job é
+independente do estado de domínio (AUT-118): `type="NEW"` é rejeitado com
+`RAD-WF-006`. `POST`/`DELETE /locks` cobrem o lock lógico com expiração
+(`RAD-WF-004`). Cada transição grava `AuditEvent`; retry/backoff, Dead Jobs,
+Scheduler e recovery são tickets próprios. Erros em `docs/ERROR_CATALOG.md`;
+contrato em `docs/04_DATA_CONTRACTS.md`.
+
 Testes live (browser/IA/Telegram/WhatsApp) são opt-in e ficam fora da suíte padrão.

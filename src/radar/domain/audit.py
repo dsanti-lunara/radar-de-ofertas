@@ -26,6 +26,14 @@ PURCHASE_SOURCE_DECIDED = "PURCHASE_SOURCE_DECIDED"
 #: Event type recorded when a repost decision is persisted (RDR-033).
 REPOST_DECIDED = "REPOST_DECIDED"
 
+#: Event types recorded by the Job queue (RDR-034..036).
+JOB_ENQUEUED = "JOB_ENQUEUED"
+JOB_CLAIMED = "JOB_CLAIMED"
+JOB_STARTED = "JOB_STARTED"
+JOB_SUCCEEDED = "JOB_SUCCEEDED"
+LOCK_ACQUIRED = "LOCK_ACQUIRED"
+LOCK_RELEASED = "LOCK_RELEASED"
+
 
 @dataclass(frozen=True, slots=True)
 class AuditEvent:

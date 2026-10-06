@@ -147,6 +147,23 @@ Todo lock/lease possui expiry.
 
 Crash permite recuperação por outro worker.
 
+## Implementação (TKT-13, RDR-034..036)
+
+O modelo durável de Job vive em `radar.domain.job` (sem FastAPI/SQLAlchemy) e é
+persistido por `radar.infrastructure.job_repository` na tabela `job`
+(migration `0007_job`). O Job guarda `type`, entidade, `priority`,
+`status`, `attempts`/`max_attempts`, `available_at`, `correlation_id`, `payload`
+e o lease (`locked_by`/`locked_at`/`lease_expires_at`). `JobStatus` é separado do
+estado de domínio (AUT-118): um estado como `NEW` nunca vira estado de Job.
+
+A fronteira pública (`POST /jobs`, `POST /jobs/claim`, `POST /jobs/{id}/start`,
+`POST /jobs/{id}/complete`, `GET /jobs/{id}` e `POST`/`DELETE /locks`) demonstra
+enqueue, claim com lease expirável, conclusão pelo dono do lease e lock lógico.
+O claim é um `UPDATE` atômico com subquery e `RETURNING`, garantindo um único
+lease sob concorrência; workers inválidos não confirmam execução alheia e o
+lease expirado permite recuperação (AUT-133, AUT-140). Retry/backoff, Dead Jobs,
+Scheduler e recuperação pós-crash permanecem em seus próprios tickets.
+
 ## Aging / TTL
 
 Candidate antigo deve revalidar antes de consumir IA.

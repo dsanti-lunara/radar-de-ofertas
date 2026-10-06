@@ -60,6 +60,18 @@ versionada/hasheada. Triggers `trg_repost_decision_no_update`/
 transação da decisão. O histórico de publicação usado na comparação é uma entrada
 do guardrail (histórico *fake* até o publisher real), não uma tabela deste ticket.
 
+Implementação (TKT-13): a migration `0007_job` acrescenta a tabela durável `job`
+(RDR-034, RDR-035) e a tabela `job_lock` (RDR-036), atualiza `schema_version` e
+cria o índice `ix_job_claim` (`status`, `priority`, `available_at`). O `job`
+guarda `type`, entidade, `priority`, `status`, `attempts`/`max_attempts`,
+`available_at`, `correlation_id`, `payload` e os campos de lease
+(`locked_by`/`locked_at`/`lease_expires_at`); os estados de Job são independentes
+dos estados de domínio (AUT-118). Diferente das tabelas append-only, o `job` é
+mutável por desenho (PENDING → CLAIMED → RUNNING → SUCCESS): o claim é um
+`UPDATE` atômico com subquery e `RETURNING`, então SQLite concede um único lease
+por job (AUT-121, AUT-140). Jobs e locks com timestamps em ISO-8601 UTC; o
+histórico de transições é auditável por `AuditEvent` na mesma transação.
+
 ## Append-only
 
 Não sobrescrever:

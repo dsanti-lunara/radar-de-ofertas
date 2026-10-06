@@ -417,3 +417,18 @@ um `AuditEvent` `REPOST_DECIDED` na mesma transação e é consultável por
 `POST`/`GET /candidates/{candidate_id}/repost`. Ver
 `docs/05_SCORING_ENGINE.md`, `docs/04_DATA_CONTRACTS.md` e
 `docs/10_PERSISTENCE_AND_RECOVERY.md`.
+
+## Implementação (TKT-13, RDR-034/035/036)
+
+O `Job` é a unidade durável de trabalho do Workflow Engine, com `type`,
+entidade, `priority`, `status`, `attempts`/`max_attempts`, `available_at`,
+`correlation_id`, `payload` e lease (`locked_by`/`locked_at`/
+`lease_expires_at`). O estado de Job (`JobStatus`) é um conceito próprio e
+**independente** do estado de domínio (AUT-118): um Candidate `NEW` nunca é um
+Job `NEW`. A fronteira pública (`POST /jobs`, `POST /jobs/claim`,
+`POST /jobs/{id}/start`/`complete`, `GET /jobs/{id}`) persiste, reivindica com um
+único lease expirável e confirma execução apenas pelo dono do lease; `Lock` é o
+lock lógico separado com expiração (RDR-036). Cada transição grava um
+`AuditEvent` com o Correlation ID do pipeline. Retry/backoff, Dead Jobs,
+Scheduler e recuperação pós-crash pertencem a RDR-037/038/039/042 e são tickets
+próprios. Ver `docs/08_WORKFLOW_ENGINE.md` e `docs/04_DATA_CONTRACTS.md`.

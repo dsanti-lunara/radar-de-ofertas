@@ -64,8 +64,23 @@ Prefixos sugeridos:
 | RAD-WF-001 JOB_TIMEOUT | transient timeout |
 | RAD-WF-002 RATE_LIMITED | transient rate limit |
 | RAD-WF-003 JOB_DEAD | retries esgotados |
-| RAD-WF-004 LOCK_UNAVAILABLE | entidade já em processamento |
+| RAD-WF-004 LOCK_UNAVAILABLE | entidade/lock já em processamento por outro owner (retryable) |
 | RAD-WF-005 REVALIDATION_REQUIRED | dados envelhecidos |
+| RAD-WF-006 JOB_INPUT_INVALID | input de job/lock inválido (schema_version, type/estado de domínio, prioridade, payload, worker, lease) |
+| RAD-WF-007 JOB_NOT_FOUND | job consultado não existe |
+| RAD-WF-008 JOB_NOT_CLAIMABLE | nenhum job disponível para claim (ou lease perdido na corrida); retryable |
+| RAD-WF-009 JOB_LEASE_NOT_HELD | worker não detém lease válido; não confirma execução alheia nem expirada |
+| RAD-WF-010 JOB_STATE_INVALID | transição de estado de Job inválida |
+
+Implementação TKT-13 (RDR-034..036): `POST /jobs` persiste o job (`PENDING`),
+`POST /jobs/claim` concede um único lease e retorna `RAD-WF-008` quando não há
+job claimável, `POST /jobs/{id}/start`/`complete` exigem o lease do worker
+(`RAD-WF-009` para worker inválido/lease expirado e `RAD-WF-010` para transição
+inválida) e `GET /jobs/{id}` retorna `RAD-WF-007` quando o job não existe.
+`POST`/`DELETE /locks` usam `RAD-WF-004` para lock ativo de outro owner. Inputs
+inválidos (schema_version, `type`/estado de domínio, prioridade, payload
+não-JSON/sensível, worker, lease) retornam `RAD-WF-006`; erros usam o contrato
+`{schema_version, status:"INVALID", correlation_id, error}`.
 
 ## Publishing
 

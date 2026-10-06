@@ -204,12 +204,17 @@ def build_human_action(
     now: datetime,
     status: HumanActionStatus = HumanActionStatus.OPEN,
     id_factory: IdFactory = default_id_factory,
+    impact: object = None,
+    next_steps: object = None,
 ) -> HumanAction:
     """Build and validate a ``HumanAction`` (AUT-126, AUT-244).
 
     The guidance (impact/next steps) is deterministic for the action type, so an
     operator always receives actionable context and no marketplace/worker text
-    is interpreted as an instruction (AUT-275).
+    is interpreted as an instruction (AUT-275). A caller may pass explicit
+    ``impact``/``next_steps`` when the intervention requires a more specific
+    explanation (e.g. the evidence required to resolve an unknown send result);
+    the values are still sanitized to a single line.
     """
 
     resolved_type = _coerce_action_type(action_type)
@@ -220,7 +225,21 @@ def build_human_action(
     if not isinstance(correlation_id, str) or not correlation_id.strip():
         raise _input_invalid("correlation_id é obrigatório", field="correlation_id")
     reference = _to_utc(now)
-    impact, next_steps = _ACTION_GUIDANCE[resolved_type]
+    default_impact, default_next_steps = _ACTION_GUIDANCE[resolved_type]
+    resolved_impact = (
+        default_impact
+        if impact is None
+        else _require_clean_text(
+            impact, field_name="impact", max_length=MAX_HUMAN_ACTION_TEXT_LENGTH
+        )
+    )
+    resolved_next_steps = (
+        default_next_steps
+        if next_steps is None
+        else _require_clean_text(
+            next_steps, field_name="next_steps", max_length=MAX_HUMAN_ACTION_TEXT_LENGTH
+        )
+    )
     return HumanAction(
         id=id_factory("ha"),
         action_type=resolved_type,
@@ -229,8 +248,8 @@ def build_human_action(
         entity_id=resolved_entity_id,
         reason=resolved_reason,
         error_code=resolved_code,
-        impact=impact,
-        next_steps=next_steps,
+        impact=resolved_impact,
+        next_steps=resolved_next_steps,
         correlation_id=correlation_id.strip(),
         created_at=reference,
         updated_at=reference,

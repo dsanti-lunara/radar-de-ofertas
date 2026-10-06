@@ -1377,6 +1377,39 @@ mesma transação do `AuditEvent` `PUBLICATION_RECORDED`; a migration
 inválida) e `RAD-CFG-016` (policy inválida). O resultado desconhecido
 (crash após aceitação remota) pertence a TKT-24/ADR 0001.
 
+## Publication, resultado desconhecido e resolução (TKT-24, RDR-128)
+
+Quando o publisher sinaliza que uma mensagem pode ter sido aceita remotamente sem
+confirmação local (crash/timeout na janela de envio), o resultado é **desconhecido**,
+nunca falha confirmada. `POST /opportunities/{opportunity_id}/publications`
+responde 409 `RAD-PUB-006` e persiste:
+
+- uma `Publication` suspensa (`status=UNKNOWN`, `external_message_id=null`) com os
+  eventos append-only `CREATED` e `RESULT_UNKNOWN`; o payload do `RESULT_UNKNOWN` é
+  o receipt (destino interno, `channel`, `revision`, `content_hash` do conteúdo
+  efetivamente preparado, `correlation_id`, `observed_at` e
+  `external_message_id=null` quando indisponível);
+- uma `HumanAction` (`action_type=REVIEW_PUBLICATION`, `reason=SEND_RESULT_UNKNOWN`,
+  `error_code=RAD-PUB-006`) com impacto e evidência necessária;
+- os `AuditEvent` `PUBLICATION_RESULT_UNKNOWN` e `HUMAN_ACTION_CREATED`.
+
+Uma suspensão aberta bloqueia qualquer nova tentativa da Opportunity, inclusive
+com outra `idempotency_key`, até a resolução; **zero reenvio automático** e o
+estado sobrevive ao reboot. `POST /publications/{publication_id}/resolve`
+(`schema_version=1.0`) recebe `decision` (`CONFIRM_SENT`/`CONFIRM_NOT_SENT`) e
+`evidence` (`MESSAGE_MARKER`/`PROVIDER_RECEIPT`/`DESTINATION_AUDIT`/`OPERATOR_NOTE`).
+Evidência insuficiente (por exemplo, `OPERATOR_NOTE` isolada ou autorização humana
+sem corroboração) retorna 409 `RAD-PUB-007`, audita
+`PUBLICATION_RESOLUTION_BLOCKED` e **não** libera nova tentativa nem prova falha.
+Com evidência suficiente, `CONFIRM_SENT` confirma o envio (`status=PUBLISHED`, com
+o marcador externo da evidência) e `CONFIRM_NOT_SENT` marca `status=FAILED`; o
+evento `RESOLVED` e o `AuditEvent` `PUBLICATION_RESOLVED` são gravados na mesma
+transação. Uma nova tentativa permanece sujeita à revalidação/guardrails vigentes
+(a oferta pode expirar durante a revisão) e responde 201/409 como qualquer
+publicação. Erros usam `{schema_version, status:"INVALID", correlation_id, error}`.
+O publisher real de WhatsApp mapeia o mesmo caso para `RAD-WA-004`. Ver
+`adr/0001-unknown-publication-result.md`.
+
 ## AI Editorial Review input
 
 ```json

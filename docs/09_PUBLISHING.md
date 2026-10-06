@@ -154,6 +154,7 @@ effect; o link Fake é offline, não produtivo e não consulta o gate. Ver
 - UPDATED
 - EXPIRED
 - FAILED
+- UNKNOWN (resultado de envio não confirmado; suspensa para revisão humana)
 - DELETED
 
 Implementação (TKT-23, RDR-020/RDR-072): a `Publication` é entidade própria,
@@ -176,6 +177,25 @@ marca`, `burst 2/15min`); cooldown e quiet hours são configuração versionada
 `config/publication-policy.example.json`; `RADAR_PUBLICATION_POLICY_FILE` força
 um arquivo) e o baseline não inventa valores. Ver
 `docs/04_DATA_CONTRACTS.md`.
+
+Implementação (TKT-24, RDR-128, ADR 0001/GRILL-002): quando o publisher sinaliza
+um envio que pode ter sido aceito sem confirmação local, a `Publication` fica
+suspensa em `status=UNKNOWN` com o evento append-only `RESULT_UNKNOWN`
+(destino, revisão, `content_hash` do conteúdo efetivamente preparado, Correlation
+ID e `observed_at`; sem `external_message_id`) e uma `HumanAction`
+(`REVIEW_PUBLICATION`, motivo `SEND_RESULT_UNKNOWN`) explica impacto e evidência
+necessária. `POST /opportunities/{id}/publications` responde `RAD-PUB-006` (409)
+e **nunca** reenvia automaticamente; repetir a `idempotency_key` ou tentar outra
+chave da mesma Opportunity enquanto a suspensão estiver aberta também é
+bloqueado. `POST /publications/{id}/resolve` exige evidência corroborante
+(`MESSAGE_MARKER`, `PROVIDER_RECEIPT` ou `DESTINATION_AUDIT`); `OPERATOR_NOTE`
+isolada retorna `RAD-PUB-007` (409) e não libera nova tentativa. Com evidência,
+`CONFIRM_SENT` confirma o envio (`PUBLISHED`) e `CONFIRM_NOT_SENT` marca
+`FAILED`; a nova tentativa mantém revalidação/guardrails e a oferta pode expirar
+durante a revisão. O Fake simula o crash pós-aceitação (`crash_after_accept`); um
+encerramento abrupto do processo antes de qualquer registro local depende do
+publisher real persistir sua intenção de envio (RDR-071/RDR-108). Ver
+`docs/04_DATA_CONTRACTS.md` e `docs/10_PERSISTENCE_AND_RECOVERY.md`.
 
 ## Revisions
 

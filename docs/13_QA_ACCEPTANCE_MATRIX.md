@@ -981,3 +981,36 @@ comercial.
 | Docs/contratos afetados e matriz QA atualizados; limitações e blockers remanescentes explícitos | este documento, `docs/03_DOMAIN_MODEL.md`, `docs/04_DATA_CONTRACTS.md`, `docs/09_PUBLISHING.md`, `docs/10_PERSISTENCE_AND_RECOVERY.md`, `docs/ERROR_CATALOG.md`, `README.md`, `config/publication-policy.example.json` |
 
 Requirement → Test → Acceptance → Evidence completo para TKT-23. Limitações e blockers remanescentes: o publisher é **Fake** e offline (nenhum envio real); o registro de destino/vínculo e a verificação de identidade de grupo pertencem a RDR-104/RDR-105 e aqui o `destination_id` é uma referência validada fornecida pelo caller; os publishers reais Telegram/WhatsApp (RDR-071/RDR-108) e o `TelegramPublisher`/`Browser Bridge` pertencem a tickets próprios e devem consumir o mesmo gate; o **resultado desconhecido** (crash após aceitação remota antes do commit local), a suspensão da publicação e a `HumanAction` de revisão pertencem a TKT-24/ADR 0001 e não são implementados aqui (só o caminho confirmado é persistido); o baseline de compliance é `UNKNOWN` (bloqueante) e o baseline de automation é `SHADOW`, então exercitar o Fake exige policy versionada (compliance `ACTIVE` + ASSISTED com aprovação); a Publication Policy congela apenas cap/burst de referência do SDD-09 e deixa cooldown/quiet hours como configuração explícita (sem valor inventado); a `Publication` não é append-only (tem lifecycle) e a trilha imutável é `publication_event`; nenhuma capability foi promovida para AUTO e nenhum teste live/credenciado foi executado.
+
+## Publication traceability, TKT-24 (RDR-128, ADR 0001/GRILL-002)
+
+Escopo: recuperar o crash após aceitação remota sem confirmação local, suspendendo
+a publicação (`status=UNKNOWN`), abrindo `HumanAction` e impedindo reenvio
+automático; a resolução humana exige evidência corroborante e mantém
+revalidação/guardrails. Camadas `unit`, `contract` e `integration` com SQLite
+temporário real e publisher Fake que simula o crash pós-aceitação; nenhum teste
+live, credencial, publisher real ou envio comercial.
+
+| Requirement | Test (arquivo::caso) | Acceptance | Evidence |
+|---|---|---|---|
+| RDR-128 resultado desconhecido | `tests/test_publication_unknown_result.py::test_fake_crash_after_accept_suspends_and_never_resends_after_restart`, `::test_unknown_result_and_suspension_survive_reboot` | Crash após aceitação sem confirmação é desconhecido (nunca falha confirmada) e não reenvia após restart | 409 `RAD-PUB-006`; `status=UNKNOWN`; eventos `[CREATED, RESULT_UNKNOWN]`; `publisher.accepted_count()==1`; nova instância não reenvia |
+| RDR-128 receipt/dedupe/auditoria | `tests/test_publication_unknown_result.py::test_unknown_result_and_suspension_survive_reboot`, `::test_human_action_records_impact_and_required_evidence` | Receipt/dedupe/auditoria sobrevivem à ausência/expiração do marcador; HumanAction explica impacto e evidência | payload do `RESULT_UNKNOWN` com destino/revisão/`content_hash`/`observed_at`; `AuditEvent PUBLICATION_RESULT_UNKNOWN`/`HUMAN_ACTION_CREATED`; `HumanAction` `REVIEW_PUBLICATION`/`SEND_RESULT_UNKNOWN` |
+| RDR-128 revisão sem evidência | `tests/test_publication_unknown_result.py::test_resolution_without_evidence_does_not_release_a_new_attempt`, `::test_evidence_sufficiency_rejects_a_bare_authorization` | Autorização humana sem evidência não prova falha nem libera nova tentativa | 409 `RAD-PUB-007`; publicação permanece `UNKNOWN`; nova chave bloqueada por suspensão aberta; `OPERATOR_NOTE` insuficiente |
+| RDR-128 resolução sustentada | `tests/test_publication_unknown_result.py::test_sustained_resolution_keeps_revalidation_and_guardrails`, `::test_confirm_sent_resolution_records_receipt_and_audit` | Resolução com evidência é auditável; nova tentativa mantém revalidação/guardrails; oferta pode expirar | `CONFIRM_NOT_SENT`→`FAILED` e retry 409 `REVALIDATION_REQUIRED`; `CONFIRM_SENT`→`PUBLISHED` com marcador; `AuditEvent PUBLICATION_RESOLVED` |
+| Fronteira pública e erros | `tests/test_publication_unknown_result.py::test_resolving_a_confirmed_publication_is_blocked`, `::test_resolution_evidence_contract_roundtrip` | Fronteira pública versionada com erro estruturado e schema estrito | `POST /publications/{id}/resolve` 200; 409 `RAD-PUB-007`; contrato `{schema_version, status, correlation_id, error}` |
+
+### Acceptance evidence, TKT-24
+
+| Acceptance criterion | Verification |
+|---|---|
+| Resultado sem confirmação suficiente é desconhecido, nunca falha confirmada ou reenvio automático | `tests/test_publication_unknown_result.py::test_fake_crash_after_accept_suspends_and_never_resends_after_restart` |
+| Receipt/dedupe/auditoria sobrevivem à ausência/expiração do marcador; revisão exige evidência (GRILL-002) | `tests/test_publication_unknown_result.py::test_unknown_result_and_suspension_survive_reboot`, `::test_human_action_records_impact_and_required_evidence` |
+| Fake aceita mensagem e simula crash antes do commit: zero reenvio automático após restart | `tests/test_publication_unknown_result.py::test_fake_crash_after_accept_suspends_and_never_resends_after_restart` (`FakePublisher(crash_after_accept=True)`) |
+| Resultado desconhecido e suspensão sobrevivem ao reboot | `tests/test_publication_unknown_result.py::test_unknown_result_and_suspension_survive_reboot` |
+| HumanAction registra impacto/evidência necessária e decisão auditável | `tests/test_publication_unknown_result.py::test_human_action_records_impact_and_required_evidence`, `::test_confirm_sent_resolution_records_receipt_and_audit` |
+| Autorização humana sem evidência não prova falha e não libera nova tentativa | `tests/test_publication_unknown_result.py::test_resolution_without_evidence_does_not_release_a_new_attempt`, `::test_evidence_sufficiency_rejects_a_bare_authorization` |
+| Oferta pode expirar durante revisão; resolução sustentada mantém revalidação/guardrails | `tests/test_publication_unknown_result.py::test_sustained_resolution_keeps_revalidation_and_guardrails` |
+| Comportamento pela fronteira pública com evidência rastreável; nenhum teste/guardrail enfraquecido | `tests/test_publication_unknown_result.py` (10 casos); `publisher.accepted_count()` contado; audit events reais; nenhum teste/guardrail removido |
+| Docs/contratos afetados e matriz QA atualizados; limitações e blockers remanescentes explícitos | este documento, `docs/03_DOMAIN_MODEL.md`, `docs/04_DATA_CONTRACTS.md`, `docs/08_WORKFLOW_ENGINE.md`, `docs/09_PUBLISHING.md`, `docs/10_PERSISTENCE_AND_RECOVERY.md`, `docs/ERROR_CATALOG.md`, `docs/RECOVERY_RUNBOOK.md`, `README.md` |
+
+Requirement → Test → Acceptance → Evidence completo para TKT-24. Limitações e blockers remanescentes: o crash é simulado pelo **Fake** (`crash_after_accept`); um encerramento abrupto do processo antes de qualquer registro local depende do publisher real persistir sua intenção de envio (RDR-071/RDR-108) e é homologado em VM por TKT-63; a reconciliação pós-restore (GRILL-003) e a UI de Human Actions (RDR-063/TKT-28) continuam em tickets próprios; a identidade/vínculo do grupo WhatsApp e o serializer canônico pertencem a RDR-104/RDR-105/RDR-107 e #52/#53 (aqui o `destination_id` é referência validada); o publisher real de WA mapeia o caso para `RAD-WA-004`; nenhuma capability foi promovida para AUTO e nenhum teste live/credenciado foi executado.

@@ -35,6 +35,11 @@ from radar.domain.operations import (
     IntegrationState,
 )
 from radar.domain.publication import PUBLICATION_SCHEMA_VERSION
+from radar.domain.publication_recovery import (
+    UnknownResultEvidence,
+    UnknownResultEvidenceType,
+    build_unknown_result_evidence,
+)
 from radar.domain.purchase_source import PURCHASE_SOURCE_SCHEMA_VERSION
 from radar.domain.recovery import RECOVERY_SCHEMA_VERSION
 from radar.domain.repost import REPOST_SCHEMA_VERSION, RepostEvidenceType
@@ -695,3 +700,62 @@ class PublicationRequestContract(_StrictContract):
                     {"fields": list(hits)},
                 )
         return data
+
+
+class UnknownResultEvidenceContract(_StrictContract):
+    """One corroborating evidence record for an unknown-result resolution.
+
+    The ``reference`` identifies the observed marker/receipt/destination audit; the
+    domain owns the sufficiency rule, so an authorization without evidence cannot
+    be smuggled in as a bare note (ADR 0001).
+    """
+
+    evidence_type: UnknownResultEvidenceType
+    reference: str = Field(min_length=1, max_length=256)
+    source: str | None = Field(default=None, max_length=256)
+    observed_at: datetime | None = None
+
+
+class PublicationResolveContract(_StrictContract):
+    """Versioned input to resolve a suspended (unknown-result) Publication.
+
+    ``decision`` stays a plain string so the domain owns the enum validation and
+    rejects an unknown decision with ``RAD-PUB-001`` instead of coercing it.
+    """
+
+    schema_version: str = PUBLICATION_SCHEMA_VERSION
+    decision: str = Field(min_length=1, max_length=32)
+    evidence: list[UnknownResultEvidenceContract] = Field(default_factory=list)
+
+    @field_validator("schema_version")
+    @classmethod
+    def _validate_schema_version(cls, value: str) -> str:
+        if value != PUBLICATION_SCHEMA_VERSION:
+            raise ValueError("schema_version de Publication não suportada")
+        return value
+
+    @model_validator(mode="before")
+    @classmethod
+    def _reject_sensitive_fields(cls, data: Any) -> Any:
+        if isinstance(data, Mapping):
+            hits = find_sensitive_fields(data)
+            if hits:
+                raise PydanticCustomError(
+                    SENSITIVE_FIELD_ERROR_TYPE,
+                    "Campos sensíveis não são aceitos na resolução",
+                    {"fields": list(hits)},
+                )
+        return data
+
+    def to_evidence(self) -> list[UnknownResultEvidence]:
+        """Map the validated contract to framework-free domain evidence records."""
+
+        return [
+            build_unknown_result_evidence(
+                evidence_type=item.evidence_type,
+                reference=item.reference,
+                source=item.source,
+                observed_at=item.observed_at,
+            )
+            for item in self.evidence
+        ]

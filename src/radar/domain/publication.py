@@ -59,6 +59,11 @@ PUBLICATION_NOT_FOUND = "RAD-PUB-002"
 PUBLICATION_BLOCKED = "RAD-PUB-003"
 PUBLICATION_PUBLISHER_UNAVAILABLE = "RAD-PUB-004"
 PUBLICATION_PUBLISHER_INVALID = "RAD-PUB-005"
+#: The remote result of a send is unknown (crash/timeout after acceptance): the
+#: publication is suspended and a HumanAction opens; never a confirmed failure.
+PUBLICATION_RESULT_UNKNOWN = "RAD-PUB-006"
+#: A human resolution of an unknown result lacks sufficient evidence.
+PUBLICATION_RESOLUTION_BLOCKED = "RAD-PUB-007"
 PUBLICATION_POLICY_INVALID = "RAD-CFG-016"
 
 #: Entity type recorded on the Publication audit event.
@@ -77,6 +82,9 @@ REASON_HARD_CAP_REACHED = "HARD_CAP_REACHED"
 #: Reason a stale content preview must be revalidated before the publisher.
 REASON_REVALIDATION_REQUIRED = "REVALIDATION_REQUIRED"
 
+#: Reason an unknown send result suspends the publication (GRILL-002, ADR 0001).
+REASON_SEND_RESULT_UNKNOWN = "SEND_RESULT_UNKNOWN"
+
 #: Reasons the authorization/compliance gate can block a publication.
 REASON_AUTHORIZATION_BLOCKED = "AUTHORIZATION_BLOCKED"
 
@@ -93,7 +101,13 @@ _HHMM = re.compile(r"^([01]\d|2[0-3]):[0-5]\d$")
 
 
 class PublicationStatus(StrEnum):
-    """Lifecycle status of a Publication (``docs/09_PUBLISHING.md``)."""
+    """Lifecycle status of a Publication (``docs/09_PUBLISHING.md``).
+
+    ``UNKNOWN`` is the suspended state of an unconfirmed remote send: the send may
+    have been accepted but lacks sufficient local confirmation, so the publication
+    is suspended pending human review and is never auto-resent (GRILL-002,
+    ``adr/0001-unknown-publication-result.md``).
+    """
 
     DRAFT = "DRAFT"
     READY = "READY"
@@ -102,6 +116,7 @@ class PublicationStatus(StrEnum):
     UPDATED = "UPDATED"
     EXPIRED = "EXPIRED"
     FAILED = "FAILED"
+    UNKNOWN = "UNKNOWN"
     DELETED = "DELETED"
 
 
@@ -115,6 +130,10 @@ class PublicationEventType(StrEnum):
     MESSAGE_EDITED = "MESSAGE_EDITED"
     LINK_INVALID = "LINK_INVALID"
     ERROR = "ERROR"
+    #: The remote result could not be confirmed (suspension, ADR 0001).
+    RESULT_UNKNOWN = "RESULT_UNKNOWN"
+    #: A human resolution of an unknown result was recorded (evidence audited).
+    RESOLVED = "RESOLVED"
 
 
 class PublicationError(RadarException):
@@ -185,6 +204,56 @@ def publication_blocked_error(
     )
 
 
+class PublicationResultUnknown(PublicationError):
+    """Raised when a send may have been accepted remotely without confirmation.
+
+    The result is *unknown*, never a confirmed failure: the publication is
+    suspended, a HumanAction is opened and no automatic resend is allowed
+    (GRILL-002, ADR 0001). This is distinct from
+    :data:`PUBLICATION_PUBLISHER_UNAVAILABLE`, which is a confirmed failure.
+    """
+
+
+def publication_result_unknown_error(
+    message: str = "Resultado do envio desconhecido; publicação suspensa para revisão humana",
+    *,
+    context: Mapping[str, Any] | None = None,
+) -> PublicationResultUnknown:
+    """Build the structured ``RAD-PUB-006`` unknown-result error."""
+
+    return PublicationResultUnknown(
+        RadarError(
+            code=PUBLICATION_RESULT_UNKNOWN,
+            message=message,
+            retryable=False,
+            action=(
+                "Coletar evidência suficiente e resolver o resultado desconhecido; "
+                "não reenviar automaticamente"
+            ),
+            context={"reason_code": REASON_SEND_RESULT_UNKNOWN, **dict(context or {})},
+        )
+    )
+
+
+def publication_resolution_blocked_error(
+    message: str,
+    *,
+    context: Mapping[str, Any] | None = None,
+) -> PublicationError:
+    """Build the structured ``RAD-PUB-007`` error for an evidence-less resolution."""
+
+    return _error(
+        PUBLICATION_RESOLUTION_BLOCKED,
+        message,
+        retryable=False,
+        action=(
+            "Registrar evidência suficiente (marcador externo, recibo do provider ou "
+            "auditoria do destino) antes de concluir o envio ou liberar nova tentativa"
+        ),
+        context=dict(context or {}),
+    )
+
+
 def publication_publisher_unavailable_error(
     *, context: Mapping[str, Any] | None = None
 ) -> PublicationError:
@@ -236,6 +305,32 @@ def _to_utc(moment: datetime) -> datetime:
 def _content_hash(document: Mapping[str, Any]) -> str:
     canonical = json.dumps(document, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+def prepared_content_hash(
+    *,
+    content_text: str,
+    affiliate_url: str,
+    price: str,
+    destination_id: str,
+    channel: Channel,
+) -> str:
+    """Return the canonical hash of the content effectively prepared for a send.
+
+    The receipt records this hash so the content that was actually prepared can be
+    compared with the approved preview; it never proves delivery or read
+    (``docs/09_PUBLISHING.md``).
+    """
+
+    return _content_hash(
+        {
+            "content_text": content_text,
+            "affiliate_url": affiliate_url,
+            "price": price,
+            "destination_id": destination_id,
+            "channel": channel.value,
+        }
+    )
 
 
 @dataclass(frozen=True, slots=True)
@@ -891,6 +986,98 @@ def build_publication(
     )
 
 
+def build_suspended_publication(
+    *,
+    opportunity_id: str,
+    content_generation_id: str,
+    affiliate_link_id: str,
+    brand: Brand,
+    channel: Channel,
+    destination_id: str,
+    idempotency_key: str,
+    published_price: str,
+    content_hash: str,
+    correlation_id: str,
+    audit_event_id: str,
+    created_at: datetime,
+    revision: int = 1,
+    publication_id: object | None = None,
+    schema_version: object = PUBLICATION_SCHEMA_VERSION,
+    id_factory: IdFactory = default_id_factory,
+) -> Publication:
+    """Assemble a suspended ``UNKNOWN`` Publication with its receipt event.
+
+    The send may have been accepted but lacks sufficient confirmation. The
+    publication is persisted suspended with a receipt anchor (destination,
+    revision, prepared content hash, Correlation ID, observed_at, external marker
+    when available) so dedupe/audit survive the absence/expiry of the external
+    evidence and no automatic resend happens (GRILL-002, ADR 0001).
+    """
+
+    if str(schema_version) != PUBLICATION_SCHEMA_VERSION:
+        raise publication_input_invalid_error(
+            "schema_version de Publication não suportada",
+            context={"supported": PUBLICATION_SCHEMA_VERSION},
+        )
+    if not isinstance(brand, Brand):
+        raise publication_input_invalid_error(
+            "brand inválida para a Publication",
+            context={"field": "brand"},
+        )
+    if not isinstance(channel, Channel):
+        raise publication_input_invalid_error(
+            "channel inválido para a Publication",
+            context={"field": "channel"},
+        )
+    resolved_id = str(id_factory("pub")) if publication_id is None else str(publication_id).strip()
+    created = _to_utc(created_at)
+    events = (
+        PublicationEvent(
+            event_id=str(id_factory("pev")),
+            publication_id=resolved_id,
+            event_type=PublicationEventType.CREATED,
+            occurred_at=created,
+            correlation_id=correlation_id,
+            payload={"status": PublicationStatus.READY.value},
+        ),
+        PublicationEvent(
+            event_id=str(id_factory("pev")),
+            publication_id=resolved_id,
+            event_type=PublicationEventType.RESULT_UNKNOWN,
+            occurred_at=created,
+            correlation_id=correlation_id,
+            payload={
+                "reason_code": REASON_SEND_RESULT_UNKNOWN,
+                "destination_id": destination_id,
+                "channel": channel.value,
+                "revision": revision,
+                "content_hash": content_hash,
+                "external_message_id": None,
+                "observed_at": created.isoformat(),
+            },
+        ),
+    )
+    return Publication(
+        publication_id=resolved_id,
+        opportunity_id=opportunity_id,
+        content_generation_id=content_generation_id,
+        affiliate_link_id=affiliate_link_id,
+        brand=brand,
+        channel=channel,
+        destination_id=destination_id,
+        idempotency_key=idempotency_key,
+        revision=revision,
+        status=PublicationStatus.UNKNOWN,
+        external_message_id=None,
+        published_price=published_price,
+        correlation_id=correlation_id,
+        audit_event_id=audit_event_id,
+        created_at=created,
+        published_at=None,
+        events=events,
+    )
+
+
 __all__ = [
     "APPROVED_BURST_LIMIT",
     "APPROVED_BURST_WINDOW_MINUTES",
@@ -906,6 +1093,8 @@ __all__ = [
     "PUBLICATION_POLICY_SCHEMA_VERSION",
     "PUBLICATION_PUBLISHER_INVALID",
     "PUBLICATION_PUBLISHER_UNAVAILABLE",
+    "PUBLICATION_RESOLUTION_BLOCKED",
+    "PUBLICATION_RESULT_UNKNOWN",
     "PUBLICATION_SCHEMA_VERSION",
     "REASON_ALLOWED",
     "REASON_AUTHORIZATION_BLOCKED",
@@ -914,6 +1103,7 @@ __all__ = [
     "REASON_HARD_CAP_REACHED",
     "REASON_QUIET_HOURS",
     "REASON_REVALIDATION_REQUIRED",
+    "REASON_SEND_RESULT_UNKNOWN",
     "Publication",
     "PublicationError",
     "PublicationEvent",
@@ -922,17 +1112,22 @@ __all__ = [
     "PublicationPolicy",
     "PublicationPolicyDecision",
     "PublicationResolution",
+    "PublicationResultUnknown",
     "PublicationSendRequest",
     "PublicationStatus",
     "Publisher",
     "build_publication",
     "build_publication_policy",
+    "build_suspended_publication",
     "evaluate_publication_policy",
     "parse_publisher_response",
+    "prepared_content_hash",
     "publication_blocked_error",
     "publication_input_invalid_error",
     "publication_not_found_error",
     "publication_policy_invalid_error",
     "publication_publisher_invalid_error",
     "publication_publisher_unavailable_error",
+    "publication_resolution_blocked_error",
+    "publication_result_unknown_error",
 ]

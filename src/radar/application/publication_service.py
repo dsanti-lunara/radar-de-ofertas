@@ -24,18 +24,30 @@ window (crash after remote acceptance before local commit) belongs to TKT-24 and
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from typing import Protocol
 
 from radar.domain.affiliate_link import AffiliateLink
+from radar.domain.audit import (
+    HUMAN_ACTION_CREATED,
+    PUBLICATION_RESOLVED,
+    AuditEvent,
+)
+from radar.domain.audit import (
+    PUBLICATION_RESOLUTION_BLOCKED as AUDIT_PUBLICATION_RESOLUTION_BLOCKED,
+)
+from radar.domain.audit import (
+    PUBLICATION_RESULT_UNKNOWN as AUDIT_PUBLICATION_RESULT_UNKNOWN,
+)
 from radar.domain.capture import IdFactory, default_id_factory
 from radar.domain.content import (
     ContentGeneration,
     ContentGenerationStatus,
     content_generation_not_found_error,
 )
+from radar.domain.human_action import HumanAction, HumanActionType, build_human_action
 from radar.domain.knowledge import Channel
 from radar.domain.operations import (
     ExternalAction,
@@ -48,21 +60,38 @@ from radar.domain.opportunity import (
     opportunity_not_found_error,
 )
 from radar.domain.publication import (
+    AUDIT_SOURCE_PUBLICATION,
+    PUBLICATION_RESOLUTION_BLOCKED,
+    PUBLICATION_RESULT_UNKNOWN,
     REASON_REVALIDATION_REQUIRED,
     Publication,
     PublicationError,
+    PublicationEvent,
+    PublicationEventType,
     PublicationPolicy,
     PublicationResolution,
+    PublicationResultUnknown,
     PublicationSendRequest,
+    PublicationStatus,
     Publisher,
     build_publication,
+    build_suspended_publication,
     evaluate_publication_policy,
     parse_publisher_response,
+    prepared_content_hash,
     publication_blocked_error,
     publication_input_invalid_error,
     publication_not_found_error,
     publication_publisher_unavailable_error,
+    publication_result_unknown_error,
 )
+from radar.domain.publication_recovery import (
+    UnknownResultEvidence,
+    UnknownResultResolution,
+    decide_unknown_result,
+    resolution_payload,
+)
+from radar.domain.taxonomy import Brand
 
 #: Publish capability per channel (``docs/08_WORKFLOW_ENGINE.md`` / SDD-09).
 PUBLISH_CAPABILITIES: dict[Channel, str] = {
@@ -118,9 +147,31 @@ class PublicationRepository(Protocol):
 
     def save_publication(self, publication: Publication) -> Publication: ...
 
+    def save_suspension(
+        self,
+        publication: Publication,
+        human_action: HumanAction,
+        audit_events: tuple[AuditEvent, ...],
+    ) -> Publication: ...
+
+    def resolve_publication(
+        self,
+        publication_id: str,
+        *,
+        status: PublicationStatus,
+        external_message_id: str | None,
+        published_at: datetime | None,
+        event: PublicationEvent,
+        audit_event: AuditEvent,
+    ) -> Publication: ...
+
+    def record_audit(self, audit_events: tuple[AuditEvent, ...]) -> None: ...
+
     def get_publication(self, publication_id: str) -> Publication | None: ...
 
     def find_by_idempotency_key(self, idempotency_key: str) -> Publication | None: ...
+
+    def find_unknown_for_opportunity(self, opportunity_id: str) -> Publication | None: ...
 
     def list_publications_for_opportunity(self, opportunity_id: str) -> tuple[Publication, ...]: ...
 
@@ -198,7 +249,39 @@ class PublicationService:
                     "idempotency_key já pertence a outra Opportunity",
                     context={"idempotency_key": resolved_key},
                 )
+            if existing.status is PublicationStatus.UNKNOWN:
+                # A previous send may have been accepted without confirmation: the
+                # publication stays suspended and is never auto-resent (ADR 0001).
+                raise publication_result_unknown_error(
+                    context={
+                        "publication_id": existing.publication_id,
+                        "idempotency_key": resolved_key,
+                        "destination_id": existing.destination_id,
+                    }
+                )
+            if existing.status is not PublicationStatus.PUBLISHED:
+                raise publication_input_invalid_error(
+                    "idempotency_key já consumido por tentativa resolvida; usar nova chave",
+                    context={
+                        "idempotency_key": resolved_key,
+                        "status": existing.status.value,
+                    },
+                )
             return PublicationResolution(publication=existing, idempotent_replay=True)
+
+        suspended = self.repository.find_unknown_for_opportunity(resolved_opportunity)
+        if suspended is not None:
+            # An open unknown-result suspension blocks every new attempt for the
+            # opportunity until a sufficient, audited resolution is recorded; a
+            # different idempotency key does not bypass the guardrail (GRILL-002).
+            raise publication_result_unknown_error(
+                context={
+                    "publication_id": suspended.publication_id,
+                    "idempotency_key": resolved_key,
+                    "destination_id": suspended.destination_id,
+                    "suspension_status": "OPEN",
+                }
+            )
 
         opportunity = self.opportunities.get_opportunity(resolved_opportunity)
         if opportunity is None:
@@ -300,6 +383,22 @@ class PublicationService:
         )
         try:
             raw_response = self.publisher.send(send_request)
+        except PublicationResultUnknown:
+            # The remote may have accepted the message without local confirmation:
+            # the result is unknown, so the publication is suspended and a
+            # HumanAction opens. No automatic resend ever happens (GRILL-002).
+            raise self._suspend_unknown(
+                opportunity_id=resolved_opportunity,
+                brand=opportunity.brand,
+                content_generation_id=resolved_content,
+                content=content,
+                affiliate_link_id=link.affiliate_link_id,
+                destination_id=resolved_destination,
+                idempotency_key=resolved_key,
+                publication_id=publication_id,
+                correlation_id=resolved_correlation,
+                now=now,
+            ) from None
         except PublicationError:
             raise
         except Exception as exc:
@@ -328,6 +427,198 @@ class PublicationService:
         )
         saved = self.repository.save_publication(publication)
         return PublicationResolution(publication=saved, idempotent_replay=False)
+
+    def resolve(
+        self,
+        publication_id: str,
+        *,
+        decision: object,
+        evidence: Sequence[UnknownResultEvidence],
+        correlation_id: str,
+    ) -> UnknownResultResolution:
+        """Resolve a suspended publication with sufficient, audited evidence.
+
+        A resolution without corroborating evidence fails closed with
+        ``RAD-PUB-007`` and leaves the publication suspended: a human
+        authorization alone neither proves the previous send failed nor releases a
+        new attempt (ADR 0001). A sufficient ``CONFIRM_NOT_SENT`` marks the
+        publication ``FAILED``; a new attempt still passes through revalidation and
+        every guardrail.
+        """
+
+        resolved_id = _require_clean_text(
+            publication_id, field_name="publication_id", max_length=64
+        )
+        resolved_correlation = _require_clean_text(
+            correlation_id, field_name="correlation_id", max_length=64
+        )
+        publication = self.repository.get_publication(resolved_id)
+        if publication is None:
+            raise publication_not_found_error(resolved_id)
+        now = self.clock()
+        try:
+            resolution = decide_unknown_result(
+                publication,
+                decision=decision,
+                evidence=evidence,
+                correlation_id=resolved_correlation,
+                now=now,
+            )
+        except PublicationError as exc:
+            if exc.error.code == PUBLICATION_RESOLUTION_BLOCKED:
+                self.repository.record_audit(
+                    (
+                        AuditEvent(
+                            id=str(self.id_factory("aud")),
+                            event_type=AUDIT_PUBLICATION_RESOLUTION_BLOCKED,
+                            entity_type="publication",
+                            entity_id=resolved_id,
+                            source=AUDIT_SOURCE_PUBLICATION,
+                            correlation_id=resolved_correlation,
+                            recorded_at=now,
+                            payload={
+                                "status": publication.status.value,
+                                "reason_code": exc.error.context.get("reason_code"),
+                            },
+                        ),
+                    )
+                )
+            raise
+        event = PublicationEvent(
+            event_id=str(self.id_factory("pev")),
+            publication_id=resolved_id,
+            event_type=PublicationEventType.RESOLVED,
+            occurred_at=now,
+            correlation_id=resolved_correlation,
+            payload=dict(resolution_payload(resolution)),
+        )
+        audit_event = AuditEvent(
+            id=str(self.id_factory("aud")),
+            event_type=PUBLICATION_RESOLVED,
+            entity_type="publication",
+            entity_id=resolved_id,
+            source=AUDIT_SOURCE_PUBLICATION,
+            correlation_id=resolved_correlation,
+            recorded_at=now,
+            payload={
+                "decision": resolution.decision.value,
+                "status": resolution.status.value,
+                "evidence_types": [item.evidence_type.value for item in resolution.evidence],
+            },
+        )
+        self.repository.resolve_publication(
+            resolved_id,
+            status=resolution.status,
+            external_message_id=resolution.external_message_id,
+            published_at=(now if resolution.status is PublicationStatus.PUBLISHED else None),
+            event=event,
+            audit_event=audit_event,
+        )
+        return resolution
+
+    def _suspend_unknown(
+        self,
+        *,
+        opportunity_id: str,
+        brand: Brand,
+        content_generation_id: str,
+        content: ContentGeneration,
+        affiliate_link_id: str,
+        destination_id: str,
+        idempotency_key: str,
+        publication_id: str,
+        correlation_id: str,
+        now: datetime,
+    ) -> PublicationResultUnknown:
+        """Persist the suspension, receipt anchor and HumanAction, then fail closed."""
+
+        content_hash = prepared_content_hash(
+            content_text=content.rendered.text,
+            affiliate_url=content.rendered.affiliate_url,
+            price=content.rendered.price,
+            destination_id=destination_id,
+            channel=content.channel,
+        )
+        audit_id = str(self.id_factory("aud"))
+        publication = build_suspended_publication(
+            opportunity_id=opportunity_id,
+            content_generation_id=content_generation_id,
+            affiliate_link_id=affiliate_link_id,
+            brand=brand,
+            channel=content.channel,
+            destination_id=destination_id,
+            idempotency_key=idempotency_key,
+            published_price=content.rendered.price,
+            content_hash=content_hash,
+            correlation_id=correlation_id,
+            audit_event_id=audit_id,
+            created_at=now,
+            publication_id=publication_id,
+            id_factory=self.id_factory,
+        )
+        human_action = build_human_action(
+            action_type=HumanActionType.REVIEW_PUBLICATION,
+            entity_type="publication",
+            entity_id=publication.publication_id,
+            reason="SEND_RESULT_UNKNOWN",
+            error_code=PUBLICATION_RESULT_UNKNOWN,
+            correlation_id=correlation_id,
+            now=now,
+            id_factory=self.id_factory,
+            impact=(
+                "Uma publicação pode ter sido enviada ao destino externo sem "
+                "confirmação local; a publicação fica suspensa e o reenvio automático "
+                "permanece bloqueado até a revisão."
+            ),
+            next_steps=(
+                "Reunir evidência suficiente (marcador externo, recibo do provider ou "
+                "auditoria do destino) e resolver o resultado desconhecido antes de "
+                "qualquer nova tentativa; a oferta pode expirar durante a revisão."
+            ),
+        )
+        audit_events = (
+            AuditEvent(
+                id=audit_id,
+                event_type=AUDIT_PUBLICATION_RESULT_UNKNOWN,
+                entity_type="publication",
+                entity_id=publication.publication_id,
+                source=AUDIT_SOURCE_PUBLICATION,
+                correlation_id=correlation_id,
+                recorded_at=now,
+                payload={
+                    "destination_id": destination_id,
+                    "channel": content.channel.value,
+                    "revision": publication.revision,
+                    "content_hash": content_hash,
+                    "external_message_id": None,
+                },
+            ),
+            AuditEvent(
+                id=str(self.id_factory("aud")),
+                event_type=HUMAN_ACTION_CREATED,
+                entity_type="human_action",
+                entity_id=human_action.id,
+                source=AUDIT_SOURCE_PUBLICATION,
+                correlation_id=correlation_id,
+                recorded_at=now,
+                payload={
+                    "action_type": human_action.action_type.value,
+                    "reason": human_action.reason,
+                    "entity_type": human_action.entity_type,
+                    "entity_id": human_action.entity_id,
+                },
+            ),
+        )
+        self.repository.save_suspension(publication, human_action, audit_events)
+        return publication_result_unknown_error(
+            context={
+                "publication_id": publication.publication_id,
+                "human_action_id": human_action.id,
+                "destination_id": destination_id,
+                "content_hash": content_hash,
+                "correlation_id": correlation_id,
+            }
+        )
 
     def list(self, opportunity_id: str) -> tuple[Publication, ...]:
         """Return the persisted Publications of an Opportunity, oldest first."""

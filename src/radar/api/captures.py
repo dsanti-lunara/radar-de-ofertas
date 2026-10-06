@@ -90,6 +90,8 @@ from radar.domain.publication import (
     PUBLICATION_POLICY_INVALID,
     PUBLICATION_PUBLISHER_INVALID,
     PUBLICATION_PUBLISHER_UNAVAILABLE,
+    PUBLICATION_RESOLUTION_BLOCKED,
+    PUBLICATION_RESULT_UNKNOWN,
 )
 from radar.domain.purchase_source import PURCHASE_SOURCE_INPUT_INVALID
 from radar.domain.recovery import RECOVERY_INPUT_INVALID
@@ -160,6 +162,8 @@ def _error_status(error_code: str) -> int:
         AFFILIATE_LINK_OPPORTUNITY_NOT_LINKABLE,
         TRACKING_MAPPING_NOT_CONFIGURED,
         PUBLICATION_BLOCKED,
+        PUBLICATION_RESULT_UNKNOWN,
+        PUBLICATION_RESOLUTION_BLOCKED,
     ):
         return 409
     if error_code in (

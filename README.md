@@ -354,4 +354,17 @@ cooldown/quiet hours explícitos. Erros: `RAD-PUB-001/002/003/004/005` e
 `RAD-CFG-016`; contrato em `docs/04_DATA_CONTRACTS.md`. O resultado desconhecido
 (crash após aceitação remota) e a suspensão/HumanAction pertencem a TKT-24.
 
+Suspensão de resultado desconhecido (TKT-24, RDR-128, ADR 0001): quando o
+publisher sinaliza um envio possivelmente aceito sem confirmação local, a
+`Publication` fica suspensa (`status=UNKNOWN`, evento `RESULT_UNKNOWN` com o
+receipt) e uma `HumanAction` (`REVIEW_PUBLICATION`/`SEND_RESULT_UNKNOWN`) é
+aberta; a fronteira responde 409 `RAD-PUB-006` e **nunca** reenvia
+automaticamente. Uma suspensão aberta bloqueia novas tentativas da Opportunity
+até `POST /publications/{id}/resolve`, que exige evidência corroborante
+(`MESSAGE_MARKER`/`PROVIDER_RECEIPT`/`DESTINATION_AUDIT`); autorização humana sem
+evidência retorna 409 `RAD-PUB-007` e mantém a suspensão. `CONFIRM_SENT` marca
+`PUBLISHED` e `CONFIRM_NOT_SENT` marca `FAILED`, sempre auditado; a nova tentativa
+mantém revalidação/guardrails. O Fake simula o crash
+(`FakePublisher(crash_after_accept=True)`).
+
 Testes live (browser/IA/Telegram/WhatsApp) são opt-in e ficam fora da suíte padrão.

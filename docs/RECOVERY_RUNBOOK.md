@@ -56,6 +56,13 @@ Publicações ficam em RETRY_WAIT.
 
 Isso se aplica a falhas confirmadas e retryable. Se um envio pode ter ocorrido sem confirmação persistida, suspender a publicação, bloquear reenvio automático e abrir HumanAction; não tratar resultado desconhecido como falha confirmada.
 
+Implementação (TKT-24): `POST /opportunities/{id}/publications` responde
+`RAD-PUB-006` (409) e persiste a Publication suspensa (`status=UNKNOWN`),
+`HumanAction` (`REVIEW_PUBLICATION`/`SEND_RESULT_UNKNOWN`) e auditoria; uma
+suspensão aberta bloqueia qualquer nova tentativa da Opportunity até
+`POST /publications/{id}/resolve` com evidência corroborante. Resolução sem
+evidência retorna `RAD-PUB-007` e mantém a suspensão.
+
 Não recriar Opportunity.
 
 ## Caso 6, unclean shutdown

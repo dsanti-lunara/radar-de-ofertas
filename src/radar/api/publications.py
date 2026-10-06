@@ -22,7 +22,11 @@ from sqlalchemy.engine import Engine
 
 from radar.api.captures import resolve_correlation_id
 from radar.api.content_generations import build_content_generation_service
-from radar.api.contracts import CORRELATION_HEADER, PublicationRequestContract
+from radar.api.contracts import (
+    CORRELATION_HEADER,
+    PublicationRequestContract,
+    PublicationResolveContract,
+)
 from radar.application.correlation import bind_correlation_id
 from radar.application.operations_service import OperationsService
 from radar.application.publication_service import PublicationService
@@ -118,6 +122,28 @@ def build_publication_router(
                 "schema_version": PUBLICATION_SCHEMA_VERSION,
                 "status": "OK",
                 "publication": record.to_contract(),
+                "correlation_id": correlation_id,
+            },
+            headers=_headers(correlation_id),
+        )
+
+    @router.post("/publications/{publication_id}/resolve")
+    def resolve_publication(
+        publication_id: str, payload: PublicationResolveContract, request: Request
+    ) -> JSONResponse:
+        correlation_id = bind_correlation_id(resolve_correlation_id(request))
+        resolution = service.resolve(
+            publication_id,
+            decision=payload.decision,
+            evidence=payload.to_evidence(),
+            correlation_id=correlation_id,
+        )
+        return JSONResponse(
+            status_code=200,
+            content={
+                "schema_version": PUBLICATION_SCHEMA_VERSION,
+                "status": "RESOLVED",
+                "resolution": resolution.to_contract(),
                 "correlation_id": correlation_id,
             },
             headers=_headers(correlation_id),

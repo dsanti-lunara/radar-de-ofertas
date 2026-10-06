@@ -224,6 +224,27 @@ Publication persistida (`idempotent_replay=true`) sem novo envio; policy inváli
 bloqueia a API com `RAD-CFG-016`. Erros usam o contrato
 `{schema_version, status:"INVALID", correlation_id, error}`.
 
+Implementação TKT-24 (RDR-128, ADR 0001/GRILL-002): quando o publisher sinaliza um
+envio que pode ter sido aceito sem confirmação local (`PublicationResultUnknown`,
+publisher Fake com `crash_after_accept`), `POST
+/opportunities/{id}/publications` **não** trata o caso como falha confirmada:
+persiste a Publication suspensa (`status=UNKNOWN`, evento `RESULT_UNKNOWN` com o
+receipt: destino, revisão, `content_hash`, Correlation ID e `observed_at`),
+cria a `HumanAction` (`REVIEW_PUBLICATION`, motivo `SEND_RESULT_UNKNOWN`) e
+responde `RAD-PUB-006` (409). Uma suspensão aberta bloqueia qualquer nova
+tentativa da Opportunity — inclusive com outra `idempotency_key` — até a
+resolução. `POST /publications/{id}/resolve` exige evidência corroborante
+(`MESSAGE_MARKER`/`PROVIDER_RECEIPT`/`DESTINATION_AUDIT`); `OPERATOR_NOTE`
+isolada é insuficiente e retorna `RAD-PUB-007` (409) sem liberar nova tentativa
+nem apagar a suspensão. Com evidência suficiente, `CONFIRM_SENT` marca
+`PUBLISHED` (marcador externo registrado) e `CONFIRM_NOT_SENT` marca `FAILED`,
+sempre auditado (`PUBLICATION_RESULT_UNKNOWN`, `HUMAN_ACTION_CREATED`,
+`PUBLICATION_RESOLVED`, `PUBLICATION_RESOLUTION_BLOCKED`); a nova tentativa
+continua sujeita a revalidação/guardrails e a oferta pode expirar durante a
+revisão. Os publishers reais (RDR-071/RDR-108) mapeiam o resultado desconhecido
+de WA para `RAD-WA-004`; o Slice Fake usa `RAD-PUB-006`. Erros usam o contrato
+`{schema_version, status:"INVALID", correlation_id, error}`.
+
 ## Publishing
 
 | Code | Meaning |
@@ -249,6 +270,8 @@ canal.
 | RAD-PUB-003 PUBLICATION_BLOCKED | bloqueio determinístico **antes** do publisher; `error.context.reason_code` é acionável (`SHADOW_NO_COMMERCIAL_SEND`, `PUBLICATION_APPROVAL_REQUIRED`, `STOP_EXTERNAL_ACTIONS`, `POLICY_*`, `REVALIDATION_REQUIRED`, `QUIET_HOURS`, `COOLDOWN_ACTIVE`, `BURST_LIMIT`, `HARD_CAP_REACHED`) | no |
 | RAD-PUB-004 PUBLICATION_PUBLISHER_UNAVAILABLE | publisher indisponível; nada é persistido | yes |
 | RAD-PUB-005 PUBLICATION_PUBLISHER_INVALID | resposta do publisher inválida (não-mapping, campo sensível/desconhecido, `external_message_id` ausente) | no |
+| RAD-PUB-006 PUBLICATION_RESULT_UNKNOWN | resultado do envio desconhecido (crash/timeout após aceitação sem confirmação local); publicação suspensa, HumanAction e zero reenvio automático; nunca falha confirmada | no |
+| RAD-PUB-007 PUBLICATION_RESOLUTION_BLOCKED | resolução de resultado desconhecido sem evidência suficiente; a publicação permanece suspensa e nenhuma nova tentativa é liberada | no |
 
 ## Compliance
 

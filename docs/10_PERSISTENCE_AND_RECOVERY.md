@@ -196,6 +196,18 @@ append-only porque a entidade tem `status`/lifecycle; a trilha imutável é
 `publication_event`. O resultado desconhecido pós-crash e a reconciliação
 pertencem a TKT-24/ADR 0001. Ver `docs/04_DATA_CONTRACTS.md`.
 
+Implementação (TKT-24, RDR-128): o resultado desconhecido **não** exige migration
+nova: a suspensão usa a tabela `publication` existente (`status=UNKNOWN`,
+`external_message_id` nulo) com os eventos append-only `RESULT_UNKNOWN`/`RESOLVED`
+e o `HumanAction` já persistido em `human_action`. A Publication suspensa, o
+`HumanAction` e os `AuditEvent` `PUBLICATION_RESULT_UNKNOWN`/`HUMAN_ACTION_CREATED`
+são gravados na **mesma transação**; a resolução grava o evento `RESOLVED` e o
+`AuditEvent` `PUBLICATION_RESOLVED` (ou `PUBLICATION_RESOLUTION_BLOCKED` quando a
+evidência é insuficiente) atomicamente com a atualização de `status`. O estado
+suspenso e a `HumanAction` sobrevivem ao reboot e nunca reenviam automaticamente;
+a resolução sem evidência suficiente mantém a suspensão. Ver
+`docs/04_DATA_CONTRACTS.md` e `docs/RECOVERY_RUNBOOK.md`.
+
 ## Append-only
 
 Não sobrescrever:

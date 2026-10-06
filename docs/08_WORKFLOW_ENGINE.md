@@ -356,6 +356,15 @@ externo de resultado desconhecido (`GENERATE_AFFILIATE_LINK`, `PUBLISH_TELEGRAM`
 reenvia um resultado desconhecido (GRILL-002). A suspensão específica de
 publicação e a revisão humana são integradas pelo TKT-24.
 
+Implementação (TKT-24, RDR-128, ADR 0001): quando o publisher sinaliza um envio
+possivelmente aceito sem confirmação local, a `Publication` fica suspensa em
+`UNKNOWN`, uma `HumanAction` é aberta e o reenvio automático permanece bloqueado;
+a fronteira pública é `POST /publications/{id}/resolve`, que exige evidência
+corroborante e não libera nova tentativa sem ela. O estado sobrevive ao reboot e
+a oferta pode expirar durante a revisão; a nova tentativa mantém
+revalidação/guardrails. Ver `docs/04_DATA_CONTRACTS.md` e
+`docs/RECOVERY_RUNBOOK.md`.
+
 Locks órfãos são limpos (`RECOVERY_LOCK_CLEARED`) e os schedules perdidos são
 coalescidos em um único Job por schedule pelo Scheduler (AUT-134), sem executar
 lógica de negócio (AUT-117). Cada escrita é atômica com seu `AuditEvent`; o

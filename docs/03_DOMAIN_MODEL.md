@@ -230,6 +230,16 @@ pública é `POST`/`GET /opportunities/{id}/publications` e `GET /publications/{
 A revalidação, o gate TKT-17 e a policy bloqueiam antes do publisher; o resultado
 desconhecido pertence a TKT-24. Ver `docs/04_DATA_CONTRACTS.md`.
 
+Implementação (TKT-24, RDR-128, ADR 0001/GRILL-002): `radar.domain.publication`
+acrescenta o estado `UNKNOWN` (envio possivelmente aceito sem confirmação local) e
+o evento append-only `RESULT_UNKNOWN`/`RESOLVED`; `radar.domain.publication_recovery`
+define a evidência versionada da resolução (`MESSAGE_MARKER`/`PROVIDER_RECEIPT`/
+`DESTINATION_AUDIT`, com `OPERATOR_NOTE` insuficiente) e a decisão
+`CONFIRM_SENT`/`CONFIRM_NOT_SENT`. A publicação suspensa é persistida com o
+receipt (destino, revisão, `content_hash`, Correlation ID, `observed_at`) e gera
+`HumanAction`; uma suspensão aberta bloqueia novas tentativas até a resolução com
+evidência suficiente, sem reenvio automático. Ver `docs/04_DATA_CONTRACTS.md`.
+
 ### PublicationEvent
 
 Append-only:
@@ -240,6 +250,8 @@ Append-only:
 - MESSAGE_EDITED
 - LINK_INVALID
 - ERROR
+- RESULT_UNKNOWN (resultado de envio desconhecido; TKT-24/ADR 0001)
+- RESOLVED (resolução humana auditada; TKT-24/ADR 0001)
 
 ### ExtensionJob / BrowserJob
 

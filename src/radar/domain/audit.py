@@ -80,6 +80,12 @@ CONTENT_GENERATION_RECORDED = "CONTENT_GENERATION_RECORDED"
 #: Event type recorded when a confirmed Publication is persisted (RDR-020).
 PUBLICATION_RECORDED = "PUBLICATION_RECORDED"
 
+#: Event types recorded when an unknown send result suspends a Publication and
+#: when its human resolution is recorded (TKT-24, RDR-128, ADR 0001).
+PUBLICATION_RESULT_UNKNOWN = "PUBLICATION_RESULT_UNKNOWN"
+PUBLICATION_RESOLVED = "PUBLICATION_RESOLVED"
+PUBLICATION_RESOLUTION_BLOCKED = "PUBLICATION_RESOLUTION_BLOCKED"
+
 
 @dataclass(frozen=True, slots=True)
 class AuditEvent:

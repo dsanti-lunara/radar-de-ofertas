@@ -18,10 +18,12 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from radar.application.allowed_claims_service import CandidateClaimsContext
 from radar.application.demand_service import CandidateDemandContext
 from radar.application.price_opportunity_service import CandidatePriceContext
 from radar.application.purchase_source_service import CandidatePurchaseContext
 from radar.application.seller_quality_service import CandidateSellerContext
+from radar.domain.allowed_claims import ClaimPriceFact
 from radar.domain.audit import AuditEvent
 from radar.domain.capture import (
     Candidate,
@@ -319,6 +321,59 @@ class SqlAlchemyCaptureRepository:
                 shipping_cost=_optional_decimal(offer.shipping_cost),
                 coupon=coupon,
                 affiliate_commission=_optional_decimal(offer.affiliate_commission),
+            )
+
+    def get_candidate_claims_context(self, candidate_id: str) -> CandidateClaimsContext | None:
+        """Read the Offer and append-only history of a Candidate (RDR-032).
+
+        A coupon is only persisted as a raw code by the manual capture, so its
+        confirmed state is supplied (validated) at query time and an absent value
+        stays an explicit gap. The history carries the provenance of each
+        observation so every price claim can point back to its RawCapture.
+        """
+
+        with Session(self.engine) as session:
+            candidate = session.get(CandidateRow, candidate_id)
+            if candidate is None:
+                return None
+            offer = session.get(OfferRow, candidate.offer_id)
+            if offer is None:
+                return None
+            marketplace_product = session.get(MarketplaceProductRow, offer.marketplace_product_id)
+            if marketplace_product is None:
+                return None
+            rows = (
+                session.execute(
+                    select(PriceObservationRow)
+                    .where(PriceObservationRow.marketplace_product_id == marketplace_product.id)
+                    .order_by(PriceObservationRow.observed_at, PriceObservationRow.id)
+                )
+                .scalars()
+                .all()
+            )
+            coupon = None if offer.coupon is None else Coupon(code=offer.coupon)
+            return CandidateClaimsContext(
+                candidate_id=candidate.id,
+                offer_id=offer.id,
+                current_price=Decimal(offer.current_price),
+                captured_at=_parse(offer.captured_at),
+                source=offer.source,
+                correlation_id=candidate.correlation_id,
+                raw_capture_id=candidate.raw_capture_id,
+                sales_count=offer.sales_count,
+                original_price=_optional_decimal(offer.original_price),
+                coupon=coupon,
+                history=tuple(
+                    ClaimPriceFact(
+                        observation_id=row.id,
+                        price=Decimal(row.price),
+                        observed_at=_parse(row.observed_at),
+                        source=row.source,
+                        correlation_id=row.correlation_id,
+                        raw_capture_id=row.raw_capture_id,
+                    )
+                    for row in rows
+                ),
             )
 
     def _insert(self, session: Session, aggregate: CaptureAggregate) -> None:

@@ -155,6 +155,12 @@ malformada); produto não identificado como equivalente, condições não compar
 frete/cupom não confiáveis e ausência de referência confiável não são erros, são
 warnings explícitos no contrato; policy inválida bloqueia a criação da API com
 `RAD-CFG-008`.
+Implementação TKT-11 (RDR-032): a consulta de allowed claims retorna
+`RAD-CAP-004` quando o Candidate não existe, `RAD-CAP-013` quando o Candidate não
+possui Evaluation (ou a `evaluation_id` informada não existe) e `RAD-CAP-014`
+quando uma condição de cupom informada é inválida; histórico insuficiente para
+`LOWEST_OBSERVED_30D`, cupom não confirmado e preço riscado não são erros, são
+`omitted_claims`/warnings explícitos no contrato.
 Erros são
 retornados no contrato `{schema_version, status, correlation_id, error}`.
 
@@ -172,6 +178,8 @@ retornados no contrato `{schema_version, status, correlation_id, error}`.
 | RAD-CAP-010 DEMAND_INPUT_INVALID | sinal de Demand malformado na avaliação (rating_count, trend, affiliate_portal, badges) | no |
 | RAD-CAP-011 EVALUATION_INPUT_INVALID | componente de Evaluation fora de `0..100` ou Hard Rule declarada desconhecida | no |
 | RAD-CAP-012 PURCHASE_SOURCE_INPUT_INVALID | oferta/fonte de Purchase Source inválida (source_id vazio/duplicado, preço não positivo, condição malformada) | no |
+| RAD-CAP-013 EVALUATION_NOT_FOUND | Evaluation consultada não existe para o Candidate (ou `evaluation_id` informada não existe) | no |
+| RAD-CAP-014 ALLOWED_CLAIMS_INPUT_INVALID | condição de Allowed Claims inválida (coupon_state/coupon_amount/coupon_code) | no |
 
 
 Config inválida bloqueia a inicialização de CLI/API antes de qualquer comando

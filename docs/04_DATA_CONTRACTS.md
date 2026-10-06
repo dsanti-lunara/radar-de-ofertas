@@ -569,6 +569,104 @@ Comissão não é entrada, então a decisão nunca favorece a fonte afiliada. A 
 `{schema_version, status:"INVALID", correlation_id, error}` com `RAD-CAP-004`
 (Candidate inexistente) e `RAD-CAP-012` (oferta/fonte inválida).
 
+## Allowed Claims, implementação (TKT-11, RDR-032)
+
+`GET /candidates/{candidate_id}/allowed-claims` (`schema_version=1.0`) produz,
+de forma read-only e determinística, os claims comerciais sustentados por
+`Evidence` para uma Evaluation imutável (`evaluation_id` opcional; sem ele vale a
+Evaluation mais recente). O motor é `radar.domain.allowed_claims`, não usa IA e
+nunca cria um claim sem suporte (AUT-063, AUT-076, AUT-077, AUT-292). O cupom
+confirmado que a captura manual ainda não persiste pode ser informado como
+condição validada (`coupon_state`/`coupon_amount`/`coupon_code`).
+
+```json
+{
+  "schema_version": "1.0",
+  "status": "OK",
+  "engine_version": "allowed-claims-1.0",
+  "candidate_id": "cand_...",
+  "evaluation_id": "eval_...",
+  "evaluation_decision": "APPROVE",
+  "as_of": "2026-09-20T12:00:00+00:00",
+  "claim_count": 4,
+  "claims": [
+    {
+      "claim_type": "CURRENT_PRICE",
+      "value": "80.00",
+      "unit": "money",
+      "evidence": [
+        {
+          "evidence_type": "offer",
+          "reference_id": "off_...",
+          "field": "current_price",
+          "value": "80.00",
+          "observed_at": "2026-09-20T12:00:00+00:00",
+          "source": "BROWSER_EXTENSION",
+          "correlation_id": "cid-1",
+          "raw_capture_id": "raw_..."
+        }
+      ]
+    },
+    {
+      "claim_type": "PREVIOUS_OBSERVED_PRICE",
+      "value": "100.00",
+      "unit": "money",
+      "evidence": [
+        {
+          "evidence_type": "price_observation",
+          "reference_id": "po_...",
+          "field": "price",
+          "value": "100.00",
+          "observed_at": "2026-09-01T12:00:00+00:00",
+          "source": "BROWSER_EXTENSION",
+          "correlation_id": "cid-0",
+          "raw_capture_id": "raw_0"
+        }
+      ]
+    },
+    {
+      "claim_type": "PRICE_DROP_PERCENT",
+      "value": "20.00",
+      "unit": "percent",
+      "evidence": [
+        {"evidence_type": "offer", "reference_id": "off_...", "field": "current_price"},
+        {"evidence_type": "price_observation", "reference_id": "po_...", "field": "price"}
+      ]
+    }
+  ],
+  "omitted_claims": [
+    {"claim_type": "LOWEST_OBSERVED_30D", "reason_code": "HISTORY_INSUFFICIENT"}
+  ],
+  "forbidden_claims": [
+    "BEST_PRICE_ON_THE_INTERNET",
+    "LAST_UNITS",
+    "WILL_SELL_OUT",
+    "GUARANTEED_ORIGINAL",
+    "PERSONAL_EXPERIENCE",
+    "UNVERIFIED_COUPON"
+  ],
+  "warnings": [
+    {"code": "LOWEST_OBSERVED_30D_HISTORY_INSUFFICIENT", "message": "...", "context": {}}
+  ],
+  "correlation_id": "cid-1"
+}
+```
+
+Cada claim carrega a provenance da afirmação (`evidence_type`, `reference_id`,
+`field`, `value`, `observed_at`, `source`, `correlation_id`, `raw_capture_id`).
+`CURRENT_PRICE` e `SALES_COUNT` vêm do `Offer`; `PREVIOUS_OBSERVED_PRICE` e
+`PRICE_DROP_PERCENT` exigem observação anterior própria; `LOWEST_OBSERVED_30D` só
+é emitido quando o histórico cobre a janela de 30 dias e aparece em
+`omitted_claims` com `HISTORY_INSUFFICIENT` quando não cobre;
+`CONFIRMED_COUPON` só existe para cupom `CONFIRMED` (LIKELY/UNKNOWN/
+NOT_APPLICABLE são omitidos com `COUPON_NOT_CONFIRMED`). O preço riscado
+(`original_price`) nunca é referência nem claim (warning
+`STRUCK_THROUGH_PRICE_NOT_PROOF`). Erros usam
+`{schema_version, status:"INVALID", correlation_id, error}` com `RAD-CAP-004`
+(Candidate inexistente), `RAD-CAP-013` (Evaluation inexistente) e `RAD-CAP-014`
+(condição de cupom inválida). O resultado não tem store próprio: é função da
+Evaluation imutável (RDR-016) e das evidências append-only (RDR-013).
+
 ## AI Editorial Review input
 
 ```json

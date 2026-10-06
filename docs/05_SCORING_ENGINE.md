@@ -332,6 +332,25 @@ Exemplos:
 
 A IA pode usar somente claims permitidos.
 
+Implementação (TKT-11, RDR-032): os claims são produzidos deterministicamente
+pelo backend (`radar.domain.allowed_claims`, sem IA) e expostos por
+`GET /candidates/{candidate_id}/allowed-claims` (`schema_version=1.0`), sempre
+ligados a uma Evaluation imutável (por `evaluation_id`, ou à mais recente). Cada
+claim carrega provenance rastreável (`offer`/`price_observation`, `raw_capture_id`
+e `correlation_id`). `CURRENT_PRICE` e `SALES_COUNT` vêm do `Offer` persistido;
+`PREVIOUS_OBSERVED_PRICE` e `PRICE_DROP_PERCENT` exigem observação anterior
+própria; `LOWEST_OBSERVED_30D` só é emitido quando o histórico cobre a janela de
+30 dias (caso contrário é omitido com `LOWEST_OBSERVED_30D_HISTORY_INSUFFICIENT`,
+nunca um mínimo "desde que começamos"); `CONFIRMED_COUPON` só existe para cupom
+`CONFIRMED` (LIKELY/UNKNOWN/NOT_APPLICABLE são omitidos). O preço riscado
+(`original_price`) nunca vira referência nem claim. Claims sem suporte aparecem
+em `omitted_claims` com motivo explícito e os `forbidden_claims` do SDD-06 são
+declarados no contrato; a IA não cria nem altera claim (AUT-063, AUT-076, AUT-077,
+AUT-292). O resultado é read-only e determinístico, sem store próprio: é função da
+Evaluation imutável e das evidências append-only já persistidas. Erros usam
+`RAD-CAP-004/013/014`; cupom confirmado ainda não persistido pela captura pode ser
+informado como condição validada. Ver `docs/04_DATA_CONTRACTS.md`.
+
 ## Versionamento
 
 Guardar:

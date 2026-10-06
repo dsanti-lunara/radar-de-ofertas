@@ -17,6 +17,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.engine import Engine
 
 from radar import __version__
+from radar.api.allowed_claims import build_allowed_claims_router
 from radar.api.captures import build_capture_router, register_capture_error_handlers
 from radar.api.classification import build_classification_router
 from radar.api.contracts import CORRELATION_HEADER
@@ -87,6 +88,7 @@ def create_app(
     app.include_router(build_demand_router(resolved_engine, resolved_taxonomy, resolved_demand))
     app.include_router(build_evaluation_router(resolved_engine, resolved_taxonomy))
     app.include_router(build_purchase_source_router(resolved_engine, resolved_purchase_source))
+    app.include_router(build_allowed_claims_router(resolved_engine))
 
     @app.get("/version")
     def version() -> dict[str, Any]:

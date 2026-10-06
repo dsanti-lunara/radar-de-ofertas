@@ -380,5 +380,21 @@ condições diferentes ou sem preço efetivo confiável é lacuna explícita, nu
 comparação inventada. Comissão não é entrada e nunca favorece a seleção afiliada
 (AUT-051, AUT-062). Cada decisão é persistida append-only com `Evidence`, um
 `AuditEvent` `PURCHASE_SOURCE_DECIDED` na mesma transação e é consultável pela
-fronteira pública. Ver `docs/05_SCORING_ENGINE.md`,
 `docs/04_DATA_CONTRACTS.md` e `docs/10_PERSISTENCE_AND_RECOVERY.md`.
+
+## Implementação (TKT-11, RDR-032)
+
+Os claims comerciais (`allowed_claims`) são produzidos deterministicamente pelo
+backend, sem IA, a partir da `Evaluation` imutável e das evidências persistidas
+(`Offer` e histórico append-only de `PriceObservation`), e expostos por
+`GET /candidates/{candidate_id}/allowed-claims` com `schema_version` e provenance
+por afirmação (`evidence_type`, `reference_id`, `raw_capture_id`,
+`correlation_id`). `CURRENT_PRICE` e `SALES_COUNT` vêm do `Offer`;
+`PREVIOUS_OBSERVED_PRICE` e `PRICE_DROP_PERCENT` exigem observação anterior
+própria; `LOWEST_OBSERVED_30D` só é emitido quando o histórico cobre a janela de
+30 dias (senão é omitido em `omitted_claims`, nunca inventado); `CONFIRMED_COUPON`
+só existe para cupom `CONFIRMED` e os `forbidden_claims` do SDD-06 são explícitos.
+O preço riscado não é prova. O resultado é read-only e determinístico, sem store
+próprio: é função da `Evaluation` (RDR-016) e das evidências append-only
+(RDR-013). A IA não cria nem altera claim (AUT-063, AUT-076, AUT-077, AUT-292).
+Ver `docs/05_SCORING_ENGINE.md` e `docs/04_DATA_CONTRACTS.md`.

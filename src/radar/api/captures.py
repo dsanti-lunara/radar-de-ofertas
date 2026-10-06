@@ -24,6 +24,7 @@ from radar.api.contracts import (
 )
 from radar.application.capture_service import ManualCaptureService
 from radar.application.correlation import bind_correlation_id, new_correlation_id
+from radar.domain.allowed_claims import ALLOWED_CLAIMS_INPUT_INVALID, EVALUATION_NOT_FOUND
 from radar.domain.capture import (
     CANDIDATE_NOT_FOUND,
     CAPTURE_IDENTITY_CONFLICT,
@@ -52,11 +53,12 @@ def resolve_correlation_id(request: Request) -> str:
 
 
 def _error_status(error_code: str) -> int:
-    if error_code in (CANDIDATE_NOT_FOUND, MARKETPLACE_PRODUCT_NOT_FOUND):
+    if error_code in (CANDIDATE_NOT_FOUND, MARKETPLACE_PRODUCT_NOT_FOUND, EVALUATION_NOT_FOUND):
         return 404
     if error_code == CAPTURE_IDENTITY_CONFLICT:
         return 409
     if error_code in (
+        ALLOWED_CLAIMS_INPUT_INVALID,
         CAPTURE_PAYLOAD_INVALID,
         CAPTURE_SENSITIVE_FIELD,
         CLASSIFICATION_INPUT_INVALID,

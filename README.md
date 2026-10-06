@@ -175,4 +175,16 @@ persiste `Evidence` e um `AuditEvent` `PURCHASE_SOURCE_DECIDED` na mesma transa�
 Erros usam `RAD-CAP-004/012` e policy inválida bloqueia a API com `RAD-CFG-008`.
 Contrato em `docs/04_DATA_CONTRACTS.md`.
 
+Claims comerciais (TKT-11): `GET /candidates/{candidate_id}/allowed-claims`
+consulta os `allowed_claims` versionados de uma Evaluation imutável com a
+`Evidence`/provenance de cada afirmação. O motor é determinístico, read-only e
+não usa IA (AUT-063, AUT-076): `CURRENT_PRICE` sempre tem suporte do `Offer`;
+`PREVIOUS_OBSERVED_PRICE` e `PRICE_DROP_PERCENT` só existem com observação
+anterior própria; `LOWEST_OBSERVED_30D` exige histórico que cubra a janela de 30
+dias (sem cobertura é omitido com warning, nunca inventado); `SALES_COUNT` vem do
+`Offer`; `CONFIRMED_COUPON` só é produzido para cupom `CONFIRMED` (provável/
+desconhecido é omitido). Preço riscado isolado nunca é prova. Claims sem suporte
+aparecem em `omitted_claims` e os `forbidden_claims` do SDD-06 são explícitos.
+Erros usam `RAD-CAP-004/013/014`. Contrato em `docs/04_DATA_CONTRACTS.md`.
+
 Testes live (browser/IA/Telegram/WhatsApp) são opt-in e ficam fora da suíte padrão.

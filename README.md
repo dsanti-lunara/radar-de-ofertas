@@ -389,4 +389,15 @@ build a API continua operando normalmente. O contrato em
 `docs/04_DATA_CONTRACTS.md` e a rastreabilidade em
 `docs/13_QA_ACCEPTANCE_MATRIX.md`.
 
+Review de oportunidades (TKT-26, RDR-058/RDR-059/RDR-060): a aba Oportunidades
+consome `GET /review/inbox` e `GET /review/candidates/{id}` (dados reais com
+timeline e versões) e registra a decisão humana por
+`POST /candidates/{id}/human-reviews` (`APPROVE`/`REJECT`/`EDIT_CONTENT` com
+motivo), consultável por `GET /candidates/{id}/human-reviews` e
+`GET /human-reviews/{id}`. A `HumanReview` é append-only e separada da `AIReview`
+(AUT-035); aprovar um Candidate **não** autoriza publicação (GRILL-001) — a
+resposta sempre traz `publication_authorized=false` e o portão operacional
+vigente (ex.: SHADOW com envio bloqueado). O parser/cliente da UI ficam em
+`packages/control-center/src/review/`.
+
 Testes live (browser/IA/Telegram/WhatsApp) são opt-in e ficam fora da suíte padrão.

@@ -225,3 +225,25 @@ não é pré-requisito do Core: sem build, a API continua servindo saúde/read m
 `radar-api`. Em desenvolvimento, `pnpm --filter @radar/control-center dev` faz
 proxy de `/health` para `127.0.0.1:8000`. As demais telas (Inbox, Publicações,
 Ações, Sistema, Configurações) seguem em RDR-058..RDR-067.
+
+## Implementação (TKT-26, RDR-058/059/060)
+
+O Control Center ganha a navegação **Visão geral / Oportunidades**. A tela
+Oportunidades consome `GET /review/inbox` e `GET /review/candidates/{id}` pelo
+mesmo polling REST same-origin; cada linha e o detail são dados reais persistidos
+(produto, marketplace, preço, Deal, Monetization, Confidence, brand, motivo,
+status, breakdown, warnings, preço append-only, Evidence, AI review, timeline e
+versões). O portão operacional é exibido no detail (ex.: SHADOW com envio
+comercial **bloqueado**), então aprovar um Candidate não aparenta autorizar envio.
+
+O formulário de Human Review oferece **Aprovar / Rejeitar / Editar conteúdo** com
+motivo obrigatório e o payload de `EDIT_CONTENT` (headline/body/cta). O envio é
+otimista-zero: enquanto a requisição está em andamento o botão fica desabilitado
+e, em falha, o erro estruturado do `radar-api` (`RAD-UI-001..003`) vira mensagem
+acionável sem mutação local; loading, vazio e indisponível têm feedback textual
+(rótulos, nunca só cor). O parser dos contratos fica em
+`packages/control-center/src/review/contracts.ts` e o cliente REST em
+`.../review/api.ts`; as ações e o estado assíncrono são testáveis sem DOM
+(`.../review/state.ts`). A UI não cria capabilities que a API não possui e não
+envia conteúdo comercial por conta própria. As telas de Publicações, Ações,
+Sistema e Configurações seguem em RDR-061..RDR-067.

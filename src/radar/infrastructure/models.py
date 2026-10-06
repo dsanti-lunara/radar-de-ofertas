@@ -542,6 +542,42 @@ class AIReviewRow(Base):
     created_at: Mapped[str] = mapped_column(String(40), nullable=False)
 
 
+class HumanReviewRow(Base):
+    """Append-only, versioned human review of one Candidate (RDR-060, AUT-035/AUT-036).
+
+    The row stores the snapshotted ``ai_decision`` and the ``human_decision``
+    separately (AUT-035) together with the operator ``reason``/``note`` and,
+    for an ``EDIT_CONTENT`` decision, the sanitized edited copy. SQLite triggers
+    installed by migration ``0018_human_review`` reject UPDATE/DELETE, so the
+    decision history is never rewritten, and foreign keys tie the row to its
+    Candidate, optional AIReview and audit event (AUT-233). Text is stored
+    sanitized (no HTML, no secrets) and timestamps ISO-8601 UTC (AUT-203,
+    AUT-299).
+    """
+
+    __tablename__ = "human_review"
+    __table_args__ = (Index("ix_human_review_candidate", "candidate_id", "created_at"),)
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    candidate_id: Mapped[str] = mapped_column(
+        String(64), ForeignKey("candidate.id"), nullable=False
+    )
+    ai_review_id: Mapped[str | None] = mapped_column(
+        String(64), ForeignKey("ai_review.id"), nullable=True
+    )
+    ai_decision: Mapped[str | None] = mapped_column(String(32))
+    human_decision: Mapped[str] = mapped_column(String(16), nullable=False)
+    reason: Mapped[str] = mapped_column(Text, nullable=False)
+    note: Mapped[str | None] = mapped_column(Text)
+    edited_content: Mapped[str | None] = mapped_column(Text)
+    correlation_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    audit_event_id: Mapped[str] = mapped_column(
+        String(64), ForeignKey("audit_event.id"), nullable=False
+    )
+    schema_version: Mapped[str] = mapped_column(String(16), nullable=False)
+    created_at: Mapped[str] = mapped_column(String(40), nullable=False)
+
+
 class AffiliateLinkRow(Base):
     """Independent, auditable affiliate link of one approved Opportunity (RDR-018).
 

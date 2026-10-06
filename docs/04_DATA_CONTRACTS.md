@@ -1693,3 +1693,69 @@ Exemplo:
 ## Correlation ID
 
 Toda execução originada de uma descoberta deve manter o mesmo `correlation_id` até Publication e post-publication events.
+
+## HumanReview e review UI, implementação (TKT-26, RDR-058..RDR-060)
+
+`GET /review/inbox` (`schema_version=1.0`) lista os Candidates persistidos como
+itens do Inbox com produto, marketplace, preço, Deal, Monetization, Confidence,
+brand, motivo principal, status, `opportunity_id`/`opportunity_state` e as
+decisões da IA e humana. `GET /review/candidates/{candidate_id}` devolve o detail
+com a Evaluation (breakdown, warnings, hard rules), o histórico de preço
+append-only, a Evidence, as AIReviews, as HumanReviews, a Opportunity e o
+histórico de transições, a timeline de `audit_event` e as versões de cada
+artefato. `POST /candidates/{candidate_id}/human-reviews` registra uma
+`HumanReview` imutável; `GET /candidates/{candidate_id}/human-reviews` e
+`GET /human-reviews/{human_review_id}` a consultam. Cada resposta carrega
+`correlation_id`, e o detalhe também expõe o `automation` (portão operacional)
+para uma publicação **sem** aprovação de publicação.
+
+```json
+{
+  "schema_version": "1.0",
+  "status": "RECORDED",
+  "human_review": {
+    "schema_version": "1.0",
+    "status": "RECORDED",
+    "human_review_id": "hr_...",
+    "candidate_id": "cand_...",
+    "ai_review_id": "air_...",
+    "ai_decision": "APPROVE",
+    "human_decision": "REJECT",
+    "reason": "Preço mudou depois da avaliação",
+    "note": null,
+    "edited_content": null,
+    "decision_matches_ai": false,
+    "publication_authorized": false,
+    "reviewed_at": "2026-10-06T12:00:00+00:00",
+    "correlation_id": "cid-1",
+    "audit_event_id": "aud_..."
+  },
+  "publication_authorized": false,
+  "note": "Aprovação de Candidate não autoriza publicação; em ASSISTED o envio exige aprovação humana explícita da publicação e os guardrails vigentes.",
+  "automation": {
+    "automation_mode": "SHADOW",
+    "global_mode": "RUNNING",
+    "stop_external_actions": false,
+    "compliance_status": "UNKNOWN",
+    "publish_allowed": false,
+    "publish_reason_code": "SHADOW_NO_COMMERCIAL_SEND",
+    "automation_policy_version": "automation-policy-1.0",
+    "compliance_policy_version": "compliance-policy-1.0"
+  },
+  "correlation_id": "cid-1"
+}
+```
+
+O input aceita `human_decision` (`APPROVE`/`REJECT`/`EDIT_CONTENT`), `reason`
+obrigatório, `ai_review_id` opcional (sem ele, o serviço snapshota a AIReview mais
+recente do Candidate) e `edited_content` (`headline`/`body`/`cta`) **somente** em
+`EDIT_CONTENT`. `edited_content` fora de `EDIT_CONTENT`, `EDIT_CONTENT` sem
+payload, `reason` vazio, `schema_version` não suportada ou `ai_review_id` de outro
+Candidate retornam `RAD-UI-001` (422) antes de qualquer escrita. Candidate
+inexistente retorna `RAD-UI-003` e HumanReview inexistente `RAD-UI-002` (404). A
+resposta sempre reporta `publication_authorized=false`: o portão operacional é
+calculado para `PUBLISH` sem aprovação de publicação, então SHADOW/ASSISTED
+recusam o envio (`SHADOW_NO_COMMERCIAL_SEND`/`PUBLICATION_APPROVAL_REQUIRED`)
+mesmo após aprovar o Candidate (GRILL-001). A migration `0018_human_review`
+cria a tabela append-only com FKs reais para `candidate`/`ai_review`/
+`audit_event`.

@@ -26,6 +26,7 @@ from radar.domain.capture import (
 )
 from radar.domain.content import CONTENT_SCHEMA_VERSION
 from radar.domain.evaluation import EVALUATION_SCHEMA_VERSION
+from radar.domain.human_review import HUMAN_REVIEW_SCHEMA_VERSION
 from radar.domain.job import DEFAULT_MAX_ATTEMPTS, JOB_SCHEMA_VERSION
 from radar.domain.knowledge import Channel
 from radar.domain.operations import (
@@ -759,3 +760,52 @@ class PublicationResolveContract(_StrictContract):
             )
             for item in self.evidence
         ]
+
+
+class EditedContentContract(_StrictContract):
+    """Sanitized operator-edited copy supplied with an ``EDIT_CONTENT`` decision.
+
+    Only inert text is accepted; the domain strips control characters and the
+    review never rewrites a price/link or triggers a side effect.
+    """
+
+    headline: str = Field(min_length=1, max_length=512)
+    body: str = Field(min_length=1, max_length=512)
+    cta: str = Field(min_length=1, max_length=512)
+
+
+class HumanReviewRequestContract(_StrictContract):
+    """Versioned input to register a human review (RDR-060).
+
+    ``human_decision`` stays a plain string so the domain owns the enum
+    validation and rejects an unknown decision with ``RAD-UI-001`` instead of
+    coercing it. ``ai_review_id`` is optional: when absent the service snapshots
+    the latest AIReview of the Candidate (AUT-035).
+    """
+
+    schema_version: str = HUMAN_REVIEW_SCHEMA_VERSION
+    human_decision: str = Field(min_length=1, max_length=32)
+    reason: str = Field(min_length=1, max_length=512)
+    ai_review_id: str | None = Field(default=None, max_length=64)
+    note: str | None = Field(default=None, max_length=512)
+    edited_content: EditedContentContract | None = None
+
+    @field_validator("schema_version")
+    @classmethod
+    def _validate_schema_version(cls, value: str) -> str:
+        if value != HUMAN_REVIEW_SCHEMA_VERSION:
+            raise ValueError("schema_version de HumanReview não suportada")
+        return value
+
+    @model_validator(mode="before")
+    @classmethod
+    def _reject_sensitive_fields(cls, data: Any) -> Any:
+        if isinstance(data, Mapping):
+            hits = find_sensitive_fields(data)
+            if hits:
+                raise PydanticCustomError(
+                    SENSITIVE_FIELD_ERROR_TYPE,
+                    "Campos sensíveis não são aceitos na review",
+                    {"fields": list(hits)},
+                )
+        return data

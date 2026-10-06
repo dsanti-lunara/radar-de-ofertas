@@ -589,3 +589,23 @@ Fake é determinístico/offline e o link resultante é marcado `productive=false
 real ML/landing e a geração por adapter pertencem a #45/#46; a transição
 `LINK_PENDING`→`LINK_READY` continua explícita no Workflow Engine. Ver
 `docs/09_PUBLISHING.md` e `docs/04_DATA_CONTRACTS.md`.
+
+## Implementação (TKT-26, RDR-058..RDR-060)
+
+`HumanReview` é a decisão humana imutável/append-only de um Candidate, separada
+da `AIReview` (AUT-035/AUT-036). O contrato vive em `radar.domain.human_review`
+(`HumanReview`, `HumanDecision` `APPROVE`/`REJECT`/`EDIT_CONTENT`, `EditedContent`)
+e guarda o snapshot da decisão da IA (`ai_decision`/`ai_review_id`), a decisão
+humana, o `reason`/`note` e, em `EDIT_CONTENT`, o conteúdo editado sanitizado
+(HTML/controles removidos). Aprovar um Candidate **não** é aprovar publicação
+(GRILL-001): `publication_authorized` é sempre `false` e o `HumanReview` nunca
+cria `Publication`, `AffiliateLink`, `ContentGeneration` ou chama um publisher.
+A persistência append-only vive em `human_review` (migration `0018_human_review`,
+triggers de UPDATE/DELETE) com `AuditEvent` `HUMAN_REVIEW_RECORDED` na mesma
+transação. O Inbox/detail (RDR-058/059) são read models que compõem os dados
+reais persistidos (produto/oferta, Evaluation, AIReview, Evidence, preço,
+timeline e versões), sem recalcular score nem inventar valor. A fronteira pública
+é `GET /review/inbox`, `GET /review/candidates/{id}`, `POST`/`GET
+/candidates/{id}/human-reviews` e `GET /human-reviews/{id}`. A resolução de
+HumanAction e as demais telas do Control Center seguem em RDR-061..RDR-067. Ver
+`docs/11_OPERATIONS_AND_UI.md` e `docs/04_DATA_CONTRACTS.md`.

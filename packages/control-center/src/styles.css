@@ -90,6 +90,82 @@ body {
   padding: 10px 12px;
 }
 
+.muted {
+  color: #4a5058;
+  font-size: 0.85rem;
+}
+
+.sr-only {
+  border: 0;
+  clip: rect(0 0 0 0);
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  width: 1px;
+}
+
+.review-workspace {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.inbox {
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  width: 100%;
+}
+
+.inbox th,
+.inbox td {
+  border: 1px solid #c9ced6;
+  padding: 6px 8px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.detail {
+  border-top: 1px solid #c9ced6;
+  padding-top: 12px;
+}
+
+.review-form {
+  border: 1px solid #c9ced6;
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+  padding: 12px;
+}
+
+.review-form fieldset {
+  border: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+}
+
+.review-form label {
+  display: block;
+}
+
+.review-form textarea,
+.review-form input[type="text"] {
+  display: block;
+  width: 100%;
+}
+
+.alert--ok {
+  background: #e6f4ea;
+  border-color: #1f7a3d;
+  color: #15602e;
+}
+
 @media (prefers-color-scheme: dark) {
   body {
     background: #14171c;
@@ -106,5 +182,21 @@ body {
 
   .alert {
     background: #3a1f1f;
+  }
+
+  .muted {
+    color: #b6bcc6;
+  }
+
+  .inbox th,
+  .inbox td,
+  .detail,
+  .review-form {
+    border-color: #3a4049;
+  }
+
+  .alert--ok {
+    background: #1c3325;
+    color: #a7e3bb;
   }
 }

@@ -71,6 +71,9 @@ EXTERNAL_ACTION_BLOCKED = "EXTERNAL_ACTION_BLOCKED"
 #: Event type recorded when an immutable editorial AIReview is persisted (RDR-050).
 AI_REVIEW_RECORDED = "AI_REVIEW_RECORDED"
 
+#: Event type recorded when an operator review decision is persisted (RDR-060).
+HUMAN_REVIEW_RECORDED = "HUMAN_REVIEW_RECORDED"
+
 #: Event type recorded when a validated AffiliateLink is persisted (RDR-018).
 AFFILIATE_LINK_GENERATED = "AFFILIATE_LINK_GENERATED"
 

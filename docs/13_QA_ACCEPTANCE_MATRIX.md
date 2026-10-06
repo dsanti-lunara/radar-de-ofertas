@@ -1061,3 +1061,45 @@ RDR-117/TKT-59). A geração de contratos TS a partir do OpenAPI segue pendente
 até lá. `pnpm-workspace.yaml` ganhou `minimumReleaseAgeExclude` para
 `@vitejs/plugin-react@6.1.2` (política de supply-chain do pnpm). Nenhuma capability
 foi promovida para AUTO e nenhum teste live/credenciado foi executado.
+
+## UI/Operations traceability, TKT-26 (RDR-058, RDR-059, RDR-060)
+
+Escopo: Inbox/detail reais com timeline e versões, registro auditável de
+Approve/Reject/Edit content com decisão IA/humana e motivo, sem autorizar envio
+comercial. Camadas `unit`, `contract` e `integration` com SQLite temporário real,
+relógio controlado e providers/publishers Fake; nenhum teste live, credencial ou
+side effect comercial.
+
+| Requirement | Test (arquivo::caso) | Acceptance | Evidence |
+|---|---|---|---|
+| RDR-058 Opportunity Inbox | `tests/test_human_review_persistence.py::test_inbox_and_detail_use_real_persisted_data`; `tests/test_api_human_review.py::test_inbox_and_detail_use_real_data_with_timeline_and_versions`; `packages/control-center/src/review/ReviewWorkspace.test.tsx` | Inbox lista Candidates/Opportunities reais com produto/marketplace/preço/Deal/Monetization/Confidence/brand/motivo/status | `GET /review/inbox` 200 `schema_version=1.0`, item com `deal_score`/`decision`/`ai_decision`; estado vazio real (`count=0`) |
+| RDR-059 Opportunity detail | `tests/test_api_human_review.py::test_inbox_and_detail_use_real_data_with_timeline_and_versions`; `packages/control-center/src/review/contracts.test.ts`; `.../ReviewWorkspace.test.tsx` | Detail mostra breakdown, warnings, preço append-only, Evidence, AI review, timeline e versões | `GET /review/candidates/{id}` com `timeline` (`CAPTURE_RECEIVED`/`EVALUATION_RECORDED`/`AI_REVIEW_RECORDED`) e `versions` |
+| RDR-060 Human Review | `tests/test_human_review_domain.py` (11 casos); `tests/test_human_review_persistence.py::test_register_snapshots_the_latest_ai_decision_and_reason`, `::test_register_edit_content_persists_the_sanitized_snapshot`; `tests/test_api_human_review.py::test_review_preserves_the_ai_and_human_decision_and_reason` | Approve/Reject/Edit content preservam decisão IA/humana e motivo; HumanReview separada da AIReview (AUT-035) | `POST/GET /candidates/{id}/human-reviews` + `GET /human-reviews/{id}`; `ai_decision`/`human_decision`/`reason`/`edited_content` persistidos; `AuditEvent` `HUMAN_REVIEW_RECORDED` |
+| Candidate approval ≠ publication approval | `tests/test_human_review_persistence.py::test_review_is_append_only_and_never_creates_a_publication`; `tests/test_api_human_review.py::test_candidate_approval_does_not_authorize_publication` | Aprovar Candidate não cria Opportunity/Publication nem autoriza envio | `publication_authorized=false`; `publication`/`opportunity` = 0 após a review; nenhum publisher chamado |
+| SHADOW aceita revisão sem envio comercial | `tests/test_human_review_persistence.py::test_shadow_accepts_a_review_but_never_allows_a_send`; `tests/test_api_human_review.py::test_shadow_accepts_a_review_without_a_commercial_send` | SHADOW registra a decisão humana e mantém o PUBLISH bloqueado | review 201 com `automation_mode=SHADOW` e `publish_allowed=false` |
+| Loading/error/empty e ações inválidas sem mutação parcial | `packages/control-center/src/review/state.test.ts`; `.../ReviewWorkspace.test.tsx`; `tests/test_api_human_review.py::test_invalid_action_returns_structured_error_without_partial_mutation`, `::test_empty_inbox_is_a_real_empty_state` | Feedback real de loading/erro/vazio e erro estruturado sem escrita | `RAD-UI-001` 422 com `human_reviews=0`; loaders devolvem `loading`/`empty`/`unavailable`/`ready` |
+| Migration append-only e FKs reais | `tests/test_database_migration.py::test_migration_adds_human_review_from_publication_revision`, `::test_migration_human_review_has_real_foreign_keys` | Banco vazio migra até `0018_human_review`; triggers/fks bloqueiam mutação | triggers `trg_human_review_no_update`/`_no_delete`; violação de FK levanta `IntegrityError` |
+| Comportamento pela fronteira pública; nenhum teste/guardrail enfraquecido | suíte completa `848 passed` (Python) + `57 passed` (TypeScript) | Read model, review e UI observáveis pela fronteira; nenhum teste removido | `pnpm lint`, `pnpm typecheck`, `pnpm test`; `pytest`; `pyright` |
+
+### Acceptance evidence, TKT-26
+
+| Acceptance criterion | Verification |
+|---|---|
+| Inbox/detail usam dados reais com timeline e versões | `tests/test_api_human_review.py::test_inbox_and_detail_use_real_data_with_timeline_and_versions`, `tests/test_human_review_persistence.py::test_inbox_and_detail_use_real_persisted_data` |
+| Approve/Reject/Edit content preservam decisão IA/humana e motivo | `tests/test_human_review_domain.py`, `tests/test_api_human_review.py::test_review_preserves_the_ai_and_human_decision_and_reason`, `::test_edit_content_requires_the_payload_and_persists_the_snapshot` |
+| Candidate approval não equivale a publication approval | `tests/test_api_human_review.py::test_candidate_approval_does_not_authorize_publication`, `tests/test_human_review_persistence.py::test_review_is_append_only_and_never_creates_a_publication` |
+| SHADOW aceita revisão sem envio comercial | `tests/test_api_human_review.py::test_shadow_accepts_a_review_without_a_commercial_send`, `tests/test_human_review_persistence.py::test_shadow_accepts_a_review_but_never_allows_a_send` |
+| Loading/error/empty e ações inválidas têm feedback sem mutação parcial | `packages/control-center/src/review/state.test.ts`, `.../ReviewWorkspace.test.tsx`, `tests/test_api_human_review.py::test_invalid_action_returns_structured_error_without_partial_mutation` |
+| Comportamento demonstrado pela fronteira pública com evidência rastreável; nenhum teste/guardrail enfraquecido | endpoints `/review/*` + `/candidates/{id}/human-reviews`; suítes acima sem remoção de teste |
+| Docs/contratos afetados e matriz QA atualizados; limitações e blockers remanescentes explícitos | este documento, `docs/03_DOMAIN_MODEL.md`, `docs/04_DATA_CONTRACTS.md`, `docs/10_PERSISTENCE_AND_RECOVERY.md`, `docs/11_OPERATIONS_AND_UI.md`, `docs/ERROR_CATALOG.md`, `README.md` |
+
+Requirement → Test → Acceptance → Evidence completo para TKT-26. Limitações e
+blockers remanescentes: o Inbox/detail são read models sobre as tabelas já
+persistidas (nenhum snapshot próprio) e o `edited_content` é um snapshot textual
+sanitizado — a edição que re-renderiza preço/link/disclosure continua no
+ContentGeneration (TKT-21) e a atualização de HumanAction/revisão de publicação
+pertence a RDR-061..RDR-063. O `automation` mostrado é o portão vigente de
+`PUBLISH` sem aprovação de publicação; a autorização real de envio e o publisher
+Fake continuam em TKT-23/TKT-17, e nenhuma capability foi promovida para AUTO. A
+calibração de SHADOW (samples/agreement) e a resolução de resultado desconhecido
+seguem nos tickets próprios; nenhum teste live/credenciado foi executado.

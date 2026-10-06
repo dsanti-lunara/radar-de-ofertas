@@ -162,6 +162,18 @@ um link inválido não deixa registro parcial. A `affiliate_link` não é append
 porque a entidade tem `status`/lifecycle; a trilha de auditoria é o
 `audit_event`. Ver `docs/04_DATA_CONTRACTS.md`.
 
+Implementação (TKT-26): a migration `0018_human_review` acrescenta a tabela
+`human_review` (append-only via triggers `trg_human_review_no_update`/
+`_no_delete`, índices `ix_human_review_candidate`, FK para `candidate`/
+`ai_review`/`audit_event`) e atualiza `schema_version`. Cada linha é uma
+`HumanReview` imutável: a decisão da IA snapshotada (`ai_review_id`/
+`ai_decision`), a `human_decision`, o `reason`/`note` e, em `EDIT_CONTENT`, o
+`edited_content` sanitizado como JSON. A review é gravada na **mesma transação**
+do seu `AuditEvent` `HUMAN_REVIEW_RECORDED`, então uma decisão inválida
+(`RAD-UI-001`) não deixa registro parcial e nunca cria `Publication`/`AffiliateLink`/
+`ContentGeneration`. O Inbox/detail são read models sobre as tabelas já
+persistidas (nenhum snapshot próprio). Ver `docs/04_DATA_CONTRACTS.md`.
+
 Implementação (TKT-21): a migration `0015_content_generation` acrescenta a tabela
 `content_generation` (append-only via triggers `trg_content_generation_no_update`/
 `_no_delete`, com FK para `opportunity`/`candidate`/`audit_event` e índice

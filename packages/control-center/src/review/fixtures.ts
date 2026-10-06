@@ -1,0 +1,191 @@
+/**
+ * Fixtures sanitizadas dos contratos de review para os testes da UI.
+ *
+ * Nenhum dado real/credencial: apenas payloads versionados mínimos que espelham
+ * `GET /review/inbox`, `GET /review/candidates/{id}` e a resposta da review.
+ */
+
+export const automationFixture = {
+  automation_mode: "SHADOW",
+  global_mode: "RUNNING",
+  stop_external_actions: false,
+  compliance_status: "UNKNOWN",
+  publish_allowed: false,
+  publish_reason_code: "SHADOW_NO_COMMERCIAL_SEND",
+  publish_message: "SHADOW registra avaliações/previews, sem envio comercial",
+};
+
+export const inboxItemFixture = {
+  candidate_id: "cand_1",
+  candidate_state: "APPROVED",
+  marketplace: "MERCADO_LIVRE",
+  external_id: "MLB-REVIEW",
+  title: "Perfume",
+  current_price: "80.00",
+  original_price: null,
+  brand: "RADAR_BEAUTY",
+  deal_score: "100.00",
+  monetization_score: null,
+  confidence: "HIGH",
+  decision: "APPROVE",
+  main_reason: null,
+  opportunity_id: null,
+  opportunity_state: null,
+  ai_decision: "APPROVE",
+  human_decision: null,
+  created_at: "2026-10-06T12:00:00+00:00",
+  updated_at: "2026-10-06T12:00:00+00:00",
+};
+
+export const inboxFixture = {
+  schema_version: "1.0",
+  status: "OK",
+  correlation_id: "cid-inbox",
+  count: 1,
+  items: [inboxItemFixture],
+};
+
+export const humanReviewFixture = {
+  human_review_id: "hr_1",
+  candidate_id: "cand_1",
+  ai_review_id: "air_1",
+  ai_decision: "APPROVE",
+  human_decision: "REJECT",
+  reason: "Preço mudou",
+  note: null,
+  edited_content: null,
+  decision_matches_ai: false,
+  publication_authorized: false,
+  reviewed_at: "2026-10-06T12:00:00+00:00",
+  correlation_id: "cid-review",
+};
+
+export const detailFixture = {
+  schema_version: "1.0",
+  status: "OK",
+  candidate_id: "cand_1",
+  correlation_id: "cid-detail",
+  detail: {
+    candidate: {
+      candidate_id: "cand_1",
+      state: "APPROVED",
+      marketplace: "MERCADO_LIVRE",
+      external_id: "MLB-REVIEW",
+      title: "Perfume",
+      current_price: "80.00",
+      seller_name: "Loja",
+    },
+    evaluation: {
+      schema_version: "1.0",
+      status: "EVALUATED",
+      evaluation_id: "eval_1",
+      candidate_id: "cand_1",
+      brand: "RADAR_BEAUTY",
+      deal_score: "100.00",
+      monetization_score: null,
+      confidence: "HIGH",
+      decision: "APPROVE",
+      warnings: [],
+      failed_rules: [],
+      breakdown: {},
+      feature_snapshot: {},
+      scoring_version: "scoring-1.0",
+      taxonomy_version: "taxonomy-1.0",
+    },
+    price_history: [
+      {
+        price_observation_id: "po_1",
+        price: "80.00",
+        original_price: null,
+        shipping_cost: null,
+        source: "BROWSER_EXTENSION",
+        observed_at: "2026-10-06T12:00:00+00:00",
+        correlation_id: "cid-capture",
+        raw_capture_id: "raw_1",
+      },
+    ],
+    evidence: [
+      {
+        evidence_id: "evd_1",
+        entity_type: "offer",
+        entity_id: "offer_1",
+        field_name: "current_price",
+        value: "80.00",
+        source_type: "BROWSER_EXTENSION",
+        source_url: null,
+        captured_at: "2026-10-06T12:00:00+00:00",
+        confidence: null,
+        raw_reference: "raw_1",
+      },
+    ],
+    ai_reviews: [
+      {
+        schema_version: "1.0",
+        status: "OK",
+        ai_review_id: "air_1",
+        candidate_id: "cand_1",
+        evaluation_id: "eval_1",
+        task: "EDITORIAL_REVIEW",
+        provider: "fake",
+        model: "fake-1.0",
+        knowledge_version: "knowledge-1.0",
+        knowledge_hash: "hash",
+        prompt_version: "prompt-1.0",
+        decision: "APPROVE",
+        editorial_angle: "foco no preço",
+        reason_codes: [],
+        warnings: [],
+        allowed_claims: [],
+        input_snapshot: {},
+        approval_eligible: true,
+        audit_event_id: "aud_ai",
+        correlation_id: "cid-ai",
+        created_at: "2026-10-06T12:00:00+00:00",
+      },
+    ],
+    human_reviews: [],
+    opportunity: null,
+    opportunity_history: [],
+    timeline: [
+      {
+        event_type: "CAPTURE_RECEIVED",
+        entity_type: "candidate",
+        entity_id: "cand_1",
+        source: "capture",
+        correlation_id: "cid-capture",
+        recorded_at: "2026-10-06T12:00:00+00:00",
+        payload: {},
+      },
+      {
+        event_type: "AI_REVIEW_RECORDED",
+        entity_type: "ai_review",
+        entity_id: "air_1",
+        source: "ai",
+        correlation_id: "cid-ai",
+        recorded_at: "2026-10-06T12:01:00+00:00",
+        payload: {},
+      },
+    ],
+    versions: {
+      scoring_version: "scoring-1.0",
+      deal_scoring_version: "deal-1.0",
+      monetization_scoring_version: "money-1.0",
+      confidence_scoring_version: "confidence-1.0",
+      taxonomy_version: "taxonomy-1.0",
+      taxonomy_hash: "hash",
+      ai_knowledge_version: "knowledge-1.0",
+      ai_prompt_version: "prompt-1.0",
+    },
+    automation: automationFixture,
+  },
+};
+
+export const reviewResultFixture = {
+  schema_version: "1.0",
+  status: "RECORDED",
+  human_review: humanReviewFixture,
+  publication_authorized: false,
+  note: "Aprovação de Candidate não autoriza publicação.",
+  automation: automationFixture,
+  correlation_id: "cid-review",
+};

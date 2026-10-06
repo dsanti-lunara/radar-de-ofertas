@@ -395,6 +395,22 @@ Config inválida bloqueia a inicialização de CLI/API antes de qualquer comando
 (AUT-224, AUT-225). Secret ausente bloqueia somente a capability afetada; nunca
 expõe valor em mensagem, log ou contrato.
 
+## UI / Review
+
+Implementação TKT-26 (RDR-058..RDR-060): o Inbox/detail e a Human Review
+retornam o contrato estruturado com `correlation_id`. Uma decisão humana inválida,
+um `EDIT_CONTENT` sem payload, `reason` vazio, `schema_version` não suportada ou
+um `ai_review_id` de outro Candidate retornam `RAD-UI-001` (422) antes de qualquer
+escrita; Candidate inexistente no review retorna `RAD-UI-003` e HumanReview
+inexistente `RAD-UI-002` (404). Aprovar um Candidate nunca retorna
+`publication_authorized=true`.
+
+| Code | Meaning | Retry |
+|---|---|---|
+| RAD-UI-001 HUMAN_REVIEW_INPUT_INVALID | decisão/motivo/payload de review inválidos ou `ai_review_id` de outro Candidate | no |
+| RAD-UI-002 HUMAN_REVIEW_NOT_FOUND | HumanReview consultada não existe | no |
+| RAD-UI-003 REVIEW_CANDIDATE_NOT_FOUND | Candidate do Inbox/detail/review não existe | no |
+
 ## Regra
 
 Erros devem ser acionáveis:

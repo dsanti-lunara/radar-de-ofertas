@@ -64,6 +64,11 @@ from radar.domain.demand import DEMAND_INPUT_INVALID
 from radar.domain.errors import RadarError, RadarException
 from radar.domain.evaluation import EVALUATION_INPUT_INVALID
 from radar.domain.human_action import HUMAN_ACTION_NOT_FOUND
+from radar.domain.human_review import (
+    HUMAN_REVIEW_INPUT_INVALID,
+    HUMAN_REVIEW_NOT_FOUND,
+    REVIEW_CANDIDATE_NOT_FOUND,
+)
 from radar.domain.job import (
     JOB_INPUT_INVALID,
     JOB_LEASE_NOT_HELD,
@@ -133,6 +138,8 @@ def _error_status(error_code: str) -> int:
         AFFILIATE_LINK_NOT_FOUND,
         CONTENT_GENERATION_NOT_FOUND,
         PUBLICATION_NOT_FOUND,
+        HUMAN_REVIEW_NOT_FOUND,
+        REVIEW_CANDIDATE_NOT_FOUND,
     ):
         return 404
     if error_code in (
@@ -199,6 +206,7 @@ def _error_status(error_code: str) -> int:
         TRACKING_LABELS_INVALID,
         PUBLICATION_INPUT_INVALID,
         PUBLICATION_POLICY_INVALID,
+        HUMAN_REVIEW_INPUT_INVALID,
     ):
         return 422
     return 500
@@ -249,6 +257,10 @@ _CONTENT_PATH_SUFFIXES = ("/content-generations",)
 _PUBLICATION_PATH_PREFIXES = ("/publications",)
 _PUBLICATION_PATH_SUFFIXES = ("/publications",)
 
+#: Human review paths (``/candidates/{id}/human-reviews``, ``/human-reviews`` and ``/review``).
+_HUMAN_REVIEW_PATH_PREFIXES = ("/human-reviews", "/review")
+_HUMAN_REVIEW_PATH_SUFFIXES = ("/human-reviews", "/human-review")
+
 
 def _is_job_path(request: Request) -> bool:
     return request.url.path.startswith(_JOB_PATH_PREFIXES)
@@ -293,6 +305,13 @@ def _is_publication_path(request: Request) -> bool:
     return path.startswith(_PUBLICATION_PATH_PREFIXES) or path.endswith(_PUBLICATION_PATH_SUFFIXES)
 
 
+def _is_human_review_path(request: Request) -> bool:
+    path = request.url.path
+    return path.startswith(_HUMAN_REVIEW_PATH_PREFIXES) or path.endswith(
+        _HUMAN_REVIEW_PATH_SUFFIXES
+    )
+
+
 def _validation_error(request: Request, exc: RequestValidationError) -> JSONResponse:
     errors = exc.errors()
     sensitive = [item for item in errors if item.get("type") == SENSITIVE_FIELD_ERROR_TYPE]
@@ -305,6 +324,7 @@ def _validation_error(request: Request, exc: RequestValidationError) -> JSONResp
     affiliate_link_path = _is_affiliate_link_path(request)
     content_path = _is_content_path(request)
     publication_path = _is_publication_path(request)
+    human_review_path = _is_human_review_path(request)
     workflow_path = (
         schedule_path
         or job_path
@@ -315,8 +335,12 @@ def _validation_error(request: Request, exc: RequestValidationError) -> JSONResp
         or affiliate_link_path
         or content_path
         or publication_path
+        or human_review_path
     )
-    if publication_path:
+    if human_review_path:
+        workflow_code = HUMAN_REVIEW_INPUT_INVALID
+        workflow_label = "human review"
+    elif publication_path:
         workflow_code = PUBLICATION_INPUT_INVALID
         workflow_label = "publication"
     elif content_path:
